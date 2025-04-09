@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { User, UserRole } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
@@ -10,38 +11,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User | null) => void;
+  isFirstLogin: boolean;
 }
-
-// Mock users for demo purposes
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    email: 'admin@school.edu',
-    full_name: 'Admin User',
-    role: 'admin',
-    is_first_login: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    email: 'teacher@school.edu',
-    full_name: 'Teacher User',
-    role: 'teacher',
-    is_first_login: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    email: 'student@school.edu',
-    full_name: 'Student User',
-    role: 'student',
-    is_first_login: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -50,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: () => {},
   setUser: () => {},
+  isFirstLogin: false,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -57,14 +29,17 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isFirstLogin, setIsFirstLogin] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for stored user in localStorage (for demo purposes)
+    // Check for stored user in localStorage (for session persistence)
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setIsFirstLogin(parsedUser.is_first_login);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('user');
@@ -76,18 +51,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API request delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use Supabase RPC to authenticate user
+      const { data, error } = await supabase.rpc('authenticate_user', {
+        p_email: email,
+        p_password: password
+      });
       
-      // Find the user with the matching email (for demo)
-      const matchedUser = MOCK_USERS.find(u => u.email === email);
+      if (error) throw error;
       
-      if (matchedUser && password === 'password') { // Simple password check for demo
-        setUser(matchedUser);
-        localStorage.setItem('user', JSON.stringify(matchedUser));
+      if (data && data.length > 0) {
+        const userData = data[0];
+        const authenticatedUser: User = {
+          id: userData.id,
+          email: userData.email,
+          full_name: userData.full_name,
+          role: userData.role as UserRole,
+          is_first_login: userData.is_first_login,
+          created_at: new Date().toISOString(), // We don't get this from the function
+          updated_at: new Date().toISOString()  // We don't get this from the function
+        };
+        
+        setUser(authenticatedUser);
+        setIsFirstLogin(authenticatedUser.is_first_login);
+        localStorage.setItem('user', JSON.stringify(authenticatedUser));
+        
         toast({
           title: "Login successful",
-          description: `Welcome back, ${matchedUser.full_name}!`,
+          description: `Welcome back, ${authenticatedUser.full_name}!`,
         });
       } else {
         throw new Error('Invalid credentials');
@@ -107,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    setIsFirstLogin(false);
     localStorage.removeItem('user');
     toast({
       title: "Logged out",
@@ -123,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         logout,
         setUser,
+        isFirstLogin,
       }}
     >
       {children}

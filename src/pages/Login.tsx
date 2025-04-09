@@ -122,20 +122,13 @@ const Login = () => {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Demo Accounts (password: "password" for all)
+            Demo Account (default admin)
           </p>
-          <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-gray-500">
+          <div className="grid grid-cols-1 gap-2 mt-2 text-xs text-gray-500">
             <div className="bg-gray-50 rounded p-2">
               <div className="font-medium">Admin</div>
-              <div>admin@school.edu</div>
-            </div>
-            <div className="bg-gray-50 rounded p-2">
-              <div className="font-medium">Teacher</div>
-              <div>teacher@school.edu</div>
-            </div>
-            <div className="bg-gray-50 rounded p-2">
-              <div className="font-medium">Student</div>
-              <div>student@school.edu</div>
+              <div>admin@ims.edu</div>
+              <div className="text-gray-400 text-xs">Password: Admin@IMS2023</div>
             </div>
           </div>
         </div>

@@ -389,6 +389,7 @@ export type Database = {
           guardian_contact: string | null
           guardian_name: string | null
           id: string
+          last_payment_date: string | null
           total_fees_due: number | null
           total_fees_paid: number | null
           updated_at: string
@@ -408,6 +409,7 @@ export type Database = {
           guardian_contact?: string | null
           guardian_name?: string | null
           id?: string
+          last_payment_date?: string | null
           total_fees_due?: number | null
           total_fees_paid?: number | null
           updated_at?: string
@@ -427,6 +429,7 @@ export type Database = {
           guardian_contact?: string | null
           guardian_name?: string | null
           id?: string
+          last_payment_date?: string | null
           total_fees_due?: number | null
           total_fees_paid?: number | null
           updated_at?: string
