@@ -51,16 +51,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      console.log(`Attempting to login with email: ${email}`);
+
       // Use Supabase RPC to authenticate user
       const { data, error } = await supabase.rpc('authenticate_user', {
         p_email: email,
         p_password: password
       });
       
-      if (error) throw error;
+      console.log("Authentication response:", data, error);
+      
+      if (error) {
+        console.error("Authentication error:", error);
+        throw error;
+      }
       
       if (data && data.length > 0) {
         const userData = data[0];
+        console.log("User data:", userData);
+        
         const authenticatedUser: User = {
           id: userData.id,
           email: userData.email,
@@ -80,9 +89,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           description: `Welcome back, ${authenticatedUser.full_name}!`,
         });
       } else {
+        console.error("No user data returned");
         throw new Error('Invalid credentials');
       }
     } catch (error) {
+      console.error("Login error:", error);
       const message = error instanceof Error ? error.message : 'Failed to login';
       toast({
         title: "Login failed",

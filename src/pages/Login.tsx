@@ -29,6 +29,7 @@ const Login = () => {
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,11 +42,18 @@ const Login = () => {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setError(null);
+      console.log("Attempting login with:", data.email);
       await login(data.email, data.password);
       navigate("/");
     } catch (err) {
+      console.error("Login error:", err);
       setError("Invalid email or password. Please try again.");
     }
+  };
+
+  const handleDemoLogin = () => {
+    form.setValue("email", "admin@ims.edu");
+    form.setValue("password", "Admin@IMS2023");
   };
 
   return (
@@ -99,7 +107,7 @@ const Login = () => {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                       autoComplete="current-password"
                       {...field}
@@ -131,6 +139,13 @@ const Login = () => {
               <div className="text-gray-400 text-xs">Password: Admin@IMS2023</div>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            className="mt-2 text-xs"
+            onClick={handleDemoLogin}
+          >
+            Auto-fill demo credentials
+          </Button>
         </div>
       </div>
     </div>
