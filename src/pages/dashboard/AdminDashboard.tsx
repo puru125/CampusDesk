@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { 
   Users, 
   GraduationCap, 
@@ -8,22 +9,25 @@ import {
   CreditCard
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import StatCard from "@/components/dashboard/StatCard";
 import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Mock data
-const stats = [
-  { title: "Total Students", value: 1256, icon: GraduationCap, trend: "up" as const, changePercentage: 12, trendText: "from last month" },
-  { title: "Total Teachers", value: 84, icon: Users, trend: "up" as const, changePercentage: 4, trendText: "from last month" },
-  { title: "Active Courses", value: 32, icon: BookOpen, trend: "neutral" as const, trendText: "No change" },
-  { title: "Pending Enrollments", value: 47, icon: AlertTriangle, trend: "down" as const, changePercentage: 6, trendText: "from last week" },
-  { title: "Upcoming Exams", value: 18, icon: Calendar, trend: "up" as const, changePercentage: 8, trendText: "from last month" },
-  { title: "Fee Collection", value: "₹4.2L", icon: CreditCard, trend: "up" as const, changePercentage: 15, trendText: "from last month" },
-];
+// Types for dashboard stats
+interface DashboardStats {
+  total_students: number;
+  total_teachers: number;
+  active_courses: number;
+  pending_enrollments: number;
+  upcoming_exams: number;
+  recent_fee_collections: number;
+}
 
+// Mock data for recent activities and pending tasks
 const recentActivities = [
   {
     id: "1",
@@ -68,6 +72,88 @@ const pendingTasks = [
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+  
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.rpc("get_admin_dashboard_stats");
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        setStats(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch dashboard statistics",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Create stat cards based on API data or fallback to defaults
+  const statCards = [
+    { 
+      title: "Total Students", 
+      value: stats?.total_students ?? 0, 
+      icon: GraduationCap, 
+      trend: "up" as const, 
+      changePercentage: 12, 
+      trendText: "from last month" 
+    },
+    { 
+      title: "Total Teachers", 
+      value: stats?.total_teachers ?? 0, 
+      icon: Users, 
+      trend: "up" as const, 
+      changePercentage: 4, 
+      trendText: "from last month" 
+    },
+    { 
+      title: "Active Courses", 
+      value: stats?.active_courses ?? 0, 
+      icon: BookOpen, 
+      trend: "neutral" as const, 
+      trendText: "No change" 
+    },
+    { 
+      title: "Pending Enrollments", 
+      value: stats?.pending_enrollments ?? 0, 
+      icon: AlertTriangle, 
+      trend: "down" as const, 
+      changePercentage: 6, 
+      trendText: "from last week" 
+    },
+    { 
+      title: "Upcoming Exams", 
+      value: stats?.upcoming_exams ?? 0, 
+      icon: Calendar, 
+      trend: "up" as const, 
+      changePercentage: 8, 
+      trendText: "from last month" 
+    },
+    { 
+      title: "Fee Collection", 
+      value: stats?.recent_fee_collections ? `₹${(stats.recent_fee_collections/1000).toFixed(1)}K` : "₹0", 
+      icon: CreditCard, 
+      trend: "up" as const, 
+      changePercentage: 15, 
+      trendText: "from last month" 
+    },
+  ];
   
   return (
     <div>
@@ -79,19 +165,31 @@ const AdminDashboard = () => {
         <Button onClick={() => navigate("/teachers/new")}>Add Teacher</Button>
       </PageHeader>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-        {stats.map((stat, index) => (
-          <StatCard
-            key={index}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            trend={stat.trend}
-            changePercentage={stat.changePercentage}
-            trendText={stat.trendText}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {[...Array(6)].map((_, index) => (
+            <Card key={index} className="h-28 animate-pulse">
+              <CardContent className="p-6">
+                <div className="h-full bg-gray-200 rounded-md"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {statCards.map((stat, index) => (
+            <StatCard
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              trend={stat.trend}
+              changePercentage={stat.changePercentage}
+              trendText={stat.trendText}
+            />
+          ))}
+        </div>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

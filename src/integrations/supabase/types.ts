@@ -610,6 +610,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_student: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_date_of_birth: string
+          p_contact_number?: string
+          p_address?: string
+          p_guardian_name?: string
+          p_guardian_contact?: string
+        }
+        Returns: string
+      }
+      add_teacher: {
+        Args: {
+          p_email: string
+          p_full_name: string
+          p_department: string
+          p_specialization: string
+          p_qualification: string
+          p_contact_number?: string
+          p_joining_date?: string
+        }
+        Returns: string
+      }
       approve_payment: {
         Args: {
           p_admin_id: string
@@ -641,6 +665,50 @@ export type Database = {
       create_user_with_default_password: {
         Args: { p_email: string; p_full_name: string; p_role: string }
         Returns: string
+      }
+      get_admin_dashboard_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_students: number
+          total_teachers: number
+          active_courses: number
+          pending_enrollments: number
+          upcoming_exams: number
+          recent_fee_collections: number
+        }[]
+      }
+      get_all_students: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_id: string
+          email: string
+          full_name: string
+          enrollment_number: string
+          date_of_birth: string
+          enrollment_date: string
+          enrollment_status: string
+          contact_number: string
+          address: string
+          fee_status: string
+          created_at: string
+        }[]
+      }
+      get_all_teachers: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          user_id: string
+          email: string
+          full_name: string
+          employee_id: string
+          department: string
+          specialization: string
+          qualification: string
+          joining_date: string
+          contact_number: string
+          created_at: string
+        }[]
       }
       initialize_system: {
         Args: Record<PropertyKey, never>
