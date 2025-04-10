@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -12,76 +13,63 @@ import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import StudentNotificationsList from "@/components/student/StudentNotificationsList";
 import { useToast } from "@/hooks/use-toast";
 
-// Sample activities data
-const sampleActivities = [
-  {
-    id: "1",
-    title: "Assignment Submitted",
-    description: "Data Structures assignment submitted successfully",
-    time: "2:30 PM",
-    date: "Today",
-    user: "You"
-  },
-  {
-    id: "2",
-    title: "Exam Result Published",
-    description: "Mid-term examination results have been published",
-    time: "11:00 AM",
-    date: "Yesterday",
-    user: "Admin"
-  }
-];
+// Type for upcoming exams
+interface UpcomingExam {
+  id: string;
+  title: string;
+  subject_name: string;
+  exam_type: string;
+  exam_date: string;
+  start_time: string;
+  end_time: string;
+}
+
+// Type for enrolled courses
+interface EnrolledCourse {
+  id: string;
+  course_name: string;
+  course_code: string;
+  status: string;
+}
+
+// Type for activities
+interface Activity {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  date: string;
+  user: string;
+}
 
 const StudentDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [upcomingExams, setUpcomingExams] = useState([]);
-  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [upcomingExams, setUpcomingExams] = useState<UpcomingExam[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [hasUnpaidFees, setHasUnpaidFees] = useState(false);
-  const [studentProfile, setStudentProfile] = useState(null);
+  const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [attendanceStats, setAttendanceStats] = useState<any>(null);
   
-  // Placeholder for demo - would be replaced with actual data fetch
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
-    
-    // Check for unpaid fees
     if (user) {
-      checkFeeStatus();
-      fetchStudentProfile();
-    }
-  }, [user]);
-  
-  const checkFeeStatus = async () => {
-    try {
-      const { data: student, error } = await extendedSupabase
-        .from('students')
-        .select('fee_status, total_fees_due, total_fees_paid')
-        .eq('user_id', user?.id)
-        .single();
-        
-      if (error) throw error;
-      
-      if (student) {
-        setHasUnpaidFees(
-          student.fee_status === 'pending' || 
-          student.fee_status === 'partial' ||
-          (student.total_fees_due > student.total_fees_paid)
-        );
-      }
-    } catch (error) {
-      console.error("Error checking fee status:", error);
-      toast({
-        title: "Error",
-        description: "Could not retrieve fee status information",
-        variant: "destructive",
+      Promise.all([
+        fetchStudentProfile(),
+        fetchUpcomingExams(),
+        fetchEnrolledCourses(),
+        checkFeeStatus(),
+        fetchAttendanceStats()
+      ]).then(() => {
+        setLoading(false);
+      }).catch(error => {
+        console.error("Error fetching dashboard data:", error);
+        setLoading(false);
       });
     }
-  };
+  }, [user]);
   
   const fetchStudentProfile = async () => {
     try {
@@ -119,6 +107,8 @@ const StudentDashboard = () => {
           });
         }
       }
+      
+      return data;
     } catch (error) {
       console.error("Error fetching student profile:", error);
       toast({
@@ -126,6 +116,135 @@ const StudentDashboard = () => {
         description: "Could not retrieve student profile information",
         variant: "destructive",
       });
+      return null;
+    }
+  };
+  
+  const fetchUpcomingExams = async () => {
+    try {
+      // This is a placeholder - replace with actual exam data fetch when available
+      const { data, error } = await extendedSupabase
+        .from('exams')
+        .select(`
+          id,
+          title,
+          exam_date,
+          start_time,
+          end_time,
+          subjects:subject_id (name)
+        `)
+        .gte('exam_date', new Date().toISOString().split('T')[0])
+        .order('exam_date', { ascending: true })
+        .limit(5);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const formattedExams: UpcomingExam[] = data.map(exam => ({
+          id: exam.id,
+          title: exam.title,
+          subject_name: exam.subjects?.name || 'Unknown Subject',
+          exam_type: exam.title.includes('Mid') ? 'Mid-semester' : 'Final',
+          exam_date: exam.exam_date,
+          start_time: exam.start_time,
+          end_time: exam.end_time
+        }));
+        
+        setUpcomingExams(formattedExams);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error fetching upcoming exams:", error);
+      return [];
+    }
+  };
+  
+  const fetchEnrolledCourses = async () => {
+    try {
+      if (!studentProfile?.id) return [];
+      
+      const { data, error } = await extendedSupabase
+        .from('student_course_enrollments')
+        .select(`
+          id,
+          status,
+          courses:course_id (
+            id,
+            name,
+            code
+          )
+        `)
+        .eq('student_id', studentProfile.id)
+        .limit(10);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const formattedCourses: EnrolledCourse[] = data.map(enrollment => ({
+          id: enrollment.id,
+          course_name: enrollment.courses?.name || 'Unknown Course',
+          course_code: enrollment.courses?.code || 'N/A',
+          status: enrollment.status
+        }));
+        
+        setEnrolledCourses(formattedCourses);
+        return formattedCourses.length;
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error("Error fetching enrolled courses:", error);
+      return 0;
+    }
+  };
+  
+  const fetchAttendanceStats = async () => {
+    try {
+      if (!studentProfile?.id) return null;
+      
+      // This would be replaced with actual attendance calculation
+      // For now, returning a placeholder value
+      setAttendanceStats({
+        overall_percentage: 92
+      });
+      
+      return {
+        overall_percentage: 92
+      };
+    } catch (error) {
+      console.error("Error fetching attendance stats:", error);
+      return null;
+    }
+  };
+  
+  const checkFeeStatus = async () => {
+    try {
+      const { data: student, error } = await extendedSupabase
+        .from('students')
+        .select('fee_status, total_fees_due, total_fees_paid')
+        .eq('user_id', user?.id)
+        .single();
+        
+      if (error) throw error;
+      
+      if (student) {
+        setHasUnpaidFees(
+          student.fee_status === 'pending' || 
+          student.fee_status === 'partial' ||
+          (student.total_fees_due > student.total_fees_paid)
+        );
+      }
+      
+      return student;
+    } catch (error) {
+      console.error("Error checking fee status:", error);
+      toast({
+        title: "Error",
+        description: "Could not retrieve fee status information",
+        variant: "destructive",
+      });
+      return null;
     }
   };
   
@@ -143,6 +262,12 @@ const StudentDashboard = () => {
   
   const goToAttendancePage = () => {
     navigate('/student/attendance');
+  };
+
+  const getRecentActivities = () => {
+    // In a real implementation, this would fetch from the database
+    // For now, we'll return an empty array or show a message that no activities exist
+    return [];
   };
 
   return (
@@ -217,7 +342,7 @@ const StudentDashboard = () => {
                   <div className="flex items-center">
                     <BookOpen className="h-8 w-8 text-blue-500" />
                     <div className="ml-3">
-                      <div className="text-2xl font-bold">3</div>
+                      <div className="text-2xl font-bold">{enrolledCourses.length || 0}</div>
                       <p className="text-xs text-gray-500">Enrolled courses</p>
                     </div>
                   </div>
@@ -235,7 +360,7 @@ const StudentDashboard = () => {
                   <div className="flex items-center">
                     <Calendar className="h-8 w-8 text-purple-500" />
                     <div className="ml-3">
-                      <div className="text-2xl font-bold">2</div>
+                      <div className="text-2xl font-bold">{upcomingExams.length}</div>
                       <p className="text-xs text-gray-500">Scheduled exams</p>
                     </div>
                   </div>
@@ -253,7 +378,7 @@ const StudentDashboard = () => {
                   <div className="flex items-center">
                     <Clock className="h-8 w-8 text-green-500" />
                     <div className="ml-3">
-                      <div className="text-2xl font-bold">92%</div>
+                      <div className="text-2xl font-bold">{attendanceStats?.overall_percentage || 'N/A'}%</div>
                       <p className="text-xs text-gray-500">Overall attendance</p>
                     </div>
                   </div>
@@ -276,39 +401,33 @@ const StudentDashboard = () => {
                     <div key={i} className="p-3 border rounded-md animate-pulse bg-gray-50 h-20"></div>
                   ))}
                 </div>
-              ) : (
+              ) : upcomingExams.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="p-3 border rounded-md bg-white">
-                    <div className="flex justify-between">
-                      <div>
-                        <h4 className="font-medium">Data Structures & Algorithms</h4>
-                        <p className="text-sm text-gray-500">Mid-semester exam</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span className="text-sm">Oct 15, 2023</span>
+                  {upcomingExams.map((exam) => (
+                    <div key={exam.id} className="p-3 border rounded-md bg-white">
+                      <div className="flex justify-between">
+                        <div>
+                          <h4 className="font-medium">{exam.subject_name}</h4>
+                          <p className="text-sm text-gray-500">{exam.title}</p>
                         </div>
-                        <Badge variant="outline" className="mt-1">10:00 AM - 12:00 PM</Badge>
+                        <div className="text-right">
+                          <div className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            <span className="text-sm">
+                              {new Date(exam.exam_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="mt-1">
+                            {exam.start_time} - {exam.end_time}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="p-3 border rounded-md bg-white">
-                    <div className="flex justify-between">
-                      <div>
-                        <h4 className="font-medium">Operating Systems</h4>
-                        <p className="text-sm text-gray-500">Quiz 2</p>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span className="text-sm">Oct 18, 2023</span>
-                        </div>
-                        <Badge variant="outline" className="mt-1">2:00 PM - 3:00 PM</Badge>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500">No upcoming exams scheduled</p>
                 </div>
               )}
               
@@ -321,7 +440,20 @@ const StudentDashboard = () => {
           </Card>
           
           {/* Recent activity section */}
-          <RecentActivityCard activities={sampleActivities} />
+          {activities.length > 0 ? (
+            <RecentActivityCard activities={activities} />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-6">
+                  <p className="text-gray-500">No recent activities</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
         
         {/* Sidebar content - 1/3 width on medium screens and up */}
@@ -349,11 +481,19 @@ const StudentDashboard = () => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Program</span>
-                  <span className="font-medium">Bachelor of Computer Science</span>
+                  <span className="font-medium">
+                    {enrolledCourses.length > 0 ? 
+                      enrolledCourses[0].course_name : 
+                      'No program enrolled'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Batch</span>
-                  <span className="font-medium">2022-2026</span>
+                  <span className="font-medium">
+                    {studentProfile?.enrollment_date ? 
+                      `${new Date(studentProfile.enrollment_date).getFullYear()}-${new Date(studentProfile.enrollment_date).getFullYear() + 4}` : 
+                      'N/A'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Contact</span>
@@ -362,7 +502,7 @@ const StudentDashboard = () => {
               </div>
               
               <div className="mt-4 pt-4 border-t">
-                <Button variant="outline" size="sm" className="w-full">
+                <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/student/profile')}>
                   Edit Profile
                 </Button>
               </div>

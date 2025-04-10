@@ -201,8 +201,7 @@ const TeachersPage = () => {
                 {filteredTeachers.map((teacher) => (
                   <TableRow 
                     key={teacher.id}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => navigate(`/teachers/${teacher.id}`)}
+                    className="hover:bg-gray-50"
                   >
                     <TableCell>
                       <div className="font-medium">{teacher.full_name}</div>
