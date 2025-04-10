@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, ArrowLeft, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -40,6 +40,7 @@ import { studentSchema, StudentFormValues } from "@/lib/validation-rules";
 const AddStudentPage = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<StudentFormValues>({
@@ -47,6 +48,7 @@ const AddStudentPage = () => {
     defaultValues: {
       fullName: "",
       email: "",
+      password: "",
       dateOfBirth: new Date(2000, 0, 1),
       contactNumber: "",
       address: "",
@@ -67,8 +69,8 @@ const AddStudentPage = () => {
           full_name: data.fullName,
           role: 'student',
           is_first_login: true,
-          // Default password will be set by database trigger
-          password_hash: 'placeholder_will_be_replaced_by_trigger'
+          // Use provided password instead of default
+          password_hash: data.password
         })
         .select('id')
         .single();
@@ -130,8 +132,7 @@ const AddStudentPage = () => {
         <CardHeader>
           <CardTitle>Student Information</CardTitle>
           <CardDescription>
-            Enter the student's personal and contact details. Default credentials will be
-            generated automatically.
+            Enter the student's personal and contact details. The password set here will be used for portal access.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
@@ -169,6 +170,38 @@ const AddStudentPage = () => {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter password"
+                            {...field}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-10 w-10"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                      <FormDescription>
+                        This password will be used for portal access. Student will be prompted to change it on first login.
+                      </FormDescription>
                     </FormItem>
                   )}
                 />

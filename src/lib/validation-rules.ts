@@ -1,161 +1,102 @@
 
-import * as z from "zod";
+import { z } from "zod";
 
-// Common validation patterns
-export const PATTERNS = {
-  PHONE: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-  EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-  NAME: /^[a-zA-Z\s'-]{2,}$/,
-  ENROLLMENT_NUMBER: /^[A-Za-z][0-9]{8,}$/,
-  EMPLOYEE_ID: /^[A-Za-z][0-9]{8,}$/,
-};
-
-// Common validation error messages
-export const ERROR_MESSAGES = {
-  REQUIRED: "This field is required",
-  PHONE: "Please enter a valid phone number",
-  EMAIL: "Please enter a valid email address",
-  NAME: "Please enter a valid name (letters, spaces, hyphens and apostrophes only)",
-  DATE: "Please enter a valid date",
-  LENGTH_MIN: (field: string, min: number) => `${field} must be at least ${min} characters`,
-  LENGTH_MAX: (field: string, max: number) => `${field} must be less than ${max} characters`,
-};
-
-// Reusable schema parts
-export const commonSchemas = {
-  fullName: z
-    .string()
-    .min(3, { message: ERROR_MESSAGES.LENGTH_MIN("Full name", 3) })
-    .max(100, { message: ERROR_MESSAGES.LENGTH_MAX("Full name", 100) })
-    .regex(PATTERNS.NAME, { message: ERROR_MESSAGES.NAME }),
-  
-  email: z
-    .string()
-    .email({ message: ERROR_MESSAGES.EMAIL })
-    .max(100, { message: ERROR_MESSAGES.LENGTH_MAX("Email", 100) }),
-  
-  contactNumber: z
-    .string()
-    .regex(PATTERNS.PHONE, { message: ERROR_MESSAGES.PHONE })
-    .optional()
-    .or(z.literal("")),
-  
-  requiredText: (fieldName: string, min = 2, max = 100) => 
-    z.string()
-      .min(min, { message: ERROR_MESSAGES.LENGTH_MIN(fieldName, min) })
-      .max(max, { message: ERROR_MESSAGES.LENGTH_MAX(fieldName, max) }),
-  
-  optionalText: (fieldName: string, min = 2, max = 100) => 
-    z.string()
-      .min(min, { message: ERROR_MESSAGES.LENGTH_MIN(fieldName, min) })
-      .max(max, { message: ERROR_MESSAGES.LENGTH_MAX(fieldName, max) })
-      .optional()
-      .or(z.literal("")),
-  
-  date: z.date({
-    required_error: ERROR_MESSAGES.REQUIRED,
-    invalid_type_error: ERROR_MESSAGES.DATE,
-  }),
-  
-  address: z
-    .string()
-    .min(5, { message: ERROR_MESSAGES.LENGTH_MIN("Address", 5) })
-    .max(200, { message: ERROR_MESSAGES.LENGTH_MAX("Address", 200) })
-    .optional()
-    .or(z.literal("")),
-};
-
-// Student form validation schema
-export const studentSchema = z.object({
-  fullName: commonSchemas.fullName,
-  email: commonSchemas.email,
-  dateOfBirth: commonSchemas.date,
-  contactNumber: commonSchemas.contactNumber,
-  address: commonSchemas.address,
-  guardianName: commonSchemas.optionalText("Guardian name", 3, 100),
-  guardianContact: z
-    .string()
-    .regex(PATTERNS.PHONE, { message: ERROR_MESSAGES.PHONE })
-    .optional()
-    .or(z.literal("")),
-});
-
-// Teacher form validation schema
-export const teacherSchema = z.object({
-  fullName: commonSchemas.fullName,
-  email: commonSchemas.email,
-  department: commonSchemas.requiredText("Department"),
-  specialization: commonSchemas.requiredText("Specialization"),
-  qualification: commonSchemas.requiredText("Qualification"),
-  joiningDate: commonSchemas.date,
-  contactNumber: commonSchemas.contactNumber,
-});
-
-// Course validation schema
+// Course validation
 export const courseSchema = z.object({
-  name: commonSchemas.requiredText("Course name", 3, 100),
-  code: z.string().min(2, { message: ERROR_MESSAGES.LENGTH_MIN("Course code", 2) })
-    .max(20, { message: ERROR_MESSAGES.LENGTH_MAX("Course code", 20) }),
-  credits: z.number().min(1, { message: "Credits must be at least 1" })
-    .max(10, { message: "Credits must be at most 10" }),
-  description: commonSchemas.optionalText("Description", 10, 500),
-  department: z.string().optional()
+  name: z.string().min(3, "Course name is required and must be at least 3 characters"),
+  code: z.string().min(2, "Course code is required"),
+  description: z.string().optional(),
+  credits: z.number().min(1, "Credits must be at least 1"),
+  departmentId: z.string().optional(),
+  duration: z.string().min(1, "Duration is required"),
 });
 
-// Timetable entry validation schema
-export const timetableEntrySchema = z.object({
-  class_id: z.string({ required_error: "Please select a class" }),
-  subject_id: z.string({ required_error: "Please select a subject" }),
-  teacher_id: z.string({ required_error: "Please select a teacher" }),
-  day_of_week: z.string({ required_error: "Please select a day" }),
-  start_time: z.string({ required_error: "Please select a start time" }),
-  end_time: z.string({ required_error: "Please select an end time" }),
+export type CourseFormValues = z.infer<typeof courseSchema>;
+
+// Subject validation
+export const subjectSchema = z.object({
+  name: z.string().min(3, "Subject name is required and must be at least 3 characters"),
+  code: z.string().min(2, "Subject code is required"),
+  description: z.string().optional(),
+  credits: z.number().min(1, "Credits must be at least 1"),
+  courseId: z.string().min(1, "Course is required"),
 });
 
-// Exam validation schema
+export type SubjectFormValues = z.infer<typeof subjectSchema>;
+
+// Teacher validation
+export const teacherSchema = z.object({
+  fullName: z.string().min(3, "Full name is required and must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  department: z.string().min(2, "Department is required"),
+  specialization: z.string().min(2, "Specialization is required"),
+  qualification: z.string().min(2, "Qualification is required"),
+  contactNumber: z.string().optional(),
+  joiningDate: z.date(),
+});
+
+export type TeacherFormValues = z.infer<typeof teacherSchema>;
+
+// Student validation
+export const studentSchema = z.object({
+  fullName: z.string().min(3, "Full name is required and must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  dateOfBirth: z.date(),
+  contactNumber: z.string().optional(),
+  address: z.string().optional(),
+  guardianName: z.string().optional(),
+  guardianContact: z.string().optional(),
+});
+
+export type StudentFormValues = z.infer<typeof studentSchema>;
+
+// Fee Structure validation
+export const feeStructureSchema = z.object({
+  courseId: z.string().optional(),
+  academicYear: z.string().min(4, "Academic year is required"),
+  semester: z.number().optional(),
+  feeType: z.string().min(2, "Fee type is required"),
+  amount: z.number().positive("Amount must be greater than 0"),
+});
+
+export type FeeStructureFormValues = z.infer<typeof feeStructureSchema>;
+
+// Exam validation
 export const examSchema = z.object({
-  title: z.string().min(3, "Exam title must be at least 3 characters"),
-  subject_id: z.string({ required_error: "Please select a subject" }),
-  exam_date: z.date({ required_error: "Please select a date" }),
-  start_time: z.string({ required_error: "Please select a start time" }),
-  end_time: z.string({ required_error: "Please select an end time" }),
+  title: z.string().min(3, "Title is required"),
+  subjectId: z.string().min(1, "Subject is required"),
+  examDate: z.date(),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
   room: z.string().optional(),
   description: z.string().optional(),
-  max_marks: z.number().min(1, "Maximum marks must be at least 1"),
-  passing_marks: z.number().min(1, "Passing marks must be at least 1"),
+  maxMarks: z.number().positive("Maximum marks must be greater than 0"),
+  passingMarks: z.number().positive("Passing marks must be greater than 0"),
 });
 
-// Exam result validation schema
-export const examResultSchema = z.object({
-  exam_id: z.string(),
-  student_id: z.string(),
-  marks_obtained: z.number().min(0, "Marks cannot be negative"),
-  remarks: z.string().optional(),
-  status: z.enum(["pass", "fail", "absent", "pending"]),
-});
-
-// Fee payment validation schema
-export const feePaymentSchema = z.object({
-  amount: z.number().min(1, { message: "Amount must be greater than 0" }),
-  paymentMethod: z.enum(["cash", "credit_card", "bank_transfer", "online"], {
-    required_error: "Payment method is required"
-  }),
-  transactionId: z.string().optional().or(z.literal("")),
-  remarks: z.string().optional().or(z.literal(""))
-});
-
-// Year session schema for filters
-export const yearSessionSchema = z.object({
-  year: z.string().regex(/^\d{4}$/, { message: "Please enter a valid year" }).optional(),
-  session: z.string().optional(),
-});
-
-// Export types for the schemas
-export type StudentFormValues = z.infer<typeof studentSchema>;
-export type TeacherFormValues = z.infer<typeof teacherSchema>;
-export type CourseFormValues = z.infer<typeof courseSchema>;
-export type TimetableEntryFormValues = z.infer<typeof timetableEntrySchema>;
 export type ExamFormValues = z.infer<typeof examSchema>;
-export type ExamResultFormValues = z.infer<typeof examResultSchema>;
-export type FeePaymentValues = z.infer<typeof feePaymentSchema>;
-export type YearSessionValues = z.infer<typeof yearSessionSchema>;
+
+// Timetable entry validation
+export const timetableEntrySchema = z.object({
+  classId: z.string().min(1, "Class is required"),
+  subjectId: z.string().min(1, "Subject is required"),
+  teacherId: z.string().min(1, "Teacher is required"),
+  dayOfWeek: z.number().min(0).max(6, "Day of week must be between 0 and 6"),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"),
+});
+
+export type TimetableEntryFormValues = z.infer<typeof timetableEntrySchema>;
+
+// Payment validation
+export const paymentSchema = z.object({
+  studentId: z.string().min(1, "Student is required"),
+  feeStructureId: z.string().min(1, "Fee structure is required"),
+  amount: z.number().positive("Amount must be greater than 0"),
+  paymentMethod: z.string().min(1, "Payment method is required"),
+  transactionId: z.string().optional(),
+});
+
+export type PaymentFormValues = z.infer<typeof paymentSchema>;

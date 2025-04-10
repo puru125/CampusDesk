@@ -22,6 +22,8 @@ import TimetablePage from "./pages/timetable/TimetablePage";
 import AddTimetableEntryPage from "./pages/timetable/AddTimetableEntryPage";
 import ExamsPage from "./pages/exams/ExamsPage";
 import AddExamPage from "./pages/exams/AddExamPage";
+import SettingsPage from "./pages/settings/SettingsPage";
+import AdminProfilePage from "./pages/admin/AdminProfilePage";
 
 // Fee Management Pages
 import FeesPage from "./pages/fees/FeesPage";
@@ -200,6 +202,28 @@ const App = () => (
                 <ProtectedRoute>
                   <Shell>
                     <MakePaymentPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Settings Routes */}
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <SettingsPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/profile" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AdminProfilePage />
                   </Shell>
                 </ProtectedRoute>
               } 

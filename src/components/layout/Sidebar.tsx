@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Home,
@@ -15,16 +15,19 @@ import {
   ChevronRight,
   GraduationCap,
   School,
-  UserPlus
+  UserPlus,
+  UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Sidebar = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -57,6 +60,7 @@ const Sidebar = () => {
     { path: "/students", icon: GraduationCap, label: "Students" },
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/exams", icon: FileText, label: "Exams" },
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
   const studentLinks = [
@@ -67,6 +71,7 @@ const Sidebar = () => {
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },
     { path: "/notifications", icon: Bell, label: "Notifications" },
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
   let links;
@@ -84,10 +89,22 @@ const Sidebar = () => {
       links = [];
   }
 
+  const handleProfileClick = () => {
+    if (user.role === "admin") {
+      navigate("/admin/profile");
+    } else {
+      navigate("/settings");
+    }
+  };
+
+  const userInitials = user.full_name
+    ? user.full_name.split(" ").map(n => n[0]).join("")
+    : "U";
+
   return (
     <aside
       className={cn(
-        "bg-white border-r transition-all duration-300 flex flex-col",
+        "bg-white border-r transition-all duration-300 flex flex-col h-full",
         collapsed ? "w-[70px]" : "w-[250px]"
       )}
     >
@@ -109,7 +126,7 @@ const Sidebar = () => {
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </Button>
       </div>
-      <nav className="flex-1 py-4">
+      <nav className="flex-1 py-4 overflow-y-auto">
         <TooltipProvider delayDuration={0}>
           <ul className="space-y-1 px-2">
             {links.map((link) => {
@@ -146,6 +163,43 @@ const Sidebar = () => {
           </ul>
         </TooltipProvider>
       </nav>
+      <div className="p-4 border-t">
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full flex items-center justify-start p-2 rounded-md",
+                  collapsed && "justify-center"
+                )}
+                onClick={handleProfileClick}
+              >
+                <Avatar className="h-8 w-8 mr-2">
+                  <AvatarFallback className="bg-institute-600 text-white">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                {!collapsed && (
+                  <div className="text-left flex-1 overflow-hidden">
+                    <p className="text-sm font-medium truncate">{user.full_name}</p>
+                    <p className="text-xs text-gray-500 truncate capitalize">{user.role}</p>
+                  </div>
+                )}
+                {!collapsed && (
+                  <UserCog className="h-4 w-4 text-gray-500 ml-2" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            {collapsed && (
+              <TooltipContent side="right">
+                <p>{user.full_name}</p>
+                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+      </div>
     </aside>
   );
 };
