@@ -125,7 +125,7 @@ const StudentNotificationsList = ({ limit, showViewAll = true }: StudentNotifica
     // Handle notification actions based on title or content
     if (notification.title.toLowerCase().includes("enrollment approved") || 
         notification.message.toLowerCase().includes("fee payment")) {
-      navigate("/fees/make-payment");
+      navigate("/fees/payment/new");
     } else {
       // Just mark as read for other notifications
       markAsRead(notification.id);

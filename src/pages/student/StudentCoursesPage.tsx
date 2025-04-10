@@ -1,14 +1,28 @@
-import { useState, useEffect } from "react";
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Book, BookOpen, Clock, Calendar, Check, X, AlertCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -24,55 +38,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/lib/utils";
 
 interface Course {
   id: string;
   name: string;
-  code: string;
   description: string;
   credits: number;
-  duration: string;
-  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-interface EnrolledCourse {
+interface Enrollment {
   id: string;
+  student_id: string;
   course_id: string;
-  status: string;
   academic_year: string;
   semester: number;
-  courses: Course;
+  enrollment_date: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  course?: Course;
 }
+
+const getStatusBadgeVariant = (status: string): "default" | "destructive" | "success" | "outline" | "secondary" => {
+  switch (status.toLowerCase()) {
+    case 'approved':
+      return "success";
+    case 'rejected':
+      return "destructive";
+    case 'pending':
+      return "secondary"; // Instead of "warning"
+    default:
+      return "outline";
+  }
+};
 
 const StudentCoursesPage = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
-  
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("enrolled");
-  const [studentId, setStudentId] = useState<string | null>(null);
-  
-  const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [enrollmentYear, setEnrollmentYear] = useState<string>("");
-  const [enrollmentSemester, setEnrollmentSemester] = useState<string>("");
-  const [isEnrolling, setIsEnrolling] = useState(false);
-  const [dropDialogOpen, setDropDialogOpen] = useState(false);
-  const [selectedEnrollment, setSelectedEnrollment] = useState<EnrolledCourse | null>(null);
-  const [isDropping, setIsDropping] = useState(false);
+  const { toast } = useToast();
 
-  const currentYear = new Date().getFullYear();
-  const academicYears = [
-    `${currentYear-1}-${currentYear}`,
-    `${currentYear}-${currentYear+1}`,
-    `${currentYear+1}-${currentYear+2}`
-  ];
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isEnrollmentDialogOpen, setIsEnrollmentDialogOpen] = useState(false);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [academicYear, setAcademicYear] = useState("");
+  const [semester, setSemester] = useState<number | null>(null);
+  const [enrollmentDate, setEnrollmentDate] = useState<Date | undefined>(
+    new Date()
+  );
+  const [studentId, setStudentId] = useState<string | null>(null);
+
+  const academicYears = ["2023-2024", "2024-2025", "2025-2026"];
+  const semesters = [1, 2];
 
   useEffect(() => {
     if (user) {
@@ -82,446 +108,387 @@ const StudentCoursesPage = () => {
 
   useEffect(() => {
     if (studentId) {
-      fetchEnrolledCourses();
-      fetchAvailableCourses();
+      fetchCourses();
+      fetchEnrollments();
     }
   }, [studentId]);
 
   const fetchStudentId = async () => {
     try {
-      const { data: studentData, error: studentError } = await extendedSupabase
+      const { data, error } = await extendedSupabase
         .from('students')
         .select('id')
         .eq('user_id', user?.id)
         .single();
 
-      if (studentError) throw studentError;
+      if (error) throw error;
       
-      if (studentData) {
-        setStudentId(studentData.id);
+      if (data) {
+        setStudentId(data.id);
       }
     } catch (error) {
       console.error("Error fetching student ID:", error);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const { data, error } = await extendedSupabase
+        .from("courses")
+        .select("*")
+        .order("name");
+
+      if (error) {
+        throw error;
+      }
+
+      setCourses(data || []);
+    } catch (error) {
+      console.error("Error fetching courses:", error);
       toast({
         title: "Error",
-        description: "Could not fetch student information",
+        description: "Failed to fetch courses",
         variant: "destructive",
       });
     }
   };
 
-  const fetchEnrolledCourses = async () => {
+  const fetchEnrollments = async () => {
     try {
-      const { data, error } = await extendedSupabase
-        .from('student_course_enrollments')
-        .select(`
-          id, 
-          course_id, 
-          status, 
-          academic_year, 
-          semester,
-          courses:course_id (
-            id, name, code, description, credits, 
-            duration, is_active, created_at, updated_at
-          )
-        `)
-        .eq('student_id', studentId);
+      setLoading(true);
 
-      if (error) throw error;
-      setEnrolledCourses(data || []);
+      const { data, error } = await extendedSupabase
+        .from("student_course_enrollments")
+        .select(
+          `
+          id,
+          student_id,
+          course_id,
+          academic_year,
+          semester,
+          enrollment_date,
+          status,
+          created_at,
+          updated_at,
+          courses (
+            id,
+            name,
+            description,
+            credits
+          )
+        `
+        )
+        .eq("student_id", studentId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const formattedEnrollments: Enrollment[] = data.map((enrollment) => ({
+          id: enrollment.id,
+          student_id: enrollment.student_id,
+          course_id: enrollment.course_id,
+          academic_year: enrollment.academic_year,
+          semester: enrollment.semester,
+          enrollment_date: enrollment.enrollment_date,
+          status: enrollment.status,
+          created_at: enrollment.created_at,
+          updated_at: enrollment.updated_at,
+          course: enrollment.courses,
+        }));
+
+        setEnrollments(formattedEnrollments);
+      }
     } catch (error) {
-      console.error("Error fetching enrolled courses:", error);
+      console.error("Error fetching enrollments:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch enrollments",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchAvailableCourses = async () => {
-    try {
-      const { data, error } = await extendedSupabase
-        .from('courses')
-        .select('*')
-        .eq('is_active', true);
-
-      if (error) throw error;
-      setAvailableCourses(data || []);
-    } catch (error) {
-      console.error("Error fetching available courses:", error);
-    }
-  };
-
-  const openEnrollDialog = (course: Course) => {
-    setSelectedCourse(course);
-    setEnrollmentYear(academicYears[0]);
-    setEnrollmentSemester("1");
-    setEnrollDialogOpen(true);
-  };
-
-  const closeEnrollDialog = () => {
-    setSelectedCourse(null);
-    setEnrollDialogOpen(false);
-    setIsEnrolling(false);
-  };
-
-  const openDropDialog = (enrollment: EnrolledCourse) => {
-    if (enrollment.status === "active" || enrollment.status === "pending") {
-      setSelectedEnrollment(enrollment);
-      setDropDialogOpen(true);
-    } else {
-      toast({
-        title: "Cannot Drop Course",
-        description: `Courses with status "${enrollment.status}" cannot be dropped.`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const closeDropDialog = () => {
-    setSelectedEnrollment(null);
-    setDropDialogOpen(false);
-    setIsDropping(false);
-  };
-
-  const enrollInCourse = async () => {
-    if (!studentId || !selectedCourse || !enrollmentYear || !enrollmentSemester) {
-      toast({
-        title: "Incomplete Information",
-        description: "Please fill in all enrollment details",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isAlreadyEnrolled = enrolledCourses.some(
-      enrollment => 
-        enrollment.course_id === selectedCourse.id && 
-        enrollment.academic_year === enrollmentYear && 
-        enrollment.semester === parseInt(enrollmentSemester)
+  const openEnrollmentDialog = () => {
+    setAvailableCourses(
+      courses.filter(
+        (course) =>
+          !enrollments.find((enrollment) => enrollment.course_id === course.id)
+      )
     );
+    setIsEnrollmentDialogOpen(true);
+  };
 
-    if (isAlreadyEnrolled) {
+  const closeEnrollmentDialog = () => {
+    setIsEnrollmentDialogOpen(false);
+    setSelectedCourseId(null);
+    setAcademicYear("");
+    setSemester(null);
+    setEnrollmentDate(undefined);
+  };
+
+  const handleEnrollment = async () => {
+    if (
+      !selectedCourseId ||
+      !academicYear ||
+      !semester ||
+      !enrollmentDate ||
+      !studentId
+    ) {
       toast({
-        title: "Already Enrolled",
-        description: "You are already enrolled in this course for the selected academic year and semester",
+        title: "Error",
+        description: "Please fill in all the enrollment details.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsEnrolling(true);
-    try {
-      const { data, error } = await extendedSupabase.rpc(
-        'request_course_enrollment',
-        {
-          p_student_id: studentId,
-          p_course_id: selectedCourse.id,
-          p_academic_year: enrollmentYear,
-          p_semester: parseInt(enrollmentSemester)
-        }
-      );
-
-      if (error) throw error;
-
-      toast({
-        title: "Enrollment Requested",
-        description: "Your enrollment request has been submitted for approval",
-      });
-
-      fetchEnrolledCourses();
-      closeEnrollDialog();
-    } catch (error) {
-      console.error("Error enrolling in course:", error);
-      toast({
-        title: "Enrollment Failed",
-        description: "Could not enroll in the course. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsEnrolling(false);
-    }
-  };
-
-  const dropCourse = async () => {
-    if (!selectedEnrollment) return;
-
-    setIsDropping(true);
     try {
       const { error } = await extendedSupabase
-        .from('student_course_enrollments')
-        .delete()
-        .eq('id', selectedEnrollment.id);
+        .from("student_course_enrollments")
+        .insert({
+          student_id: studentId,
+          course_id: selectedCourseId,
+          academic_year: academicYear,
+          semester: semester,
+          enrollment_date: format(enrollmentDate, "yyyy-MM-dd"),
+          status: "pending",
+        });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      fetchEnrollments();
+      closeEnrollmentDialog();
 
       toast({
-        title: "Course Dropped",
-        description: "You have successfully dropped the course",
+        title: "Success",
+        description: "Enrollment request submitted successfully.",
       });
-
-      fetchEnrolledCourses();
-      closeDropDialog();
     } catch (error) {
-      console.error("Error dropping course:", error);
+      console.error("Error submitting enrollment:", error);
       toast({
-        title: "Failed to Drop Course",
-        description: "An error occurred while trying to drop the course",
+        title: "Error",
+        description: "Failed to submit enrollment request.",
         variant: "destructive",
       });
-    } finally {
-      setIsDropping(false);
     }
   };
 
-  const goToPayFees = () => {
-    navigate("/fees/make-payment");
-  };
+  const handleUnenroll = async (enrollmentId: string) => {
+    try {
+      const { error } = await extendedSupabase
+        .from("student_course_enrollments")
+        .delete()
+        .eq("id", enrollmentId);
 
-  const renderCourseCard = (course: Course, isEnrolled = false, enrollmentData?: Partial<EnrolledCourse>) => {
-    return (
-      <Card key={course.id} className="shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <CardTitle className="text-lg font-semibold">{course.name}</CardTitle>
-            <Badge variant={isEnrolled ? getStatusVariant(enrollmentData?.status) : "outline"}>
-              {isEnrolled ? enrollmentData?.status || "Enrolled" : "Available"}
-            </Badge>
-          </div>
-          <p className="text-sm text-gray-500">Code: {course.code}</p>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-700 mb-4 line-clamp-2">{course.description}</p>
-          
-          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-            <div className="flex items-center">
-              <Book className="h-3 w-3 mr-1" />
-              <span>Credits: {course.credits}</span>
-            </div>
-            <div className="flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>Duration: {course.duration}</span>
-            </div>
-            {isEnrolled && enrollmentData && (
-              <>
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>Year: {enrollmentData.academic_year}</span>
-                </div>
-                <div className="flex items-center">
-                  <BookOpen className="h-3 w-3 mr-1" />
-                  <span>Semester: {enrollmentData.semester}</span>
-                </div>
-              </>
-            )}
-          </div>
-          
-          {!isEnrolled && (
-            <Button 
-              size="sm" 
-              className="w-full mt-4"
-              onClick={() => openEnrollDialog(course)}
-            >
-              Enroll Now
-            </Button>
-          )}
-          
-          {isEnrolled && (
-            <div className="flex justify-between mt-4">
-              <Button size="sm" variant="outline" className="text-xs">
-                View Details
-              </Button>
-              
-              {enrollmentData?.status === "pending" && (
-                <Badge variant="secondary" className="bg-yellow-50">
-                  Pending Approval
-                </Badge>
-              )}
+      if (error) {
+        throw error;
+      }
 
-              {enrollmentData?.status === "approved" && (
-                <Button size="sm" className="text-xs" onClick={goToPayFees}>
-                  <AlertCircle className="h-3 w-3 mr-1" /> Pay Fees
-                </Button>
-              )}
-              
-              {(enrollmentData?.status === "active" || enrollmentData?.status === "pending") && (
-                <Button 
-                  size="sm" 
-                  variant="destructive" 
-                  className="text-xs"
-                  onClick={() => openDropDialog(enrollmentData as EnrolledCourse)}
-                >
-                  <X className="h-3 w-3 mr-1" /> Drop Course
-                </Button>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
+      fetchEnrollments();
 
-  const getStatusVariant = (status?: string) => {
-    switch (status) {
-      case "pending": return "secondary";
-      case "approved": return "secondary";
-      case "active": return "success";
-      case "rejected": return "destructive";
-      case "completed": return "success";
-      case "dropped": return "destructive";
-      default: return "secondary";
+      toast({
+        title: "Success",
+        description: "Unenrolled from course successfully.",
+      });
+    } catch (error) {
+      console.error("Error un-enrolling from course:", error);
+      toast({
+        title: "Error",
+        description: "Failed to un-enroll from course.",
+        variant: "destructive",
+      });
     }
   };
+
+  const filteredEnrollments = enrollments.filter((enrollment) =>
+    enrollment.course?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div>
+    <>
       <PageHeader
         title="My Courses"
         description="View and manage your course enrollments"
-        icon={BookOpen}
       />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="enrolled">Enrolled Courses</TabsTrigger>
-          <TabsTrigger value="available">Available Courses</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="enrolled" className="mt-6">
-          {loading ? (
-            <div className="text-center py-8">Loading enrolled courses...</div>
-          ) : enrolledCourses.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>You haven't enrolled in any courses yet.</p>
-              <Button 
-                onClick={() => setActiveTab("available")}
-                variant="outline" 
-                className="mt-4"
-              >
-                Browse Available Courses
-              </Button>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {enrolledCourses.map(enrollment => 
-                renderCourseCard(enrollment.courses, true, {
-                  id: enrollment.id,
-                  status: enrollment.status,
-                  academic_year: enrollment.academic_year,
-                  semester: enrollment.semester,
-                  course_id: enrollment.course_id
-                })
-              )}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="available" className="mt-6">
-          {availableCourses.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <BookOpen className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p>No courses are currently available for enrollment.</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {availableCourses
-                .filter(course => !enrolledCourses.some(ec => ec.course_id === course.id && (ec.status === "active" || ec.status === "pending")))
-                .map(course => renderCourseCard(course))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enroll in Course</DialogTitle>
-            <DialogDescription>
-              Complete the enrollment details below
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label htmlFor="course">Course</Label>
-              <div id="course" className="font-medium mt-1">
-                {selectedCourse?.name} ({selectedCourse?.code})
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="academic-year">Academic Year</Label>
-              <Select 
-                value={enrollmentYear}
-                onValueChange={setEnrollmentYear}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select academic year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {academicYears.map(year => (
-                    <SelectItem key={year} value={year}>{year}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="semester">Semester</Label>
-              <Select 
-                value={enrollmentSemester}
-                onValueChange={setEnrollmentSemester}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Semester 1</SelectItem>
-                  <SelectItem value="2">Semester 2</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Input
+              type="search"
+              placeholder="Search courses..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+          <Button onClick={openEnrollmentDialog}>Enroll in Course</Button>
+        </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={closeEnrollDialog} disabled={isEnrolling}>
-              Cancel
-            </Button>
-            <Button onClick={enrollInCourse} disabled={isEnrolling}>
-              {isEnrolling ? "Enrolling..." : "Enroll"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-institute-500"></div>
+          </div>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Course Enrollments</CardTitle>
+              <CardDescription>
+                Here are the courses you are enrolled in.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Course Name</TableHead>
+                    <TableHead>Credits</TableHead>
+                    <TableHead>Academic Year</TableHead>
+                    <TableHead>Semester</TableHead>
+                    <TableHead>Enrollment Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEnrollments.map((enrollment) => (
+                    <TableRow key={enrollment.id}>
+                      <TableCell className="font-medium">
+                        {enrollment.course?.name}
+                      </TableCell>
+                      <TableCell>{enrollment.course?.credits}</TableCell>
+                      <TableCell>{enrollment.academic_year}</TableCell>
+                      <TableCell>{enrollment.semester}</TableCell>
+                      <TableCell>
+                        {format(new Date(enrollment.enrollment_date), "PPP")}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={getStatusBadgeVariant(enrollment.status)}
+                          className={enrollment.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
+                        >
+                          {enrollment.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUnenroll(enrollment.id)}
+                        >
+                          Unenroll
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
-      <Dialog open={dropDialogOpen} onOpenChange={setDropDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Drop Course</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to drop this course? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedEnrollment && (
-            <div className="py-4">
-              <div className="font-medium">{selectedEnrollment.courses.name}</div>
-              <div className="text-sm text-gray-500">
-                {selectedEnrollment.academic_year}, Semester {selectedEnrollment.semester}
+        <Dialog open={isEnrollmentDialogOpen} onOpenChange={closeEnrollmentDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Enroll in a Course</DialogTitle>
+              <DialogDescription>
+                Select a course to enroll in for the current academic year.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="course" className="text-right">
+                  Course
+                </Label>
+                <Select
+                  id="course"
+                  value={selectedCourseId || ""}
+                  onValueChange={setSelectedCourseId}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select a course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCourses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="academicYear" className="text-right">
+                  Academic Year
+                </Label>
+                <Select
+                  id="academicYear"
+                  value={academicYear}
+                  onValueChange={setAcademicYear}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYears.map((year) => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="semester" className="text-right">
+                  Semester
+                </Label>
+                <Select
+                  id="semester"
+                  value={semester !== null ? semester.toString() : ""}
+                  onValueChange={(value) => setSemester(parseInt(value))}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select semester" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {semesters.map((semester) => (
+                      <SelectItem key={semester} value={semester.toString()}>
+                        {semester}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="enrollmentDate" className="text-right">
+                  Enrollment Date
+                </Label>
+                <DatePicker
+                  id="enrollmentDate"
+                  className="col-span-3"
+                  selected={enrollmentDate}
+                  onSelect={setEnrollmentDate}
+                />
               </div>
             </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDropDialog} disabled={isDropping}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={dropCourse} disabled={isDropping}>
-              {isDropping ? "Dropping..." : "Drop Course"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={closeEnrollmentDialog}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleEnrollment}>
+                Enroll
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 };
 
