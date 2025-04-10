@@ -72,6 +72,82 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_profiles: {
+        Row: {
+          contact_number: string | null
+          created_at: string
+          department: string | null
+          designation: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_number?: string | null
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_number?: string | null
+          created_at?: string
+          department?: string | null
+          designation?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          target_role: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          target_role: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          target_role?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -881,6 +957,19 @@ export type Database = {
           total_students: number | null
           total_teachers: number | null
           upcoming_exams: number | null
+        }
+        Relationships: []
+      }
+      announcements_view: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          created_by_name: string | null
+          id: string | null
+          is_active: boolean | null
+          target_role: string | null
+          title: string | null
+          updated_at: string | null
         }
         Relationships: []
       }

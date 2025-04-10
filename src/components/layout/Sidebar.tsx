@@ -17,7 +17,8 @@ import {
   School,
   UserPlus,
   UserCog,
-  CheckCircle
+  CheckCircle,
+  Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const Sidebar = () => {
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },
+    { path: "/announcements", icon: Megaphone, label: "Announcements" },
     { path: "/settings", icon: CheckCircle, label: "Approvals" },
   ];
 

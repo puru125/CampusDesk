@@ -1,233 +1,199 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/ui/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, UserCog, Lock, Mail, Phone } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminProfile } from "@/types";
+import PageHeader from "@/components/ui/page-header";
 
 const AdminProfilePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [lastLogin, setLastLogin] = useState<string | null>(null);
-  const [createdAt, setCreatedAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [contactNumber, setContactNumber] = useState<string>("");
+  const [designation, setDesignation] = useState<string>("");
+  const [department, setDepartment] = useState<string>("");
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
 
   useEffect(() => {
-    const fetchAdminProfile = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) throw error;
-        
-        setFullName(data.full_name || "");
-        setEmail(data.email || "");
-        setLastLogin(data.last_login);
-        setCreatedAt(data.created_at);
-        setContactNumber(""); // Initialize with empty string since we don't have a dedicated contact field
-        
-      } catch (error) {
-        console.error("Error fetching admin profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAdminProfile();
-  }, [user, toast]);
+    if (user?.id) {
+      loadAdminProfile();
+    }
+  }, [user]);
 
-  const handleSaveProfile = async () => {
-    if (!user) return;
-    
-    setIsSaving(true);
+  const loadAdminProfile = async () => {
     try {
-      // Update user details
-      const { error } = await supabase
-        .from('users')
-        .update({
-          full_name: fullName,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-        
-      if (error) throw error;
+      setLoading(true);
       
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been updated successfully.",
-      });
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
+      const { data, error } = await supabase
+        .from("admin_profiles")
+        .select("*")
+        .eq("id", user?.id)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setAdminProfile(data);
+        setContactNumber(data.contact_number || "");
+        setDesignation(data.designation || "");
+        setDepartment(data.department || "");
+      }
+    } catch (error) {
+      console.error("Error loading admin profile:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile",
+        description: "Failed to load admin profile",
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleSave = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setSaving(true);
+      
+      const profileData = {
+        id: user.id,
+        contact_number: contactNumber,
+        designation: designation,
+        department: department,
+      };
+      
+      let query;
+      
+      if (adminProfile) {
+        // Update existing profile
+        query = supabase
+          .from("admin_profiles")
+          .update({
+            contact_number: contactNumber,
+            designation: designation,
+            department: department,
+          })
+          .eq("id", user.id);
+      } else {
+        // Create new profile
+        query = supabase
+          .from("admin_profiles")
+          .insert(profileData);
+      }
+      
+      const { error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      
+      loadAdminProfile();
+    } catch (error) {
+      console.error("Error updating admin profile:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <>
-      <PageHeader 
-        title="Admin Profile" 
-        description="View and manage your administrator profile" 
+    <div>
+      <PageHeader
+        title="Admin Profile"
+        description="View and update your profile information"
       />
-
-      <div className="container mx-auto max-w-4xl space-y-6">
-        {/* Profile Overview Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src="" alt={fullName} />
-              <AvatarFallback className="text-lg bg-primary text-primary-foreground">
-                {fullName.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle className="text-2xl">{fullName}</CardTitle>
-              <CardDescription className="flex items-center mt-1">
-                <UserCog className="h-4 w-4 mr-1" />
-                System Administrator
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Email</div>
-                <div className="flex items-center">
-                  <Mail className="h-4 w-4 mr-1 text-muted-foreground" />
-                  {email}
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Contact</div>
-                <div className="flex items-center">
-                  <Phone className="h-4 w-4 mr-1 text-muted-foreground" />
-                  {contactNumber || "Not provided"}
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Account Created</div>
-                <div>
-                  {createdAt ? new Date(createdAt).toLocaleDateString() : "N/A"}
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <div className="text-sm text-muted-foreground">Last Login</div>
-                <div>
-                  {lastLogin ? new Date(lastLogin).toLocaleString() : "N/A"}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Edit Profile Card */}
+      
+      <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Edit Profile</CardTitle>
-            <CardDescription>
-              Update your account information and contact details.
-            </CardDescription>
+            <CardTitle>Profile Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
+          <CardContent>
+            <div className="space-y-6">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">
+                    Full Name
+                  </label>
+                  <Input id="name" value={user?.full_name || ""} disabled />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <Input id="email" value={user?.email || ""} disabled />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="designation" className="text-sm font-medium">
+                    Designation
+                  </label>
+                  <Input
+                    id="designation"
+                    value={designation}
+                    onChange={(e) => setDesignation(e.target.value)}
+                    disabled={loading || saving}
+                    placeholder="Enter your designation"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="department" className="text-sm font-medium">
+                    Department
+                  </label>
+                  <Input
+                    id="department"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    disabled={loading || saving}
+                    placeholder="Enter your department"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="contact" className="text-sm font-medium">
+                    Contact Number
+                  </label>
+                  <Input
+                    id="contact"
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    disabled={loading || saving}
+                    placeholder="Enter your contact number"
+                  />
+                </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  value={email}
-                  disabled
-                />
-                <p className="text-xs text-muted-foreground">
-                  Email address cannot be changed.
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="contactNumber">Contact Number</Label>
-                <Input
-                  id="contactNumber"
-                  value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <Separator />
-            
-            <div className="space-y-2">
-              <Label>Security</Label>
-              <p className="text-sm text-muted-foreground">
-                Update your password and security settings.
-              </p>
-              <Button variant="outline" className="mt-2">
-                <Lock className="h-4 w-4 mr-2" />
-                Change Password
+              <Button
+                onClick={handleSave}
+                disabled={loading || saving}
+                className="w-full md:w-auto"
+              >
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button onClick={handleSaveProfile} disabled={isSaving}>
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
-          </CardFooter>
         </Card>
       </div>
-    </>
+    </div>
   );
 };
 

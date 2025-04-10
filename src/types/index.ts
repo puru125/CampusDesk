@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export interface User {
@@ -156,6 +155,26 @@ export interface StudentCourseEnrollment {
   updated_at: string;
   student?: Student;
   course?: Course;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  target_role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by_name?: string;
+}
+
+export interface AdminProfile {
+  id: string;
+  contact_number?: string;
+  designation?: string;
+  department?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuthState {

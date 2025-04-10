@@ -1,131 +1,225 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User, AuthState } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useToast } from "@/components/ui/use-toast";
-import { User, UserRole } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  setUser: (user: User | null) => void;
-  isFirstLogin: boolean;
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  resetPassword: (newPassword: string) => Promise<boolean>;
+  updateProfile: (profileData: any) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  login: async () => {},
-  logout: () => {},
-  setUser: () => {},
-  isFirstLogin: false,
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isFirstLogin, setIsFirstLogin] = useState<boolean>(false);
   const { toast } = useToast();
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+  });
 
   useEffect(() => {
-    // Check for stored user in localStorage (for session persistence)
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    // Check for stored session on initial load
+    const checkSession = async () => {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsFirstLogin(parsedUser.is_first_login);
+        const storedUser = localStorage.getItem("ims_user");
+        
+        if (storedUser) {
+          const user = JSON.parse(storedUser) as User;
+          
+          // Verify the session is still valid with a lightweight query
+          const { data, error } = await supabase
+            .from("users")
+            .select("id")
+            .eq("id", user.id)
+            .single();
+          
+          if (error || !data) {
+            // Session is invalid, clear it
+            localStorage.removeItem("ims_user");
+            setAuthState({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+            });
+            return;
+          }
+          
+          // Session is valid
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
       } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('user');
+        console.error("Session check error:", error);
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
-    }
-    setIsLoading(false);
+    };
+
+    checkSession();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    setIsLoading(true);
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log(`Attempting to login with email: ${email}`);
-
-      // Use Supabase RPC to authenticate user
-      const { data, error } = await supabase.rpc('authenticate_user', {
+      // Call the RPC function to authenticate
+      const { data, error } = await supabase.rpc("authenticate_user", {
         p_email: email,
-        p_password: password
+        p_password: password,
       });
-      
-      console.log("Authentication response:", data, error);
-      
+
       if (error) {
-        console.error("Authentication error:", error);
         throw error;
       }
-      
+
       if (data && data.length > 0) {
-        const userData = data[0];
-        console.log("User data:", userData);
-        
-        const authenticatedUser: User = {
-          id: userData.id,
-          email: userData.email,
-          full_name: userData.full_name,
-          role: userData.role as UserRole,
-          is_first_login: userData.is_first_login,
-          created_at: new Date().toISOString(), // We don't get this from the function
-          updated_at: new Date().toISOString()  // We don't get this from the function
+        const user: User = {
+          id: data[0].id,
+          email: data[0].email,
+          full_name: data[0].full_name,
+          role: data[0].role,
+          is_first_login: data[0].is_first_login,
+          created_at: "",
+          updated_at: "",
         };
-        
-        setUser(authenticatedUser);
-        setIsFirstLogin(authenticatedUser.is_first_login);
-        localStorage.setItem('user', JSON.stringify(authenticatedUser));
-        
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${authenticatedUser.full_name}!`,
+
+        // Store user in local storage
+        localStorage.setItem("ims_user", JSON.stringify(user));
+
+        // Update auth state
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          isLoading: false,
         });
+
+        // Update last login time
+        await supabase
+          .from("users")
+          .update({ last_login: new Date().toISOString() })
+          .eq("id", user.id);
+
+        return true;
       } else {
-        console.error("No user data returned");
-        throw new Error('Invalid credentials');
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password",
+          variant: "destructive",
+        });
+        return false;
       }
     } catch (error) {
       console.error("Login error:", error);
-      const message = error instanceof Error ? error.message : 'Failed to login';
       toast({
-        title: "Login failed",
-        description: message,
+        title: "Login Error",
+        description: "An error occurred during login",
         variant: "destructive",
       });
-      throw error;
-    } finally {
-      setIsLoading(false);
+      return false;
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsFirstLogin(false);
-    localStorage.removeItem('user');
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
+  const logout = async (): Promise<void> => {
+    // Clear local storage
+    localStorage.removeItem("ims_user");
+
+    // Update auth state
+    setAuthState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
     });
+  };
+
+  const resetPassword = async (newPassword: string): Promise<boolean> => {
+    try {
+      if (!authState.user) {
+        return false;
+      }
+
+      const { error } = await supabase.rpc("reset_password_after_first_login", {
+        p_user_id: authState.user.id,
+        p_new_password: newPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Update the user's first login status locally
+      const updatedUser = {
+        ...authState.user,
+        is_first_login: false,
+      };
+
+      localStorage.setItem("ims_user", JSON.stringify(updatedUser));
+
+      setAuthState({
+        ...authState,
+        user: updatedUser,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Password reset error:", error);
+      return false;
+    }
+  };
+
+  const updateProfile = async (profileData: any): Promise<boolean> => {
+    try {
+      if (!authState.user) {
+        return false;
+      }
+
+      const { error } = await supabase.rpc("update_profile", {
+        p_user_id: authState.user.id,
+        p_profile_data: profileData,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Update local user data if needed
+      // This depends on what fields are being updated
+      
+      return true;
+    } catch (error) {
+      console.error("Profile update error:", error);
+      return false;
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
+        ...authState,
         login,
         logout,
-        setUser,
-        isFirstLogin,
+        resetPassword,
+        updateProfile,
       }}
     >
       {children}

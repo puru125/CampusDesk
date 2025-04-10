@@ -24,6 +24,7 @@ import ExamsPage from "./pages/exams/ExamsPage";
 import AddExamPage from "./pages/exams/AddExamPage";
 import EnrollmentApprovalPage from "./pages/settings/EnrollmentApprovalPage";
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
+import AnnouncementsPage from "./pages/announcements/AnnouncementsPage";
 
 // Fee Management Pages
 import FeesPage from "./pages/fees/FeesPage";
@@ -206,8 +207,20 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+
+            {/* Announcements Route */}
+            <Route 
+              path="/announcements" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AnnouncementsPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
             
-            {/* Replaced Settings with Enrollment Approval Page */}
+            {/* Enrollment Approval Page */}
             <Route 
               path="/settings" 
               element={
