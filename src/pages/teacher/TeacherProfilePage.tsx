@@ -133,6 +133,17 @@ const TeacherProfilePage = () => {
     }
   };
 
+  const generateTeacherIDCard = () => {
+    // In a real implementation, this would generate a PDF or open a printable view
+    toast({
+      title: "ID Card Generator",
+      description: "Your ID card is being generated...",
+    });
+    
+    // For now, redirect to a demo page that would show the ID card
+    navigate("/teacher/id-card");
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -283,7 +294,7 @@ const TeacherProfilePage = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">ID Card Tools</CardTitle>
-              <CardDescription>Generate and print student ID cards</CardDescription>
+              <CardDescription>Generate and print ID cards</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
@@ -294,8 +305,18 @@ const TeacherProfilePage = () => {
                 <IdCard className="mr-2 h-4 w-4" />
                 Generate Student ID Cards
               </Button>
+              
+              <Button 
+                className="w-full" 
+                variant="default"
+                onClick={generateTeacherIDCard}
+              >
+                <IdCard className="mr-2 h-4 w-4" />
+                Generate My ID Card
+              </Button>
+              
               <p className="text-sm text-gray-500">
-                You can generate ID cards for any student from the students list.
+                You can generate ID cards for yourself or for any student from the students list.
               </p>
             </CardContent>
           </Card>
