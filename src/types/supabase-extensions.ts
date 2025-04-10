@@ -1,4 +1,3 @@
-
 import { Database } from "@/integrations/supabase/types";
 import { createClient } from '@supabase/supabase-js';
 
@@ -95,6 +94,47 @@ export type DoubtAnswersTable = {
       foreignKeyName: "doubt_answers_teacher_id_fkey";
       columns: ["teacher_id"];
       referencedRelation: "teachers";
+      referencedColumns: ["id"];
+    }
+  ];
+};
+
+export type StudentFeedbackTable = {
+  Row: {
+    id: string;
+    student_id: string;
+    title: string;
+    message: string;
+    rating: number;
+    is_read: boolean;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: {
+    id?: string;
+    student_id: string;
+    title: string;
+    message: string;
+    rating: number;
+    is_read?: boolean;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Update: {
+    id?: string;
+    student_id?: string;
+    title?: string;
+    message?: string;
+    rating?: number;
+    is_read?: boolean;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "student_feedback_student_id_fkey";
+      columns: ["student_id"];
+      referencedRelation: "students";
       referencedColumns: ["id"];
     }
   ];
@@ -373,6 +413,7 @@ export interface ExtendedDatabase extends Database {
       teacher_students: TeacherStudentsTable;
       attendance_records: AttendanceRecordsTable;
       exam_reports: ExamReportsTable;
+      student_feedback: StudentFeedbackTable;
     };
     Views: Database["public"]["Views"];
     Functions: Database["public"]["Functions"];

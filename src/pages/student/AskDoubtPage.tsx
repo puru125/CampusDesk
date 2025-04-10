@@ -50,12 +50,10 @@ const AskDoubtPage = () => {
     enabled: !!user,
   });
 
-  // Fetch subjects for the student
+  // Fetch subjects
   const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
-    queryKey: ["student-subjects", studentData?.id],
+    queryKey: ["student-subjects"],
     queryFn: async () => {
-      if (!studentData?.id) return [];
-      
       const { data, error } = await extendedSupabase
         .from("subjects")
         .select(`
@@ -87,13 +85,8 @@ const AskDoubtPage = () => {
       }
 
       // Get teacher ID for the selected subject
-      const { data: subjectData, error: subjectError } = await extendedSupabase
-        .from("subjects")
-        .select("teacher_id")
-        .eq("id", subjectId)
-        .single();
-
-      if (subjectError || !subjectData?.teacher_id) {
+      const selectedSubject = subjects?.find(subject => subject.id === subjectId);
+      if (!selectedSubject || !selectedSubject.teacher_id) {
         throw new Error("Subject has no assigned teacher");
       }
 
@@ -103,7 +96,7 @@ const AskDoubtPage = () => {
         .insert([
           {
             student_id: studentData.id,
-            teacher_id: subjectData.teacher_id,
+            teacher_id: selectedSubject.teacher_id,
             subject_id: subjectId,
             title,
             question,

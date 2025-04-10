@@ -61,7 +61,10 @@ const TeacherDoubtsPage = () => {
         .eq("teacher_id", teacherData.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching doubts:", error);
+        return [];
+      }
       return data as StudentDoubt[];
     },
     enabled: !!teacherData?.id,

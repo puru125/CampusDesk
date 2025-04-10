@@ -67,12 +67,13 @@ const AdminFeedbackPage = () => {
   };
 
   const renderStars = (rating: number) => {
+    const normalizedRating = Math.min(5, Math.max(0, Math.round(rating / 2))); // Convert 10-scale to 5-scale
     return Array(5)
       .fill(0)
       .map((_, i) => (
         <Star 
           key={i} 
-          className={`h-4 w-4 ${i < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} 
+          className={`h-4 w-4 ${i < normalizedRating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`} 
         />
       ));
   };
@@ -124,7 +125,7 @@ const AdminFeedbackPage = () => {
                     <CardContent className="pb-4">
                       <div className="flex items-center mb-3">
                         {renderStars(feedback.rating)}
-                        <span className="ml-2 text-sm">{feedback.rating}/5</span>
+                        <span className="ml-2 text-sm">{feedback.rating}/10</span>
                       </div>
                       
                       <p className="text-gray-600 mb-4">{feedback.message}</p>
