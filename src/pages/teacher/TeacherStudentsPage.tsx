@@ -24,113 +24,113 @@ const TeacherStudentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedClass, setSelectedClass] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   
   useEffect(() => {
-    const fetchTeacherStudents = async () => {
-      try {
-        if (!user) return;
-        
-        // Get teacher profile
-        const { data: teacherProfile, error: teacherError } = await extendedSupabase
-          .from('teachers')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (teacherError) throw teacherError;
-        
-        // Get teacher's subjects
-        const { data: teacherSubjects, error: subjectsError } = await extendedSupabase
-          .from('teacher_subjects')
-          .select('subject_id, subjects(id, name, code, course_id)')
-          .eq('teacher_id', teacherProfile.id);
-          
-        if (subjectsError) throw subjectsError;
-        
-        const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
-        
-        // Get teacher's assigned students directly from the database
-        const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
-          .from('teacher_students')
-          .select(`
-            id,
-            student_id
-          `)
-          .eq('teacher_id', teacherProfile.id);
-
-        if (studentsError) throw studentsError;
-        
-        // Once we have the student IDs, get the detailed student information
-        if (teacherStudentsData && teacherStudentsData.length > 0) {
-          const studentIds = teacherStudentsData.map(ts => ts.student_id);
-          
-          const { data: studentDetails, error: detailsError } = await extendedSupabase
-            .from('students_view')
-            .select('*')
-            .in('id', studentIds);
-            
-          if (detailsError) throw detailsError;
-          
-          // Format students data
-          const formattedStudents = studentDetails?.map(student => {
-            return {
-              id: student.id,
-              name: student.full_name || 'Unknown',
-              roll: student.enrollment_number || 'N/A',
-              email: student.email || 'N/A',
-              attendance: "N/A", // This will be calculated later
-              grade: "N/A",      // This will be calculated later
-              contact: student.contact_number || 'N/A'
-            };
-          }) || [];
-          
-          setStudents(formattedStudents);
-        } else {
-          setStudents([]);
-        }
-        
-        // Get teacher's classes
-        const { data: teacherClasses, error: classesError } = await extendedSupabase
-          .from('timetable_entries')
-          .select(`
-            subjects(id, name, code),
-            classes(id, name, room, capacity)
-          `)
-          .eq('teacher_id', teacherProfile.id);
-          
-        if (classesError) throw classesError;
-        
-        // Format classes data - filter out duplicates based on subject ID
-        const formattedClasses = teacherClasses?.map(tc => ({
-          id: tc.subjects?.id || '',
-          name: tc.subjects?.name || 'Unknown Subject',
-          code: tc.subjects?.code || ''
-        })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
-        
-        setClasses(formattedClasses);
-        
-      } catch (error) {
-        console.error("Error fetching teacher students:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch student data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchTeacherStudents();
-  }, [user, toast]);
+  }, [user]);
+  
+  const fetchTeacherStudents = async () => {
+    try {
+      if (!user) return;
+      
+      // Get teacher profile
+      const { data: teacherProfile, error: teacherError } = await extendedSupabase
+        .from('teachers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+          
+      if (teacherError) throw teacherError;
+      
+      // Get teacher's subjects
+      const { data: teacherSubjects, error: subjectsError } = await extendedSupabase
+        .from('teacher_subjects')
+        .select('subject_id, subjects(id, name, code, course_id)')
+        .eq('teacher_id', teacherProfile.id);
+          
+      if (subjectsError) throw subjectsError;
+      
+      const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
+      
+      // Get teacher's assigned students directly from the database
+      const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
+        .from('teacher_students')
+        .select(`
+          id,
+          student_id
+        `)
+        .eq('teacher_id', teacherProfile.id);
+
+      if (studentsError) throw studentsError;
+      
+      // Once we have the student IDs, get the detailed student information
+      if (teacherStudentsData && teacherStudentsData.length > 0) {
+        const studentIds = teacherStudentsData.map(ts => ts.student_id);
+        
+        const { data: studentDetails, error: detailsError } = await extendedSupabase
+          .from('students_view')
+          .select('*')
+          .in('id', studentIds);
+            
+        if (detailsError) throw detailsError;
+        
+        // Format students data
+        const formattedStudents = studentDetails?.map(student => {
+          return {
+            id: student.id,
+            name: student.full_name || 'Unknown',
+            roll: student.enrollment_number || 'N/A',
+            email: student.email || 'N/A',
+            attendance: "N/A", // This will be calculated later
+            grade: "N/A",      // This will be calculated later
+            contact: student.contact_number || 'N/A'
+          };
+        }) || [];
+        
+        setStudents(formattedStudents);
+      } else {
+        setStudents([]);
+      }
+      
+      // Get teacher's classes
+      const { data: teacherClasses, error: classesError } = await extendedSupabase
+        .from('timetable_entries')
+        .select(`
+          subjects(id, name, code),
+          classes(id, name, room, capacity)
+        `)
+        .eq('teacher_id', teacherProfile.id);
+          
+      if (classesError) throw classesError;
+      
+      // Format classes data - filter out duplicates based on subject ID
+      const formattedClasses = teacherClasses?.map(tc => ({
+        id: tc.subjects?.id || '',
+        name: tc.subjects?.name || 'Unknown Subject',
+        code: tc.subjects?.code || ''
+      })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
+      
+      setClasses(formattedClasses);
+      
+    } catch (error) {
+      console.error("Error fetching teacher students:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch student data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Filter students based on search term and selected class
   const filteredStudents = students.filter(student => 
     (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.roll.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (selectedClass === "" || student.class === selectedClass)
+    (selectedClass === "all" || student.class === selectedClass)
   );
   
   return (
@@ -158,7 +158,7 @@ const TeacherStudentsPage = () => {
               <SelectValue placeholder="Filter by class" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Classes</SelectItem>
+              <SelectItem value="all">All Classes</SelectItem>
               {classes.map(cls => (
                 <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
               ))}
