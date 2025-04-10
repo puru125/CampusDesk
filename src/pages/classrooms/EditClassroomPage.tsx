@@ -1,10 +1,10 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Building, Save, AlertCircle, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Building, Save, AlertCircle } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,37 @@ const EditClassroomPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch the classroom data
+  const { data: classroom, isLoading } = useQuery({
+    queryKey: ["classroom", classroomId],
+    queryFn: async () => {
+      if (!classroomId) throw new Error("Classroom ID is required");
+      
+      const { data, error } = await supabase
+        .from("classes")
+        .select("*")
+        .eq("id", classroomId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching classroom:", error);
+        throw error;
+      }
+      
+      return data;
+    },
+    meta: {
+      onError: (error: any) => {
+        setError("Failed to fetch classroom details. Please try again.");
+        toast({
+          title: "Error",
+          description: "Failed to fetch classroom details",
+          variant: "destructive",
+        });
+      }
+    }
+  });
+
   const form = useForm<ClassroomFormValues>({
     resolver: zodResolver(classroomSchema),
     defaultValues: {
@@ -55,46 +86,24 @@ const EditClassroomPage = () => {
       room: "",
       capacity: 30,
     },
+    mode: "onChange",
   });
 
-  // Fetch classroom data
-  const { data: classroom, isLoading } = useQuery({
-    queryKey: ["classroom", classroomId],
-    queryFn: async () => {
-      if (!classroomId) throw new Error("Classroom ID is required");
-
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*")
-        .eq("id", classroomId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data) {
-        form.reset({
-          name: data.name,
-          room: data.room,
-          capacity: data.capacity,
-        });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to load classroom data",
-        variant: "destructive",
+  // Update form values when classroom data is loaded
+  useEffect(() => {
+    if (classroom) {
+      form.reset({
+        name: classroom.name,
+        room: classroom.room,
+        capacity: classroom.capacity,
       });
-      navigate("/classrooms");
-    },
-  });
+    }
+  }, [classroom, form]);
 
   const updateClassroomMutation = useMutation({
     mutationFn: async (values: ClassroomFormValues) => {
       if (!classroomId) throw new Error("Classroom ID is required");
-
+      
       const { data, error } = await supabase
         .from("classes")
         .update({
@@ -140,8 +149,8 @@ const EditClassroomPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-institute-600"></div>
       </div>
     );
   }
@@ -170,7 +179,7 @@ const EditClassroomPage = () => {
         <CardHeader>
           <CardTitle>Classroom Information</CardTitle>
           <CardDescription>
-            Update the details of the classroom
+            Update the details of this classroom
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -249,9 +258,9 @@ const EditClassroomPage = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || updateClassroomMutation.isPending}>
                   <Save className="mr-2 h-4 w-4" />
-                  {isSubmitting ? "Saving..." : "Update Classroom"}
+                  {updateClassroomMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>
             </form>

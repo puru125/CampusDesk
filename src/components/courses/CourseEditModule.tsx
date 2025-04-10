@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageHeader from "@/components/ui/page-header";
-import { Book, BookOpen, Users, Clock, ArrowLeft, Save, AlertTriangle } from "lucide-react";
+import { Book, BookOpen, Users, Building, ArrowLeft, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import CourseEditForm from "./CourseEditForm";
 import SubjectsEditList from "./SubjectsEditList";
 import TeacherAssignmentForm from "./TeacherAssignmentForm";
-import ClassScheduleEdit from "./ClassScheduleEdit";
+import ClassroomManagement from "./ClassroomManagement";
 
 interface CourseEditModuleProps {
   courseId: string;
@@ -251,9 +251,9 @@ const CourseEditModule = ({ courseId }: CourseEditModuleProps) => {
             <Users className="mr-2 h-4 w-4" />
             Teacher Assignment
           </TabsTrigger>
-          <TabsTrigger value="classes" className="flex items-center">
-            <Clock className="mr-2 h-4 w-4" />
-            Class Schedule
+          <TabsTrigger value="classrooms" className="flex items-center">
+            <Building className="mr-2 h-4 w-4" />
+            Classroom Management
           </TabsTrigger>
         </TabsList>
 
@@ -300,14 +300,14 @@ const CourseEditModule = ({ courseId }: CourseEditModuleProps) => {
           />
         </TabsContent>
 
-        <TabsContent value="classes" className="space-y-4">
-          <ClassScheduleEdit 
+        <TabsContent value="classrooms" className="space-y-4">
+          <ClassroomManagement 
             courseId={courseId}
             subjects={course?.subjects || []}
             onSuccess={() => {
               toast({
                 title: "Success",
-                description: "Class schedule updated successfully",
+                description: "Classroom assignments updated successfully",
               });
             }}
           />

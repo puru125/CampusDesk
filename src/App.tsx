@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -67,9 +68,9 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<Shell />}>
-                <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<ProtectedRoute />}>
+              <Route path="/" element={<Shell />}>
+                <Route index element={<Dashboard />} />
                 <Route path="/students" element={<StudentsPage />} />
                 <Route path="/students/new" element={<AddStudentPage />} />
                 <Route path="/teachers" element={<TeachersPage />} />
