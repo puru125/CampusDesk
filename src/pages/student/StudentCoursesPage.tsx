@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -166,7 +167,6 @@ const StudentCoursesPage = () => {
           course_id,
           academic_year,
           semester,
-          enrollment_date,
           status,
           created_at,
           updated_at,
@@ -186,13 +186,13 @@ const StudentCoursesPage = () => {
       }
 
       if (data) {
-        const formattedEnrollments: Enrollment[] = data.map((enrollment) => ({
+        const formattedEnrollments: Enrollment[] = data.map((enrollment: any) => ({
           id: enrollment.id,
           student_id: enrollment.student_id,
           course_id: enrollment.course_id,
           academic_year: enrollment.academic_year,
           semester: enrollment.semester,
-          enrollment_date: enrollment.enrollment_date,
+          enrollment_date: new Date().toISOString(), // Default value as it doesn't exist yet
           status: enrollment.status,
           created_at: enrollment.created_at,
           updated_at: enrollment.updated_at,
@@ -255,7 +255,6 @@ const StudentCoursesPage = () => {
           course_id: selectedCourseId,
           academic_year: academicYear,
           semester: semester,
-          enrollment_date: format(enrollmentDate, "yyyy-MM-dd"),
           status: "pending",
         });
 
@@ -366,7 +365,7 @@ const StudentCoursesPage = () => {
                       <TableCell>{enrollment.academic_year}</TableCell>
                       <TableCell>{enrollment.semester}</TableCell>
                       <TableCell>
-                        {format(new Date(enrollment.enrollment_date), "PPP")}
+                        {format(new Date(enrollment.created_at), "PPP")}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -406,75 +405,79 @@ const StudentCoursesPage = () => {
                 <Label htmlFor="course" className="text-right">
                   Course
                 </Label>
-                <Select
-                  id="course"
-                  value={selectedCourseId || ""}
-                  onValueChange={setSelectedCourseId}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCourses.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3">
+                  <Select
+                    value={selectedCourseId || ""}
+                    onValueChange={setSelectedCourseId}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableCourses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          {course.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="academicYear" className="text-right">
                   Academic Year
                 </Label>
-                <Select
-                  id="academicYear"
-                  value={academicYear}
-                  onValueChange={setAcademicYear}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {academicYears.map((year) => (
-                      <SelectItem key={year} value={year}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3">
+                  <Select
+                    value={academicYear}
+                    onValueChange={setAcademicYear}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {academicYears.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="semester" className="text-right">
                   Semester
                 </Label>
-                <Select
-                  id="semester"
-                  value={semester !== null ? semester.toString() : ""}
-                  onValueChange={(value) => setSemester(parseInt(value))}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select semester" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {semesters.map((semester) => (
-                      <SelectItem key={semester} value={semester.toString()}>
-                        {semester}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="col-span-3">
+                  <Select
+                    value={semester !== null ? semester.toString() : ""}
+                    onValueChange={(value) => setSemester(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {semesters.map((semester) => (
+                        <SelectItem key={semester} value={semester.toString()}>
+                          {semester}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="enrollmentDate" className="text-right">
                   Enrollment Date
                 </Label>
-                <DatePicker
-                  id="enrollmentDate"
-                  className="col-span-3"
-                  selected={enrollmentDate}
-                  onSelect={setEnrollmentDate}
-                />
+                <div className="col-span-3">
+                  <DatePicker
+                    id="enrollmentDate"
+                    selected={enrollmentDate}
+                    onSelect={setEnrollmentDate}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
