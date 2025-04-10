@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -187,7 +186,7 @@ const PaymentsList = ({ isStudent, studentId }: PaymentsListProps) => {
       (payment.transaction_id && payment.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     
-    const matchesStatus = statusFilter ? payment.status === statusFilter : true;
+    const matchesStatus = statusFilter === "all" || !statusFilter ? true : payment.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -211,7 +210,7 @@ const PaymentsList = ({ isStudent, studentId }: PaymentsListProps) => {
               <SelectValue placeholder="Payment Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -142,8 +141,8 @@ const FeeStructureList = () => {
     const matchesSearch = fs.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (fs.course_name && fs.course_name.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesYear = academicYearFilter ? fs.academic_year === academicYearFilter : true;
-    const matchesFeeType = feeTypeFilter ? fs.fee_type === feeTypeFilter : true;
+    const matchesYear = academicYearFilter === "all" || !academicYearFilter ? true : fs.academic_year === academicYearFilter;
+    const matchesFeeType = feeTypeFilter === "all" || !feeTypeFilter ? true : fs.fee_type === feeTypeFilter;
     
     return matchesSearch && matchesYear && matchesFeeType;
   });
@@ -167,7 +166,7 @@ const FeeStructureList = () => {
               <SelectValue placeholder="Academic Year" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Years</SelectItem>
+              <SelectItem value="all">All Years</SelectItem>
               {academicYears.map(year => (
                 <SelectItem key={year} value={year}>{year}</SelectItem>
               ))}
@@ -179,7 +178,7 @@ const FeeStructureList = () => {
               <SelectValue placeholder="Fee Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               {feeTypes.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
