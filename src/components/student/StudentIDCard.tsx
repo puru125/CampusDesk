@@ -16,6 +16,7 @@ interface StudentIDCardProps {
 const StudentIDCard = ({ studentData }: StudentIDCardProps) => {
   const { user } = useAuth();
   const [adminName, setAdminName] = useState("Institute Administration");
+  const [feeStatus, setFeeStatus] = useState<string>("pending");
   const idCardRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -37,8 +38,28 @@ const StudentIDCard = ({ studentData }: StudentIDCardProps) => {
       }
     };
     
+    // Fetch student fee status
+    const fetchFeeStatus = async () => {
+      if (!studentData?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('students')
+          .select('fee_status')
+          .eq('id', studentData.id)
+          .single();
+          
+        if (!error && data) {
+          setFeeStatus(data.fee_status);
+        }
+      } catch (error) {
+        console.error("Error fetching fee status:", error);
+      }
+    };
+    
     fetchAdminName();
-  }, []);
+    fetchFeeStatus();
+  }, [studentData]);
   
   const printIDCard = async () => {
     if (!idCardRef.current) return;
@@ -130,6 +151,23 @@ const StudentIDCard = ({ studentData }: StudentIDCardProps) => {
   
   if (!studentData) {
     return <div className="text-center p-4">Student data is loading...</div>;
+  }
+  
+  // Only show ID card if fees are paid (status is "paid" or "partial")
+  if (feeStatus !== "paid" && feeStatus !== "partial") {
+    return (
+      <div className="p-6 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+        <h3 className="text-lg font-semibold text-yellow-800 mb-2">ID Card Not Available</h3>
+        <p className="text-yellow-700">Your ID card will be available after your fee payment has been approved.</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.href = "/fees/make-payment"}
+        >
+          Make Fee Payment
+        </Button>
+      </div>
+    );
   }
   
   return (
