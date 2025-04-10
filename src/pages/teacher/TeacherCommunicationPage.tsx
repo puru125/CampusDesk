@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Bell, Send, Search, UserPlus, Users, MessageSquare, ChevronDown, Mail, MenuSquare, 
+  Bell, Send, Search, Users, MessageSquare, ChevronDown, MenuSquare, 
   Edit, Trash2, Loader2, Calendar
 } from "lucide-react";
 import {
@@ -26,7 +26,6 @@ const TeacherCommunicationPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [teacherData, setTeacherData] = useState<any>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -165,7 +164,7 @@ const TeacherCommunicationPage = () => {
                     <SelectValue placeholder="Target Audience" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Students</SelectItem>
+                    <SelectItem value="all">All Students</SelectItem>
                     {classes.map(cls => (
                       <SelectItem key={cls.id} value={cls.id}>
                         {cls.name} ({cls.courseCode})

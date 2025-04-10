@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -164,6 +165,7 @@ function App() {
                     <Route path="student/notifications" element={<StudentNotificationsPage />} />
                     <Route path="student/doubts" element={<StudentDoubtsPage />} />
                     <Route path="student/doubts/ask" element={<AskDoubtPage />} />
+                    <Route path="student/timetable" element={<StudentTimetablePage />} />
                     
                     {/* Aliases for easier navigation */}
                     <Route path="assignments/new" element={<CreateAssignmentPage />} />
@@ -174,16 +176,6 @@ function App() {
                     <Route path="profile" element={<StudentProfilePage />} />
                     <Route path="fees/payment/new" element={<MakePaymentPage />} />
                     <Route path="doubts" element={<TeacherDoubtsPage />} />
-                    
-                    {/* Student routes */}
-                    <Route 
-                      path="/student/timetable" 
-                      element={
-                        <ProtectedRoute allowedRoles={["student"]}>
-                          <StudentTimetablePage />
-                        </ProtectedRoute>
-                      } 
-                    />
                   </Routes>
                 </Shell>
               </ProtectedRoute>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,23 +57,49 @@ const AnnouncementsPage = () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from("announcements_view")
-        .select("*");
-        
-      if (user?.role !== 'admin') {
-        query = query.or(`target_role.eq.all,target_role.eq.${user?.role}`);
+      // Mock data for demo purposes
+      const mockAnnouncements = [
+        {
+          id: "1",
+          title: "Welcome to the New Semester",
+          content: "We hope you're excited for the new academic year. Please complete your profile and course registrations by the end of this week.",
+          target_role: "all",
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          created_by_name: "Admin",
+          is_active: true
+        },
+        {
+          id: "2",
+          title: "Student Council Elections",
+          content: "The student council elections will be held next month. Interested candidates can submit their nominations starting next week.",
+          target_role: "student",
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          created_by_name: "Admin",
+          is_active: true
+        },
+        {
+          id: "3",
+          title: "Faculty Meeting",
+          content: "All faculty members are requested to attend a meeting on Friday at 3 PM in the conference room.",
+          target_role: "teacher",
+          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          created_by_name: "Admin",
+          is_active: true
+        }
+      ];
+      
+      // Filter announcements based on user role
+      let filteredAnnouncements;
+      if (user?.role === 'admin') {
+        filteredAnnouncements = mockAnnouncements;
+      } else {
+        filteredAnnouncements = mockAnnouncements.filter(
+          a => a.target_role === 'all' || a.target_role === user?.role
+        );
       }
       
-      query = query.order("created_at", { ascending: false });
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        throw error;
-      }
-      
-      setAnnouncements(data as unknown as Announcement[]);
+      setAnnouncements(filteredAnnouncements as unknown as Announcement[]);
+      setLoading(false);
     } catch (error) {
       console.error("Error fetching announcements:", error);
       toast({
@@ -80,7 +107,6 @@ const AnnouncementsPage = () => {
         description: "Failed to load announcements",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -96,21 +122,18 @@ const AnnouncementsPage = () => {
     }
     
     try {
-      const announcementData = {
+      // Mock announcement creation
+      const newAnnouncement = {
+        id: Date.now().toString(),
         title,
         content,
         target_role: targetRole,
-        created_by: user?.id,
+        created_at: new Date().toISOString(),
+        created_by_name: user?.full_name,
         is_active: true
       };
       
-      const { error } = await supabase
-        .from("announcements")
-        .insert(announcementData);
-      
-      if (error) {
-        throw error;
-      }
+      setAnnouncements([newAnnouncement as unknown as Announcement, ...announcements]);
       
       toast({
         title: "Success",
@@ -120,8 +143,6 @@ const AnnouncementsPage = () => {
       setTitle("");
       setContent("");
       setTargetRole("all");
-      
-      fetchAnnouncements();
     } catch (error) {
       console.error("Error creating announcement:", error);
       toast({
@@ -143,19 +164,21 @@ const AnnouncementsPage = () => {
     }
     
     try {
-      const { error } = await supabase
-        .from("announcements")
-        .update({
-          title,
-          content,
-          target_role: targetRole,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", editingId);
+      // Mock announcement update
+      const updatedAnnouncements = announcements.map(announcement => {
+        if (announcement.id === editingId) {
+          return {
+            ...announcement,
+            title,
+            content,
+            target_role: targetRole,
+            updated_at: new Date().toISOString()
+          };
+        }
+        return announcement;
+      });
       
-      if (error) {
-        throw error;
-      }
+      setAnnouncements(updatedAnnouncements);
       
       toast({
         title: "Success",
@@ -166,8 +189,6 @@ const AnnouncementsPage = () => {
       setContent("");
       setTargetRole("all");
       setEditingId(null);
-      
-      fetchAnnouncements();
     } catch (error) {
       console.error("Error updating announcement:", error);
       toast({
@@ -184,21 +205,14 @@ const AnnouncementsPage = () => {
     }
     
     try {
-      const { error } = await supabase
-        .from("announcements")
-        .delete()
-        .eq("id", id);
-      
-      if (error) {
-        throw error;
-      }
+      // Mock announcement deletion
+      const filteredAnnouncements = announcements.filter(a => a.id !== id);
+      setAnnouncements(filteredAnnouncements);
       
       toast({
         title: "Success",
         description: "Announcement deleted successfully",
       });
-      
-      fetchAnnouncements();
     } catch (error) {
       console.error("Error deleting announcement:", error);
       toast({
@@ -212,7 +226,7 @@ const AnnouncementsPage = () => {
   const handleEdit = (announcement: Announcement) => {
     setTitle(announcement.title);
     setContent(announcement.content);
-    setTargetRole(announcement.target_role);
+    setTargetRole(announcement.target_role || "all");
     setEditingId(announcement.id);
   };
   
@@ -221,6 +235,7 @@ const AnnouncementsPage = () => {
       <PageHeader
         title="Announcements"
         description="View announcements from the institute administration"
+        icon={Megaphone}
       />
       
       {user?.role === 'admin' && (
