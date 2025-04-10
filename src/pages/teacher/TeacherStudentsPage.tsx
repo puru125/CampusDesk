@@ -8,16 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Users, Search, Loader2, IdCard } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import TeacherFilters from "@/components/teacher/TeacherFilters";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 const TeacherStudentsPage = () => {
   const { user } = useAuth();
@@ -25,93 +23,13 @@ const TeacherStudentsPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
-  const [filteredStudents, setFilteredStudents] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<{
-    courseId?: string;
-    academicYear?: string;
-    semester?: string;
-    performanceMetric?: string;
-    performanceValue?: string;
-  }>({});
   
   useEffect(() => {
     fetchTeacherStudents();
   }, [user]);
-  
-  useEffect(() => {
-    // Apply filters and search term
-    let result = [...students];
-    
-    // Apply search filter
-    if (searchTerm) {
-      result = result.filter(student => 
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.roll.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Apply course filter if selected
-    if (filters.courseId) {
-      result = result.filter(student => student.courses.some((c: any) => c.id === filters.courseId));
-    }
-    
-    // Apply academic year filter if selected
-    if (filters.academicYear) {
-      result = result.filter(student => 
-        student.enrollments.some((e: any) => e.academic_year === filters.academicYear)
-      );
-    }
-    
-    // Apply semester filter if selected
-    if (filters.semester) {
-      result = result.filter(student => 
-        student.enrollments.some((e: any) => e.semester === parseInt(filters.semester))
-      );
-    }
-    
-    // Apply performance filters if selected
-    if (filters.performanceMetric && filters.performanceValue) {
-      if (filters.performanceMetric === 'attendance') {
-        switch(filters.performanceValue) {
-          case 'Below 75%':
-            result = result.filter(student => parseFloat(student.attendance) < 75);
-            break;
-          case '75% - 85%':
-            result = result.filter(student => 
-              parseFloat(student.attendance) >= 75 && parseFloat(student.attendance) <= 85
-            );
-            break;
-          case 'Above 85%':
-            result = result.filter(student => parseFloat(student.attendance) > 85);
-            break;
-        }
-      } else if (filters.performanceMetric === 'grades') {
-        switch(filters.performanceValue) {
-          case 'Below 60%':
-            result = result.filter(student => parseFloat(student.grade) < 60);
-            break;
-          case '60% - 75%':
-            result = result.filter(student => 
-              parseFloat(student.grade) >= 60 && parseFloat(student.grade) <= 75
-            );
-            break;
-          case '75% - 90%':
-            result = result.filter(student => 
-              parseFloat(student.grade) > 75 && parseFloat(student.grade) <= 90
-            );
-            break;
-          case 'Above 90%':
-            result = result.filter(student => parseFloat(student.grade) > 90);
-            break;
-        }
-      }
-    }
-    
-    setFilteredStudents(result);
-  }, [students, searchTerm, filters]);
   
   const fetchTeacherStudents = async () => {
     try {
@@ -129,25 +47,14 @@ const TeacherStudentsPage = () => {
       // Get teacher's subjects
       const { data: teacherSubjects, error: subjectsError } = await extendedSupabase
         .from('teacher_subjects')
-        .select('subject_id, subjects(id, name, code, course_id, courses(id, name))')
+        .select('subject_id, subjects(id, name, code, course_id)')
         .eq('teacher_id', teacherProfile.id);
           
       if (subjectsError) throw subjectsError;
       
-      // Extract unique courses from teacher's subjects
-      const uniqueCourses = teacherSubjects?.reduce((acc: any[], ts: any) => {
-        if (ts.subjects?.courses && !acc.some(c => c.id === ts.subjects.courses.id)) {
-          acc.push({
-            id: ts.subjects.courses.id,
-            name: ts.subjects.courses.name
-          });
-        }
-        return acc;
-      }, []) || [];
+      const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
       
-      setCourses(uniqueCourses);
-      
-      // Get teacher's assigned students
+      // Get teacher's assigned students directly from the database
       const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
         .from('teacher_students')
         .select(`
@@ -169,69 +76,44 @@ const TeacherStudentsPage = () => {
             
         if (detailsError) throw detailsError;
         
-        // Get enrollments for these students
-        const { data: enrollments, error: enrollmentsError } = await extendedSupabase
-          .from('student_course_enrollments')
-          .select(`
-            id,
-            student_id,
-            course_id,
-            courses(id, name),
-            academic_year,
-            semester,
-            status
-          `)
-          .in('student_id', studentIds)
-          .eq('status', 'approved');
-          
-        if (enrollmentsError) throw enrollmentsError;
-        
-        // Get attendance for these students
-        const { data: attendance, error: attendanceError } = await extendedSupabase
-          .from('attendance_records')
-          .select('*')
-          .in('student_id', studentIds);
-          
-        if (attendanceError) throw attendanceError;
-        
-        // Calculate attendance percentage for each student
-        const attendanceMap = studentIds.reduce((acc: Record<string, any>, studentId) => {
-          const studentAttendance = attendance?.filter(a => a.student_id === studentId) || [];
-          const totalClasses = studentAttendance.length;
-          const presentClasses = studentAttendance.filter(a => a.status === 'present').length;
-          const percentage = totalClasses > 0 ? (presentClasses / totalClasses * 100).toFixed(2) : 'N/A';
-          
-          acc[studentId] = percentage;
-          return acc;
-        }, {});
-        
-        // Format students data with enrollments and courses
+        // Format students data
         const formattedStudents = studentDetails?.map(student => {
-          const studentEnrollments = enrollments?.filter(e => e.student_id === student.id) || [];
-          const studentCourses = studentEnrollments.map(e => e.courses).filter(Boolean);
-          
-          // Calculate random grades for demo purposes (in real app this would come from a grades table)
-          const randomGrade = (65 + Math.floor(Math.random() * 35)).toFixed(2);
-          
           return {
             id: student.id,
             name: student.full_name || 'Unknown',
             roll: student.enrollment_number || 'N/A',
             email: student.email || 'N/A',
-            attendance: attendanceMap[student.id] || 'N/A',
-            grade: randomGrade,
-            contact: student.contact_number || 'N/A',
-            enrollments: studentEnrollments,
-            courses: studentCourses
+            attendance: "N/A", // This will be calculated later
+            grade: "N/A",      // This will be calculated later
+            contact: student.contact_number || 'N/A'
           };
         }) || [];
         
         setStudents(formattedStudents);
-        setFilteredStudents(formattedStudents);
       } else {
         setStudents([]);
-        setFilteredStudents([]);
       }
+      
+      // Get teacher's classes
+      const { data: teacherClasses, error: classesError } = await extendedSupabase
+        .from('timetable_entries')
+        .select(`
+          subjects(id, name, code),
+          classes(id, name, room, capacity)
+        `)
+        .eq('teacher_id', teacherProfile.id);
+          
+      if (classesError) throw classesError;
+      
+      // Format classes data - filter out duplicates based on subject ID
+      const formattedClasses = teacherClasses?.filter(tc => tc.subjects && tc.classes).map(tc => ({
+        id: tc.subjects?.id || 'unknown',
+        name: tc.subjects?.name || 'Unknown Subject',
+        code: tc.subjects?.code || '',
+        room: tc.classes?.name || 'Unknown Room'
+      })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
+      
+      setClasses(formattedClasses);
       
     } catch (error) {
       console.error("Error fetching teacher students:", error);
@@ -245,25 +127,22 @@ const TeacherStudentsPage = () => {
     }
   };
   
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(newFilters);
-  };
+  // Filter students based on search term and selected class
+  const filteredStudents = students.filter(student => 
+    (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.roll.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (selectedClass === "all" || student.class === selectedClass)
+  );
   
   return (
     <div>
       <PageHeader
         title="My Students"
-        description="View and filter students in your classes"
+        description="View students in your classes"
         icon={Users}
       />
       
-      <TeacherFilters 
-        onFilterChange={handleFilterChange}
-        courses={courses}
-        showPerformanceFilters={true}
-      />
-      
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-6 mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-6">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
           <Input
@@ -273,9 +152,23 @@ const TeacherStudentsPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <div className="flex items-center gap-2">
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by class" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Classes</SelectItem>
+              {classes.map(cls => (
+                <SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.room})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
-      <Card>
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle className="text-lg">Student List</CardTitle>
         </CardHeader>
@@ -286,69 +179,45 @@ const TeacherStudentsPage = () => {
             </div>
           ) : filteredStudents.length > 0 ? (
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Roll No.</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Attendance</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Courses</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-4 py-3 text-left font-medium">Name</th>
+                    <th className="px-4 py-3 text-left font-medium">Roll No.</th>
+                    <th className="px-4 py-3 text-left font-medium">Email</th>
+                    <th className="px-4 py-3 text-left font-medium">Contact</th>
+                    <th className="px-4 py-3 text-left font-medium">Attendance</th>
+                    <th className="px-4 py-3 text-left font-medium">Grade</th>
+                    <th className="px-4 py-3 text-left font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {filteredStudents.map(student => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>{student.roll}</TableCell>
-                      <TableCell>{student.email}</TableCell>
-                      <TableCell>{student.contact}</TableCell>
-                      <TableCell>
-                        <span className={
-                          student.attendance === 'N/A' ? 'text-gray-500' :
-                          parseFloat(student.attendance) < 75 ? 'text-red-500' :
-                          parseFloat(student.attendance) < 85 ? 'text-yellow-500' :
-                          'text-green-500'
-                        }>
-                          {student.attendance === 'N/A' ? 'N/A' : `${student.attendance}%`}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className={
-                          parseFloat(student.grade) < 60 ? 'text-red-500' :
-                          parseFloat(student.grade) < 75 ? 'text-yellow-500' :
-                          parseFloat(student.grade) < 90 ? 'text-green-500' :
-                          'text-blue-500 font-medium'
-                        }>
-                          {student.grade}%
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {student.courses.length > 0 
-                          ? student.courses.map((c: any) => c?.name || 'Unknown').join(', ')
-                          : 'No courses'}
-                      </TableCell>
-                      <TableCell className="flex gap-2">
+                    <tr key={student.id} className="border-b">
+                      <td className="px-4 py-3">{student.name}</td>
+                      <td className="px-4 py-3">{student.roll}</td>
+                      <td className="px-4 py-3">{student.email}</td>
+                      <td className="px-4 py-3">{student.contact}</td>
+                      <td className="px-4 py-3">{student.attendance}</td>
+                      <td className="px-4 py-3">{student.grade}</td>
+                      <td className="px-4 py-3 flex gap-2">
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}`)}>View</Button>
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}/id-card`)}>
                           <IdCard className="h-4 w-4 mr-1" />
                           ID Card
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="text-center py-12">
               <Users className="h-12 w-12 mx-auto text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
               <p className="mt-1 text-gray-500">
-                No students match your filter criteria or you haven't been assigned any students yet.
+                No students match your search criteria or you haven't been assigned any students yet.
               </p>
             </div>
           )}
