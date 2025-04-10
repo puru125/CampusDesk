@@ -45,7 +45,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const StudentDoubtsCard: React.FC<StudentDoubtsCardProps> = ({ doubt, onViewClick }) => {
+export const StudentDoubtsCard: React.FC<StudentDoubtsCardProps> = ({ doubt, onViewClick }) => {
   const formattedTime = formatDistanceToNow(new Date(doubt.created_at), {
     addSuffix: true,
   });
@@ -82,4 +82,5 @@ const StudentDoubtsCard: React.FC<StudentDoubtsCardProps> = ({ doubt, onViewClic
   );
 };
 
+// Also export as default for backward compatibility
 export default StudentDoubtsCard;

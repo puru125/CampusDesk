@@ -1,354 +1,220 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
-import { Course } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import PageHeader from "@/components/ui/page-header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, Calendar, Info, AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-interface EnrolledCourse extends Course {
-  enrollment_id: string;
-  enrollment_status: string;
+import { useState, useEffect } from "react";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import { useAuth } from "@/contexts/AuthContext";
+import PageHeader from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Book, BookOpen, Clock, Calendar, Check, X } from "lucide-react";
+
+// Define interfaces correctly
+interface Course {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  credits: number;
+  duration: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface EnrolledCourse {
+  id: string;
+  course_id: string;
+  status: string;
   academic_year: string;
   semester: number;
-  created_at?: string;
-  updated_at?: string;
+  courses: Course;
 }
 
 const StudentCoursesPage = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
-  const [studentId, setStudentId] = useState<string | null>(null);
-  const [enrollingCourse, setEnrollingCourse] = useState<string | null>(null);
-  const [droppingCourse, setDroppingCourse] = useState<string | null>(null);
+  const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("enrolled");
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (!user) return;
-
-        // Get student ID first
-        const { data: studentData, error: studentError } = await extendedSupabase
-          .from('students')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (studentError) throw studentError;
-        setStudentId(studentData.id);
-
-        // Fetch all active courses
-        const { data: coursesData, error: coursesError } = await extendedSupabase
-          .from('courses')
-          .select('*')
-          .eq('is_active', true);
-
-        if (coursesError) throw coursesError;
-
-        // Fetch enrolled courses
-        const { data: enrollmentsData, error: enrollmentsError } = await extendedSupabase
-          .from('student_course_enrollments')
-          .select(`
-            id,
-            course_id,
-            status,
-            academic_year,
-            semester,
-            courses (
-              id,
-              name,
-              code,
-              description,
-              credits,
-              duration,
-              is_active,
-              created_at,
-              updated_at
-            )
-          `)
-          .eq('student_id', studentData.id);
-
-        if (enrollmentsError) throw enrollmentsError;
-
-        // Format enrolled courses
-        const enrolledCoursesFormatted = enrollmentsData.map((enrollment) => ({
-          ...enrollment.courses,
-          enrollment_id: enrollment.id,
-          enrollment_status: enrollment.status,
-          academic_year: enrollment.academic_year,
-          semester: enrollment.semester,
-          created_at: enrollment.created_at,
-          updated_at: enrollment.updated_at
-        }));
-
-        setEnrolledCourses(enrolledCoursesFormatted);
-
-        // Filter out courses that the student is already enrolled in or has pending enrollment
-        const enrolledCourseIds = new Set(enrollmentsData.map(e => e.course_id));
-        const availableCoursesFiltered = coursesData.filter(course => !enrolledCourseIds.has(course.id));
-        
-        setAvailableCourses(availableCoursesFiltered);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load courses data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user, toast]);
-
-  const handleEnrollCourse = async (courseId: string) => {
-    try {
-      if (!studentId) return;
-      
-      setEnrollingCourse(courseId);
-      
-      // Get current academic year and semester (this would typically come from your system settings)
-      const currentYear = new Date().getFullYear().toString();
-      const currentSemester = 1; // This is a placeholder - adjust as needed
-      
-      // Create enrollment request
-      const { data, error } = await extendedSupabase.rpc(
-        'request_course_enrollment',
-        { 
-          p_student_id: studentId,
-          p_course_id: courseId,
-          p_academic_year: currentYear,
-          p_semester: currentSemester
-        }
-      );
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Enrollment Requested",
-        description: "Your course enrollment request has been submitted for approval",
-      });
-      
-      // Refresh the course lists
-      navigate(0);
-    } catch (error: any) {
-      console.error("Error enrolling in course:", error);
-      toast({
-        title: "Enrollment Failed",
-        description: error.message || "Failed to enroll in course",
-        variant: "destructive",
-      });
-    } finally {
-      setEnrollingCourse(null);
+    if (user) {
+      fetchEnrolledCourses();
+      fetchAvailableCourses();
     }
-  };
+  }, [user]);
 
-  const handleDropCourse = async (enrollmentId: string) => {
+  const fetchEnrolledCourses = async () => {
     try {
-      setDroppingCourse(enrollmentId);
-      
-      // Update enrollment status to 'dropped'
-      const { error } = await extendedSupabase
+      // First get the student ID
+      const { data: studentData, error: studentError } = await extendedSupabase
+        .from('students')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (studentError) throw studentError;
+
+      // Then get their enrolled courses
+      const { data, error } = await extendedSupabase
         .from('student_course_enrollments')
-        .update({ status: 'dropped' })
-        .eq('id', enrollmentId)
-        .eq('student_id', studentId);
-      
+        .select(`
+          id, 
+          course_id, 
+          status, 
+          academic_year, 
+          semester,
+          courses:course_id (
+            id, name, code, description, credits, 
+            duration, is_active, created_at, updated_at
+          )
+        `)
+        .eq('student_id', studentData.id);
+
       if (error) throw error;
-      
-      toast({
-        title: "Course Dropped",
-        description: "You have successfully dropped the course",
-      });
-      
-      // Refresh the course lists
-      navigate(0);
-    } catch (error: any) {
-      console.error("Error dropping course:", error);
-      toast({
-        title: "Action Failed",
-        description: error.message || "Failed to drop course",
-        variant: "destructive",
-      });
+      setEnrolledCourses(data || []);
+    } catch (error) {
+      console.error("Error fetching enrolled courses:", error);
     } finally {
-      setDroppingCourse(null);
+      setLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending Approval</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
-      case 'dropped':
-        return <Badge className="bg-gray-100 text-gray-800">Dropped</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+  const fetchAvailableCourses = async () => {
+    try {
+      const { data, error } = await extendedSupabase
+        .from('courses')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setAvailableCourses(data || []);
+    } catch (error) {
+      console.error("Error fetching available courses:", error);
     }
+  };
+
+  const renderCourseCard = (course: Course, isEnrolled = false, enrollmentData?: Partial<EnrolledCourse>) => {
+    return (
+      <Card key={course.id} className="shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg font-semibold">{course.name}</CardTitle>
+            <Badge variant={isEnrolled ? "success" : "outline"}>
+              {isEnrolled ? enrollmentData?.status || "Enrolled" : "Available"}
+            </Badge>
+          </div>
+          <p className="text-sm text-gray-500">Code: {course.code}</p>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-700 mb-4 line-clamp-2">{course.description}</p>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+            <div className="flex items-center">
+              <Book className="h-3 w-3 mr-1" />
+              <span>Credits: {course.credits}</span>
+            </div>
+            <div className="flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>Duration: {course.duration}</span>
+            </div>
+            {isEnrolled && enrollmentData && (
+              <>
+                <div className="flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  <span>Year: {enrollmentData.academic_year}</span>
+                </div>
+                <div className="flex items-center">
+                  <BookOpen className="h-3 w-3 mr-1" />
+                  <span>Semester: {enrollmentData.semester}</span>
+                </div>
+              </>
+            )}
+          </div>
+          
+          {!isEnrolled && (
+            <Button size="sm" className="w-full mt-4">
+              Enroll Now
+            </Button>
+          )}
+          
+          {isEnrolled && (
+            <div className="flex justify-between mt-4">
+              <Button size="sm" variant="outline" className="text-xs">
+                View Details
+              </Button>
+              {enrollmentData?.status === "pending" && (
+                <Badge variant="outline" className="bg-yellow-50">
+                  Pending Approval
+                </Badge>
+              )}
+              {enrollmentData?.status === "active" && (
+                <Button size="sm" variant="destructive" className="text-xs">
+                  <X className="h-3 w-3 mr-1" /> Drop Course
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
     <div>
       <PageHeader
         title="My Courses"
-        description="Manage your course enrollments and view course details"
+        description="View and manage your course enrollments"
         icon={BookOpen}
       />
-      
-      <Tabs defaultValue="enrolled" className="mt-6">
-        <TabsList>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="enrolled">Enrolled Courses</TabsTrigger>
           <TabsTrigger value="available">Available Courses</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="enrolled" className="space-y-4 mt-4">
+        <TabsContent value="enrolled" className="mt-6">
           {loading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : enrolledCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {enrolledCourses.map((course) => (
-                <Card key={course.enrollment_id} className="shadow-sm">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle>{course.name}</CardTitle>
-                      {getStatusBadge(course.enrollment_status)}
-                    </div>
-                    <CardDescription>{course.code}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                      {course.description || "No description available"}
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm">
-                        <Clock className="mr-2 h-4 w-4 text-gray-500" />
-                        <span>Duration: {course.duration}</span>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Calendar className="mr-2 h-4 w-4 text-gray-500" />
-                        <span>Academic Year: {course.academic_year}</span>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Info className="mr-2 h-4 w-4 text-gray-500" />
-                        <span>Semester: {course.semester}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    {course.enrollment_status === 'approved' && (
-                      <Button 
-                        variant="destructive" 
-                        className="w-full"
-                        onClick={() => handleDropCourse(course.enrollment_id)}
-                        disabled={droppingCourse === course.enrollment_id}
-                      >
-                        {droppingCourse === course.enrollment_id ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Drop Course
-                      </Button>
-                    )}
-                    {course.enrollment_status === 'pending' && (
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        disabled
-                      >
-                        Pending Approval
-                      </Button>
-                    )}
-                    {course.enrollment_status === 'dropped' && (
-                      <Button 
-                        variant="outline" 
-                        className="w-full opacity-50"
-                        disabled
-                      >
-                        Dropped
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
-              ))}
+            <div className="text-center py-8">Loading enrolled courses...</div>
+          ) : enrolledCourses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <BookOpen className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>You haven't enrolled in any courses yet.</p>
+              <Button 
+                onClick={() => setActiveTab("available")}
+                variant="outline" 
+                className="mt-4"
+              >
+                Browse Available Courses
+              </Button>
             </div>
           ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>No Enrolled Courses</AlertTitle>
-              <AlertDescription>
-                You are not enrolled in any courses. Check the Available Courses tab to enroll.
-              </AlertDescription>
-            </Alert>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {enrolledCourses.map(enrollment => 
+                renderCourseCard(enrollment.courses, true, {
+                  status: enrollment.status,
+                  academic_year: enrollment.academic_year,
+                  semester: enrollment.semester
+                })
+              )}
+            </div>
           )}
         </TabsContent>
         
-        <TabsContent value="available" className="space-y-4 mt-4">
-          {loading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : availableCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {availableCourses.map((course) => (
-                <Card key={course.id} className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle>{course.name}</CardTitle>
-                    <CardDescription>{course.code}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                      {course.description || "No description available"}
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm">
-                        <Clock className="mr-2 h-4 w-4 text-gray-500" />
-                        <span>Duration: {course.duration}</span>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Info className="mr-2 h-4 w-4 text-gray-500" />
-                        <span>Credits: {course.credits}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      className="w-full"
-                      onClick={() => handleEnrollCourse(course.id)}
-                      disabled={enrollingCourse === course.id}
-                    >
-                      {enrollingCourse === course.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
-                      Enroll
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+        <TabsContent value="available" className="mt-6">
+          {availableCourses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <BookOpen className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>No courses are currently available for enrollment.</p>
             </div>
           ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>No Available Courses</AlertTitle>
-              <AlertDescription>
-                There are no available courses for enrollment at this time.
-              </AlertDescription>
-            </Alert>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {availableCourses
+                .filter(course => !enrolledCourses.some(ec => ec.course_id === course.id))
+                .map(course => renderCourseCard(course))}
+            </div>
           )}
         </TabsContent>
       </Tabs>
