@@ -47,7 +47,7 @@ const Sidebar = () => {
     { path: "/", icon: Home, label: "Dashboard" },
     { path: "/students", icon: GraduationCap, label: "Students" },
     { path: "/teachers", icon: Users, label: "Teachers" },
-    { path: "/courses", icon: BookOpen, label: "Courses Management" },
+    { path: "/courses", icon: BookOpen, label: "Courses" },
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },

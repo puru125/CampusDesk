@@ -1,12 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageHeader from "@/components/ui/page-header";
-import { Book, BookOpen, Users, Clock, ArrowLeft, Save } from "lucide-react";
+import { Book, BookOpen, Users, Clock, ArrowLeft, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import CourseEditForm from "./CourseEditForm";
@@ -20,9 +21,11 @@ const CourseEditModule = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("course-details");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch course data with error handling and retry mechanisms
-  const { data: course, isLoading: courseLoading, error: courseError } = useQuery({
+  const { data: course, isLoading: courseLoading, error: courseError, refetch } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
       try {
@@ -37,6 +40,7 @@ const CourseEditModule = () => {
 
         if (error) {
           console.error("Error fetching course:", error);
+          setError("Failed to fetch course details. Please try again.");
           throw error;
         }
         
@@ -52,22 +56,89 @@ const CourseEditModule = () => {
       }
     },
     enabled: !!courseId,
-    retry: 2, // Retry failed requests up to 2 times
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    retry: 2,
+    staleTime: 1000 * 60 * 5,
   });
+
+  // Check for dependencies before deletion
+  const checkDependencies = async () => {
+    try {
+      // Check for teacher assignments
+      const { data: teacherSubjects, error: tsError } = await supabase
+        .from("teacher_subjects")
+        .select("id")
+        .in("subject_id", course?.subjects?.map(s => s.id) || []);
+      
+      if (tsError) throw tsError;
+      
+      if (teacherSubjects && teacherSubjects.length > 0) {
+        return "Cannot delete course with assigned teachers. Please remove teacher assignments first.";
+      }
+      
+      // Check for student enrollments
+      const { data: enrollments, error: enError } = await supabase
+        .from("student_course_enrollments")
+        .select("id")
+        .eq("course_id", courseId);
+      
+      if (enError) throw enError;
+      
+      if (enrollments && enrollments.length > 0) {
+        return "Cannot delete course with student enrollments. Please remove enrollments first.";
+      }
+      
+      // Check for timetable entries
+      const subjectIds = course?.subjects?.map(s => s.id) || [];
+      if (subjectIds.length > 0) {
+        const { data: timetableEntries, error: ttError } = await supabase
+          .from("timetable_entries")
+          .select("id")
+          .in("subject_id", subjectIds);
+        
+        if (ttError) throw ttError;
+        
+        if (timetableEntries && timetableEntries.length > 0) {
+          return "Cannot delete course with scheduled classes. Please remove timetable entries first.";
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error checking dependencies:", error);
+      return "An error occurred while checking course dependencies.";
+    }
+  };
 
   // Handle deletion of a course
   const deleteCourse = useMutation({
     mutationFn: async () => {
+      setIsDeleting(true);
+      
+      // First check dependencies
+      const dependencyError = await checkDependencies();
+      if (dependencyError) {
+        throw new Error(dependencyError);
+      }
+      
+      // Delete subjects first (cascade delete would be better in the database)
+      if (course?.subjects && course.subjects.length > 0) {
+        const { error: subjectError } = await supabase
+          .from("subjects")
+          .delete()
+          .eq("course_id", courseId);
+        
+        if (subjectError) throw subjectError;
+      }
+      
+      // Then delete the course
       const { error } = await supabase
         .from("courses")
         .delete()
         .eq("id", courseId);
       
-      if (error) {
-        console.error("Error deleting course:", error);
-        throw error;
-      }
+      if (error) throw error;
+      
+      return "Course deleted successfully";
     },
     onSuccess: () => {
       toast({
@@ -76,14 +147,17 @@ const CourseEditModule = () => {
       });
       navigate("/courses");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Failed to delete course:", error);
       toast({
         title: "Error",
-        description: "Failed to delete course. Please try again.",
+        description: error.message || "Failed to delete course. Please try again.",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setIsDeleting(false);
+    }
   });
 
   // Handle back navigation
@@ -92,7 +166,7 @@ const CourseEditModule = () => {
   };
 
   // Handle confirming course deletion
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
       deleteCourse.mutate();
     }
@@ -138,9 +212,9 @@ const CourseEditModule = () => {
           <Button 
             variant="destructive" 
             onClick={handleDeleteConfirm}
-            disabled={deleteCourse.isPending}
+            disabled={isDeleting}
           >
-            {deleteCourse.isPending ? (
+            {isDeleting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Deleting...
@@ -151,6 +225,14 @@ const CourseEditModule = () => {
           </Button>
         </div>
       </PageHeader>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="course-details" onValueChange={setActiveTab} value={activeTab}>
         <TabsList className="grid grid-cols-4 mb-8">
@@ -182,6 +264,7 @@ const CourseEditModule = () => {
                 title: "Success",
                 description: "Course details updated successfully",
               });
+              refetch();
             }} 
           />
         </TabsContent>
@@ -196,6 +279,7 @@ const CourseEditModule = () => {
                 title: "Success",
                 description: "Subjects updated successfully",
               });
+              refetch();
             }}
           />
         </TabsContent>
