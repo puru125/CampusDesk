@@ -17,12 +17,7 @@ interface Feedback {
   message: string;
   rating: number;
   is_read: boolean;
-  students?: {
-    user_id: string;
-    users?: {
-      full_name: string;
-    }
-  }
+  student_name?: string;
 }
 
 const AdminFeedbackPage = () => {
@@ -32,21 +27,22 @@ const AdminFeedbackPage = () => {
   const { data: feedbacks, isLoading } = useQuery({
     queryKey: ["admin-feedbacks"],
     queryFn: async () => {
+      // Join with students_view to get student names
       const { data, error } = await extendedSupabase
         .from("student_feedback")
         .select(`
           *,
-          students (
-            user_id,
-            users (
-              full_name
-            )
-          )
+          student:students_view(full_name)
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Feedback[];
+      
+      // Format the response to match our Feedback interface
+      return (data || []).map(item => ({
+        ...item,
+        student_name: item.student?.full_name || "Unknown Student"
+      })) as Feedback[];
     },
   });
 
@@ -132,7 +128,7 @@ const AdminFeedbackPage = () => {
                       
                       <div className="flex justify-between text-xs text-gray-500 mt-2">
                         <span>
-                          From: {feedback.students?.users?.full_name || "Unknown Student"}
+                          From: {feedback.student_name}
                         </span>
                         <span>
                           {format(new Date(feedback.created_at), "MMM d, yyyy")}

@@ -140,6 +140,43 @@ export type StudentFeedbackTable = {
   ];
 };
 
+export type StudentTimetableView = {
+  Row: {
+    id: string;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    class_id: string;
+    class_name: string;
+    room: string;
+    subject_id: string;
+    subject_name: string;
+    subject_code: string;
+    teacher_id: string;
+    teacher_name: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "timetable_entries_class_id_fkey";
+      columns: ["class_id"];
+      referencedRelation: "classes";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "timetable_entries_subject_id_fkey";
+      columns: ["subject_id"];
+      referencedRelation: "subjects";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "timetable_entries_teacher_id_fkey";
+      columns: ["teacher_id"];
+      referencedRelation: "teachers";
+      referencedColumns: ["id"];
+    }
+  ];
+};
+
 export type AssignmentsTable = {
   Row: {
     id: string;
@@ -415,7 +452,9 @@ export interface ExtendedDatabase extends Database {
       exam_reports: ExamReportsTable;
       student_feedback: StudentFeedbackTable;
     };
-    Views: Database["public"]["Views"];
+    Views: Database["public"]["Views"] & {
+      student_timetable_view: StudentTimetableView;
+    };
     Functions: Database["public"]["Functions"];
     Enums: Database["public"]["Enums"];
     CompositeTypes: Database["public"]["CompositeTypes"];

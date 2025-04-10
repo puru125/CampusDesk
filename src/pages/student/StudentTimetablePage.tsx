@@ -10,7 +10,9 @@ import { DAYS_OF_WEEK } from "@/components/timetable/TimetableFormConstants";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { Calendar, Clock, School, Building, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StudentTimetableView } from "@/types/supabase-extensions";
 
+// Our component's interface for timetable entries
 interface TimetableEntry {
   id: string;
   day_of_week: number;
@@ -57,7 +59,7 @@ const StudentTimetablePage = () => {
         }
 
         // Explicitly cast the data to our expected type
-        return data as unknown as TimetableEntry[];
+        return data as TimetableEntry[];
       } catch (error) {
         console.error("Error in timetable query:", error);
         return [];
