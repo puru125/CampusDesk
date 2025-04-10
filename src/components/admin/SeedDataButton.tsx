@@ -17,7 +17,7 @@ const SeedDataButton = () => {
       if (result?.success) {
         toast({
           title: "Success",
-          description: "Indian dummy data has been successfully inserted",
+          description: "Dummy data has been successfully inserted",
           variant: "default",
         });
       } else {
@@ -40,14 +40,13 @@ const SeedDataButton = () => {
       onClick={handleSeedData} 
       disabled={loading}
       className="flex items-center gap-2"
-      variant="outline"
     >
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <Database className="h-4 w-4" />
       )}
-      {loading ? "Seeding Indian Data..." : "Populate Indian Data"}
+      {loading ? "Seeding Data..." : "Seed Indian Dummy Data"}
     </Button>
   );
 };
