@@ -16,6 +16,12 @@ import StudentsPage from "./pages/students/StudentsPage";
 import AddStudentPage from "./pages/students/AddStudentPage";
 import TeachersPage from "./pages/teachers/TeachersPage";
 import AddTeacherPage from "./pages/teachers/AddTeacherPage";
+import CoursesPage from "./pages/courses/CoursesPage";
+import AddCoursePage from "./pages/courses/AddCoursePage";
+import TimetablePage from "./pages/timetable/TimetablePage";
+import AddTimetableEntryPage from "./pages/timetable/AddTimetableEntryPage";
+import ExamsPage from "./pages/exams/ExamsPage";
+import AddExamPage from "./pages/exams/AddExamPage";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +87,72 @@ const App = () => (
                 <ProtectedRoute>
                   <Shell>
                     <AddTeacherPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Courses Routes */}
+            <Route 
+              path="/courses" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <CoursesPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/courses/new" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AddCoursePage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Timetable Routes */}
+            <Route 
+              path="/timetable" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <TimetablePage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/timetable/new" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AddTimetableEntryPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Exams Routes */}
+            <Route 
+              path="/exams" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <ExamsPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/exams/new" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AddExamPage />
                   </Shell>
                 </ProtectedRoute>
               } 

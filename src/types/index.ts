@@ -58,7 +58,11 @@ export interface Student {
 export interface Course {
   id: string;
   name: string;
+  code?: string;
   description?: string;
+  credits: number;
+  department_id?: string;
+  is_active?: boolean;
   duration: string;
   created_at: string;
   updated_at: string;
@@ -68,6 +72,7 @@ export interface Course {
 export interface Subject {
   id: string;
   name: string;
+  code?: string;
   description?: string;
   credits: number;
   course_id: string;
@@ -98,6 +103,37 @@ export interface TimetableEntry {
   class?: Class;
   subject?: Subject;
   teacher?: Teacher;
+}
+
+export interface Exam {
+  id: string;
+  title: string;
+  subject_id: string;
+  exam_date: string;
+  start_time: string;
+  end_time: string;
+  room?: string;
+  description?: string;
+  max_marks: number;
+  passing_marks: number;
+  status: 'scheduled' | 'ongoing' | 'completed' | 'cancelled' | string;
+  created_at: string;
+  updated_at: string;
+  subject?: Subject;
+}
+
+export interface ExamResult {
+  id: string;
+  exam_id: string;
+  student_id: string;
+  marks_obtained: number;
+  remarks?: string;
+  grade?: string;
+  status: 'pass' | 'fail' | 'absent' | 'pending' | string;
+  created_at: string;
+  updated_at: string;
+  exam?: Exam;
+  student?: Student;
 }
 
 export interface TeacherSubject {

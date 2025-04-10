@@ -102,6 +102,38 @@ export const courseSchema = z.object({
   department: z.string().optional()
 });
 
+// Timetable entry validation schema
+export const timetableEntrySchema = z.object({
+  class_id: z.string({ required_error: "Please select a class" }),
+  subject_id: z.string({ required_error: "Please select a subject" }),
+  teacher_id: z.string({ required_error: "Please select a teacher" }),
+  day_of_week: z.string({ required_error: "Please select a day" }),
+  start_time: z.string({ required_error: "Please select a start time" }),
+  end_time: z.string({ required_error: "Please select an end time" }),
+});
+
+// Exam validation schema
+export const examSchema = z.object({
+  title: z.string().min(3, "Exam title must be at least 3 characters"),
+  subject_id: z.string({ required_error: "Please select a subject" }),
+  exam_date: z.date({ required_error: "Please select a date" }),
+  start_time: z.string({ required_error: "Please select a start time" }),
+  end_time: z.string({ required_error: "Please select an end time" }),
+  room: z.string().optional(),
+  description: z.string().optional(),
+  max_marks: z.number().min(1, "Maximum marks must be at least 1"),
+  passing_marks: z.number().min(1, "Passing marks must be at least 1"),
+});
+
+// Exam result validation schema
+export const examResultSchema = z.object({
+  exam_id: z.string(),
+  student_id: z.string(),
+  marks_obtained: z.number().min(0, "Marks cannot be negative"),
+  remarks: z.string().optional(),
+  status: z.enum(["pass", "fail", "absent", "pending"]),
+});
+
 // Fee payment validation schema
 export const feePaymentSchema = z.object({
   amount: z.number().min(1, { message: "Amount must be greater than 0" }),
@@ -122,5 +154,8 @@ export const yearSessionSchema = z.object({
 export type StudentFormValues = z.infer<typeof studentSchema>;
 export type TeacherFormValues = z.infer<typeof teacherSchema>;
 export type CourseFormValues = z.infer<typeof courseSchema>;
+export type TimetableEntryFormValues = z.infer<typeof timetableEntrySchema>;
+export type ExamFormValues = z.infer<typeof examSchema>;
+export type ExamResultFormValues = z.infer<typeof examResultSchema>;
 export type FeePaymentValues = z.infer<typeof feePaymentSchema>;
 export type YearSessionValues = z.infer<typeof yearSessionSchema>;
