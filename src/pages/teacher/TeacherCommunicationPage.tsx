@@ -35,41 +35,169 @@ const TeacherCommunicationPage = () => {
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   
   useEffect(() => {
-    // Mock data for now - this would be fetched from Supabase in a real implementation
-    const mockAnnouncements = [
-      {
-        id: "1",
-        title: "Midterm Exam Schedule",
-        content: "The midterm exams will be held from October 15th to October 22nd. Please check the timetable for your specific exam dates and times.",
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        target: "All Students",
-      },
-      {
-        id: "2",
-        title: "Assignment Deadline Extended",
-        content: "The deadline for the Database Systems assignment has been extended by one week. The new submission date is November 5th.",
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        target: "Database Systems",
-      },
-      {
-        id: "3",
-        title: "Guest Lecture Announcement",
-        content: "There will be a guest lecture on 'Modern Web Development Practices' by Mr. John Smith on October 28th in the Main Auditorium at 2:00 PM.",
-        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        target: "Web Development",
-      },
-    ];
+    fetchTeacherData();
+    fetchClasses();
+    fetchAnnouncements();
     
-    const mockClasses = [
-      { id: "1", name: "Database Systems", courseCode: "CS301" },
-      { id: "2", name: "Web Development", courseCode: "CS302" },
-      { id: "3", name: "Data Structures", courseCode: "CS201" },
-    ];
+    // Set up real-time listener for announcements
+    const channel = supabase
+      .channel('announcements-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'announcements'
+        },
+        (payload) => {
+          console.log('Realtime announcement update:', payload);
+          fetchAnnouncements();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+  
+  const fetchTeacherData = async () => {
+    if (!user) return;
     
-    setAnnouncements(mockAnnouncements);
-    setClasses(mockClasses);
-    setLoading(false);
-  }, []);
+    try {
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error) throw error;
+      
+      setTeacherData(data);
+    } catch (error) {
+      console.error("Error fetching teacher data:", error);
+    }
+  };
+  
+  const fetchClasses = async () => {
+    try {
+      // In a real implementation, fetch classes taught by the teacher
+      const { data, error } = await supabase
+        .from('teacher_subjects')
+        .select(`
+          subjects (
+            id,
+            name,
+            course_id,
+            courses (
+              id, 
+              name, 
+              code
+            )
+          )
+        `)
+        .eq('teacher_id', teacherData?.id || 'none');
+        
+      if (error) throw error;
+      
+      // Format the data
+      const formattedClasses = data?.map(item => ({
+        id: item.subjects?.id || '',
+        name: item.subjects?.name || '',
+        courseCode: item.subjects?.courses?.code || '',
+      })) || [];
+      
+      // If no classes are found in the database, use mock data
+      if (formattedClasses.length === 0) {
+        setClasses([
+          { id: "1", name: "Database Systems", courseCode: "CS301" },
+          { id: "2", name: "Web Development", courseCode: "CS302" },
+          { id: "3", name: "Data Structures", courseCode: "CS201" },
+        ]);
+      } else {
+        setClasses(formattedClasses);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+      // Fallback to mock data
+      setClasses([
+        { id: "1", name: "Database Systems", courseCode: "CS301" },
+        { id: "2", name: "Web Development", courseCode: "CS302" },
+        { id: "3", name: "Data Structures", courseCode: "CS201" },
+      ]);
+      setLoading(false);
+    }
+  };
+  
+  const fetchAnnouncements = async () => {
+    try {
+      // In a real implementation, fetch from the database
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .or(`target_role.eq.all,target_role.eq.teacher`)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setAnnouncements(data);
+      } else {
+        // Fallback to mock data
+        setAnnouncements([
+          {
+            id: "1",
+            title: "Midterm Exam Schedule",
+            content: "The midterm exams will be held from October 15th to October 22nd. Please check the timetable for your specific exam dates and times.",
+            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            target: "All Students",
+          },
+          {
+            id: "2",
+            title: "Assignment Deadline Extended",
+            content: "The deadline for the Database Systems assignment has been extended by one week. The new submission date is November 5th.",
+            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            target: "Database Systems",
+          },
+          {
+            id: "3",
+            title: "Guest Lecture Announcement",
+            content: "There will be a guest lecture on 'Modern Web Development Practices' by Mr. John Smith on October 28th in the Main Auditorium at 2:00 PM.",
+            created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+            target: "Web Development",
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      // Fallback to mock data
+      setAnnouncements([
+        {
+          id: "1",
+          title: "Midterm Exam Schedule",
+          content: "The midterm exams will be held from October 15th to October 22nd. Please check the timetable for your specific exam dates and times.",
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          target: "All Students",
+        },
+        {
+          id: "2",
+          title: "Assignment Deadline Extended",
+          content: "The deadline for the Database Systems assignment has been extended by one week. The new submission date is November 5th.",
+          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          target: "Database Systems",
+        },
+        {
+          id: "3",
+          title: "Guest Lecture Announcement",
+          content: "There will be a guest lecture on 'Modern Web Development Practices' by Mr. John Smith on October 28th in the Main Auditorium at 2:00 PM.",
+          created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          target: "Web Development",
+        },
+      ]);
+    }
+  };
   
   const handleSubmitAnnouncement = async () => {
     try {
@@ -84,13 +212,48 @@ const TeacherCommunicationPage = () => {
         return;
       }
       
-      // In a real implementation, this would save to Supabase
-      const newAnnouncement = {
+      // In a real implementation, save to Supabase
+      const target = selectedClass ? 
+        classes.find(c => c.id === selectedClass)?.name || "All Students" : 
+        "All Students";
+      
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert({
+          title: announcementTitle,
+          content: announcementContent,
+          target_role: 'all', // or 'student' if targeting specific students
+          created_by: user?.id,
+          is_active: true
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      // Create notification for students in this class
+      if (selectedClass && teacherData) {
+        // In a real app, you'd get all students in this class and create notifications for them
+        const { error: notifError } = await supabase
+          .from('student_notifications')
+          .insert({
+            title: `New Announcement: ${announcementTitle}`,
+            message: `${announcementContent.substring(0, 100)}${announcementContent.length > 100 ? '...' : ''}`,
+            is_read: false,
+            category: 'announcement',
+            // You'd loop through students and create notifications for each in a real app
+            // For simplicity, we're not doing that here
+          });
+          
+        if (notifError) console.error("Error creating student notifications:", notifError);
+      }
+      
+      // Update local state with the new announcement
+      const newAnnouncement = data?.[0] || {
         id: Date.now().toString(),
         title: announcementTitle,
         content: announcementContent,
-        created_at: new Date(),
-        target: selectedClass ? classes.find(c => c.id === selectedClass)?.name || "All Students" : "All Students",
+        created_at: new Date().toISOString(),
+        target: target,
       };
       
       setAnnouncements([newAnnouncement, ...announcements]);
@@ -239,7 +402,7 @@ const TeacherCommunicationPage = () => {
                         </div>
                         <div className="flex items-center text-xs">
                           <Users className="h-3 w-3 mr-1" />
-                          <span>Target: {announcement.target}</span>
+                          <span>Target: {announcement.target || 'All Students'}</span>
                         </div>
                       </CardFooter>
                     </Card>

@@ -3,12 +3,12 @@ import PageHeader from "@/components/ui/page-header";
 import { Bell } from "lucide-react";
 import NotificationsList from "@/components/notifications/NotificationsList";
 
-const StudentNotificationsPage = () => {
+const AdminNotificationsPage = () => {
   return (
     <div>
       <PageHeader
         title="Notifications"
-        description="View your latest notifications and updates"
+        description="Manage system notifications and alerts"
         icon={Bell}
       />
       
@@ -19,4 +19,4 @@ const StudentNotificationsPage = () => {
   );
 };
 
-export default StudentNotificationsPage;
+export default AdminNotificationsPage;

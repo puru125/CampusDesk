@@ -86,37 +86,45 @@ const StudentDashboard = () => {
   const fetchStudentProfile = async () => {
     try {
       const { data, error } = await extendedSupabase
-        .from('students_view')
-        .select('*')
+        .from('students')
+        .select('*, student_course_enrollments(status)')
         .eq('user_id', user?.id)
         .single();
         
       if (error) throw error;
       
-      setStudentProfile(data);
-      
-      // Check if enrollment is approved but status still shows pending
-      if (data && data.enrollment_status === 'pending') {
-        // Check if there are any approved enrollments for this student
-        const { data: enrollments, error: enrollmentsError } = await extendedSupabase
-          .from('student_course_enrollments')
-          .select('status')
-          .eq('student_id', data.id)
-          .eq('status', 'approved')
-          .limit(1);
-          
-        if (!enrollmentsError && enrollments && enrollments.length > 0) {
-          // Update the student status to active
+      // Check if enrollment is approved and fee status is paid/partial
+      if (data) {
+        let shouldUpdateStatus = false;
+        let newStatus = data.enrollment_status;
+        
+        // If student has any approved enrollments but status still shows pending
+        if (data.enrollment_status === 'pending' && 
+            data.student_course_enrollments && 
+            data.student_course_enrollments.some(e => e.status === 'approved')) {
+          newStatus = 'active';
+          shouldUpdateStatus = true;
+        }
+        
+        // Check if fees are paid
+        if (data.fee_status === 'paid' || data.fee_status === 'partial') {
+          newStatus = 'active';
+          shouldUpdateStatus = true;
+        }
+        
+        // Update student status if needed
+        if (shouldUpdateStatus && newStatus !== data.enrollment_status) {
           await extendedSupabase
             .from('students')
-            .update({ enrollment_status: 'active' })
+            .update({ enrollment_status: newStatus })
             .eq('id', data.id);
-            
-          // Update local state
+          
           setStudentProfile({
             ...data,
-            enrollment_status: 'active'
+            enrollment_status: newStatus
           });
+        } else {
+          setStudentProfile(data);
         }
       }
     } catch (error) {

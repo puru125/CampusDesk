@@ -3,7 +3,7 @@ import PageHeader from "@/components/ui/page-header";
 import { Bell } from "lucide-react";
 import NotificationsList from "@/components/notifications/NotificationsList";
 
-const StudentNotificationsPage = () => {
+const TeacherNotificationsPage = () => {
   return (
     <div>
       <PageHeader
@@ -19,4 +19,4 @@ const StudentNotificationsPage = () => {
   );
 };
 
-export default StudentNotificationsPage;
+export default TeacherNotificationsPage;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { School, Users, BookOpen, Calendar, CheckSquare, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -142,6 +141,57 @@ const TeacherDashboard = () => {
           user: "Student"
         })) || []);
         
+        // Create sample notifications
+        const createSampleNotifications = async (teacherId: string) => {
+          // Check if there are any existing notifications
+          const { data: existingNotifications, error: checkError } = await supabase
+            .from('teacher_notifications')
+            .select('id')
+            .eq('teacher_id', teacherId)
+            .limit(1);
+            
+          if (checkError) {
+            console.error("Error checking existing notifications:", checkError);
+            return;
+          }
+          
+          // If there are no existing notifications, create sample ones
+          if (!existingNotifications || existingNotifications.length === 0) {
+            const sampleNotifications = [
+              {
+                teacher_id: teacherId,
+                title: "New Assignment Submissions",
+                message: "You have 3 new assignment submissions from Web Development class that require grading.",
+                is_read: false,
+                category: "academic"
+              },
+              {
+                teacher_id: teacherId,
+                title: "Student Question",
+                message: "A student has posted a new question about Database Normalization in the forum.",
+                is_read: false,
+                category: "doubt"
+              },
+              {
+                teacher_id: teacherId,
+                title: "Faculty Meeting Reminder",
+                message: "Reminder: Faculty meeting tomorrow at 3:00 PM in Conference Room A.",
+                is_read: true,
+                category: "administrative"
+              }
+            ];
+            
+            const { error: insertError } = await supabase
+              .from('teacher_notifications')
+              .insert(sampleNotifications);
+              
+            if (insertError) {
+              console.error("Error creating sample notifications:", insertError);
+            }
+          }
+        };
+        
+        createSampleNotifications(teacherProfile.id);
       } catch (error) {
         console.error("Error fetching teacher data:", error);
         toast({
