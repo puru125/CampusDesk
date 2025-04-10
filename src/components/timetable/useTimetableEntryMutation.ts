@@ -12,16 +12,28 @@ export const useTimetableEntryMutation = (onSuccess: () => void) => {
   const addTimetableEntryMutation = useMutation({
     mutationFn: async (values: TimetableFormValues) => {
       try {
+        console.log("Submitting timetable entry:", values);
+        
         // First check if there's a conflict
-        const { data: existingEntries } = await supabase
+        const { data: existingEntries, error: conflictError } = await supabase
           .from('timetable_entries')
           .select("*")
           .eq("class_id", values.class_id)
           .eq("day_of_week", values.day_of_week)
           .or(`start_time.lte.${values.end_time},end_time.gte.${values.start_time}`);
 
+        if (conflictError) {
+          console.error("Error checking for conflicts:", conflictError);
+          throw new Error("Failed to check for scheduling conflicts");
+        }
+
         if (existingEntries && existingEntries.length > 0) {
           throw new Error("There is already a class scheduled at this time");
+        }
+
+        // Check if end time is after start time
+        if (values.start_time >= values.end_time) {
+          throw new Error("End time must be after start time");
         }
 
         // Insert the new timetable entry
@@ -32,9 +44,14 @@ export const useTimetableEntryMutation = (onSuccess: () => void) => {
           day_of_week: values.day_of_week,
           start_time: values.start_time,
           end_time: values.end_time,
-        });
+        }).select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error inserting timetable entry:", error);
+          throw error;
+        }
+        
+        console.log("Timetable entry created:", data);
         return data;
       } catch (error) {
         console.error("Error in mutation function:", error);

@@ -46,7 +46,7 @@ const TimetableTeacherField = ({
             <SelectContent>
               {teachers.map((teacher) => (
                 <SelectItem key={teacher.id} value={teacher.id}>
-                  {teacher.full_name}
+                  {teacher.full_name} {teacher.specialization && `(${teacher.specialization})`}
                 </SelectItem>
               ))}
             </SelectContent>
