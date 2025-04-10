@@ -208,7 +208,7 @@ const TimetablePage = () => {
               <div className="w-full md:w-64">
                 <Select
                   value={selectedClass || ""}
-                  onValueChange={(value) => setSelectedClass(value || null)}
+                  onValueChange={(value) => setSelectedClass(value === "all" ? null : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select class" />
