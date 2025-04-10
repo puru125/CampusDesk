@@ -7,7 +7,7 @@ import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Users, Search, BookOpen, Filter, Loader2, UserPlus } from "lucide-react";
+import { Users, Search, Filter, Loader2, UserPlus, IdCard } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -201,9 +201,12 @@ const TeacherStudentsPage = () => {
                       <td className="px-4 py-3">{student.contact}</td>
                       <td className="px-4 py-3">{student.attendance}</td>
                       <td className="px-4 py-3">{student.grade}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 flex gap-2">
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}`)}>View</Button>
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}/id-card`)}>ID Card</Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}/id-card`)}>
+                          <IdCard className="h-4 w-4 mr-1" />
+                          ID Card
+                        </Button>
                       </td>
                     </tr>
                   ))}

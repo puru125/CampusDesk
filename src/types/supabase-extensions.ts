@@ -3,7 +3,7 @@ import { Database } from "@/integrations/supabase/types";
 import { createClient } from '@supabase/supabase-js';
 
 // Define the table types
-type StudentDoubtsTable = {
+export type StudentDoubtsTable = {
   Row: {
     id: string;
     student_id: string;
@@ -59,7 +59,7 @@ type StudentDoubtsTable = {
   ];
 };
 
-type DoubtAnswersTable = {
+export type DoubtAnswersTable = {
   Row: {
     id: string;
     doubt_id: string;
@@ -100,7 +100,7 @@ type DoubtAnswersTable = {
   ];
 };
 
-type AssignmentsTable = {
+export type AssignmentsTable = {
   Row: {
     id: string;
     teacher_id: string;
@@ -153,7 +153,7 @@ type AssignmentsTable = {
   ];
 };
 
-type AssignmentSubmissionsTable = {
+export type AssignmentSubmissionsTable = {
   Row: {
     id: string;
     assignment_id: string;
@@ -212,7 +212,7 @@ type AssignmentSubmissionsTable = {
   ];
 };
 
-type TeacherStudentsTable = {
+export type TeacherStudentsTable = {
   Row: {
     id: string;
     teacher_id: string;
@@ -250,7 +250,7 @@ type TeacherStudentsTable = {
   ];
 };
 
-type AttendanceRecordsTable = {
+export type AttendanceRecordsTable = {
   Row: {
     id: string;
     teacher_id: string;
@@ -315,7 +315,7 @@ type AttendanceRecordsTable = {
   ];
 };
 
-type ExamReportsTable = {
+export type ExamReportsTable = {
   Row: {
     id: string;
     exam_id: string;
