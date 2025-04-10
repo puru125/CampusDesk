@@ -45,8 +45,9 @@ const TeacherReportsPage = () => {
       if (!user) return;
 
       try {
+        // Using teacher_subjects table which exists in the schema
         const { data, error } = await extendedSupabase
-          .from("teacher_subject_assignments")
+          .from("teacher_subjects")
           .select("id, subject_id, subject:subjects(id, name)")
           .eq("teacher_id", user.id);
 
@@ -56,7 +57,12 @@ const TeacherReportsPage = () => {
         }
 
         if (data && data.length > 0) {
-          setSubjects(data);
+          const formattedSubjects = data.map(item => ({
+            subject_id: item.subject_id,
+            name: item.subject?.name || "Unknown Subject"
+          }));
+          
+          setSubjects(formattedSubjects);
           setSelectedSubject(data[0].subject_id);
         }
       } catch (error) {
@@ -73,7 +79,7 @@ const TeacherReportsPage = () => {
 
       setLoading(true);
       try {
-        // In a real app, this would fetch real data from the database
+        // Generate mock data for this demo using the helper function
         const data = await generateReportData(user.id, selectedSubject, timeframe);
         setReportData(data);
       } catch (error) {
@@ -97,7 +103,7 @@ const TeacherReportsPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-4 border-institute-500 border-t-transparent rounded-full"></div>
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
@@ -124,7 +130,7 @@ const TeacherReportsPage = () => {
             >
               {subjects.map((item) => (
                 <option key={item.subject_id} value={item.subject_id}>
-                  {item.subject?.name || "Unknown Subject"}
+                  {item.name}
                 </option>
               ))}
             </select>
@@ -136,21 +142,21 @@ const TeacherReportsPage = () => {
             </label>
             <div className="flex gap-2">
               <Button
-                variant={timeframe === "week" ? "institute" : "outline"}
+                variant={timeframe === "week" ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleTimeframeChange("week")}
               >
                 Week
               </Button>
               <Button
-                variant={timeframe === "month" ? "institute" : "outline"}
+                variant={timeframe === "month" ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleTimeframeChange("month")}
               >
                 Month
               </Button>
               <Button
-                variant={timeframe === "semester" ? "institute" : "outline"}
+                variant={timeframe === "semester" ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleTimeframeChange("semester")}
               >
