@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarPlus, Save } from "lucide-react";
+import { Calendar, Clock, FileText, Save, User, BookOpen } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -34,7 +34,7 @@ import {
 import PageHeader from "@/components/ui/page-header";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Class, Subject, Teacher } from "@/types";
+import { Class, Subject, TeacherView } from "@/types";
 
 const timetableSchema = z.object({
   class_id: z.string({
@@ -46,9 +46,9 @@ const timetableSchema = z.object({
   teacher_id: z.string({
     required_error: "Please select a teacher",
   }),
-  day_of_week: z.string({
+  day_of_week: z.number({
     required_error: "Please select a day",
-  }),
+  }).min(1, "Please select a day"),
   start_time: z.string({
     required_error: "Please select a start time",
   }),
@@ -60,17 +60,17 @@ const timetableSchema = z.object({
 type TimetableFormValues = z.infer<typeof timetableSchema>;
 
 const DAYS_OF_WEEK = [
-  { value: "1", label: "Monday" },
-  { value: "2", label: "Tuesday" },
-  { value: "3", label: "Wednesday" },
-  { value: "4", label: "Thursday" },
-  { value: "5", label: "Friday" },
-  { value: "6", label: "Saturday" },
-  { value: "7", label: "Sunday" },
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+  { value: 7, label: "Sunday" },
 ];
 
 const TIME_SLOTS = [
-  "08:00", "09:00", "10:00", "11:00", "12:00", 
+  "08:00", "09:00", "10:00", "11:00", "12:00",
   "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"
 ];
 
@@ -85,122 +85,143 @@ const AddTimetableEntryPage = () => {
       class_id: "",
       subject_id: "",
       teacher_id: "",
-      day_of_week: "",
+      day_of_week: 1,
       start_time: "",
       end_time: "",
     },
   });
 
-  // Query to fetch classes
+  // Query to fetch available classes
   const { data: classes } = useQuery({
     queryKey: ["classes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*")
-        .order("name");
+      try {
+        const { data, error } = await supabase
+          .from("classes")
+          .select("*")
+          .order("name");
 
-      if (error) {
-        console.error("Error fetching classes:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch classes. Please try again.",
-          variant: "destructive",
-        });
+        if (error) {
+          console.error("Error fetching classes:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch classes",
+            variant: "destructive",
+          });
+          return [];
+        }
+
+        return (data as any) as Class[];
+      } catch (error) {
+        console.error("Error in fetch function:", error);
         return [];
       }
-
-      return data as Class[];
     },
   });
 
-  // Query to fetch subjects
+  // Query to fetch available subjects
   const { data: subjects } = useQuery({
     queryKey: ["subjects"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("subjects")
-        .select("*")
-        .order("name");
+      try {
+        const { data, error } = await supabase
+          .from("subjects")
+          .select(`
+          *,
+          course:courses(id, name)
+        `)
+          .order("name");
 
-      if (error) {
-        console.error("Error fetching subjects:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch subjects. Please try again.",
-          variant: "destructive",
-        });
+        if (error) {
+          console.error("Error fetching subjects:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch subjects",
+            variant: "destructive",
+          });
+          return [];
+        }
+
+        return (data as any) as Subject[];
+      } catch (error) {
+        console.error("Error in fetch function:", error);
         return [];
       }
-
-      return data as Subject[];
     },
   });
 
-  // Query to fetch teachers
+  // Query to fetch available teachers
   const { data: teachers } = useQuery({
     queryKey: ["teachers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("teachers_view")
-        .select("*")
-        .order("full_name");
+      try {
+        const { data, error } = await supabase
+          .from("teachers_view")
+          .select("*")
+          .order("full_name");
 
-      if (error) {
-        console.error("Error fetching teachers:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch teachers. Please try again.",
-          variant: "destructive",
-        });
+        if (error) {
+          console.error("Error fetching teachers:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch teachers",
+            variant: "destructive",
+          });
+          return [];
+        }
+
+        return (data as any) as TeacherView[];
+      } catch (error) {
+        console.error("Error in fetch function:", error);
         return [];
       }
-
-      return data as Teacher[];
     },
   });
 
+  // Mutation to add a new timetable entry
   const addTimetableEntryMutation = useMutation({
     mutationFn: async (values: TimetableFormValues) => {
-      // Check if the time slot is available
-      const { data: existingEntries, error: checkError } = await supabase
-        .from("timetable_entries")
-        .select("*")
-        .eq("class_id", values.class_id)
-        .eq("day_of_week", parseInt(values.day_of_week))
-        .or(`start_time.lte.${values.end_time},end_time.gt.${values.start_time}`);
+      try {
+        // First check if there's a conflict
+        const { data: existingEntries } = await supabase
+          .from("timetable_entries")
+          .select("*")
+          .eq("class_id", values.class_id)
+          .eq("day_of_week", values.day_of_week)
+          .or(`start_time.lte.${values.end_time},end_time.gte.${values.start_time}`);
 
-      if (checkError) throw checkError;
+        if (existingEntries && existingEntries.length > 0) {
+          throw new Error("There is already a class scheduled at this time");
+        }
 
-      if (existingEntries && existingEntries.length > 0) {
-        throw new Error("Time slot is already booked for this class on this day");
+        // Insert the new timetable entry
+        const { data, error } = await supabase.from("timetable_entries").insert({
+          class_id: values.class_id,
+          subject_id: values.subject_id,
+          teacher_id: values.teacher_id,
+          day_of_week: values.day_of_week,
+          start_time: values.start_time,
+          end_time: values.end_time,
+        });
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Error in mutation function:", error);
+        throw error;
       }
-
-      // Insert the new timetable entry
-      const { data, error } = await supabase.from("timetable_entries").insert({
-        class_id: values.class_id,
-        subject_id: values.subject_id,
-        teacher_id: values.teacher_id,
-        day_of_week: parseInt(values.day_of_week),
-        start_time: values.start_time,
-        end_time: values.end_time,
-      });
-
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       toast({
-        title: "Schedule added",
-        description: "The class schedule has been successfully added.",
+        title: "Success",
+        description: "Timetable entry added successfully",
       });
       navigate("/timetable");
     },
     onError: (error) => {
-      console.error("Error adding timetable entry:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add schedule. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add timetable entry",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -215,9 +236,9 @@ const AddTimetableEntryPage = () => {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Add New Schedule"
-        description="Create a new class schedule"
-        icon={CalendarPlus}
+        title="Add Timetable Entry"
+        description="Create a new timetable entry"
+        icon={Calendar}
       >
         <Button variant="outline" onClick={() => navigate("/timetable")}>
           Cancel
@@ -226,9 +247,9 @@ const AddTimetableEntryPage = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Schedule Information</CardTitle>
+          <CardTitle>Timetable Details</CardTitle>
           <CardDescription>
-            Enter the details for the new class schedule
+            Enter the details for the new timetable entry
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -253,13 +274,13 @@ const AddTimetableEntryPage = () => {
                         <SelectContent>
                           {classes?.map((cls) => (
                             <SelectItem key={cls.id} value={cls.id}>
-                              {cls.name} ({cls.room})
+                              {cls.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Classroom where the session will be held
+                        Class for this timetable entry
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -284,13 +305,13 @@ const AddTimetableEntryPage = () => {
                         <SelectContent>
                           {subjects?.map((subject) => (
                             <SelectItem key={subject.id} value={subject.id}>
-                              {subject.name}
+                              {subject.name} {subject.course && `(${subject.course.name})`}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Subject to be taught in this session
+                        Subject for this timetable entry
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -321,7 +342,7 @@ const AddTimetableEntryPage = () => {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Teacher conducting this session
+                        Teacher for this timetable entry
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -333,10 +354,13 @@ const AddTimetableEntryPage = () => {
                   name="day_of_week"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Day</FormLabel>
+                      <FormLabel>Day of Week</FormLabel>
                       <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        onValueChange={(value) => {
+                          const parsedValue = parseInt(value, 10);
+                          field.onChange(isNaN(parsedValue) ? undefined : parsedValue);
+                        }}
+                        defaultValue={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -345,14 +369,14 @@ const AddTimetableEntryPage = () => {
                         </FormControl>
                         <SelectContent>
                           {DAYS_OF_WEEK.map((day) => (
-                            <SelectItem key={day.value} value={day.value}>
+                            <SelectItem key={day.value} value={day.value.toString()}>
                               {day.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Day of the week for this session
+                        Day of the week for this timetable entry
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -383,7 +407,7 @@ const AddTimetableEntryPage = () => {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        When the session starts
+                        When the class starts
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -414,7 +438,7 @@ const AddTimetableEntryPage = () => {
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        When the session ends
+                        When the class ends
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -432,7 +456,7 @@ const AddTimetableEntryPage = () => {
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   <Save className="mr-2 h-4 w-4" />
-                  {isSubmitting ? "Saving..." : "Save Schedule"}
+                  {isSubmitting ? "Adding..." : "Add Timetable Entry"}
                 </Button>
               </div>
             </form>

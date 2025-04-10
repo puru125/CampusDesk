@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -45,36 +44,34 @@ const CoursesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [yearSessionFilter, setYearSessionFilter] = useState<YearSessionValues>({});
 
-  const { data: courses, isLoading, refetch } = useQuery({
-    queryKey: ["courses", yearSessionFilter],
+  const { data: courses, isLoading } = useQuery({
+    queryKey: ["courses"],
     queryFn: async () => {
-      let query = supabase.from("courses").select(`
-        *,
-        subjects (
-          id,
-          name,
-          credits
-        )
-      `);
+      let query = supabase
+        .from("courses")
+        .select(`
+          *,
+          subjects(*)
+        `);
 
-      // Apply year filter if provided
       if (yearSessionFilter.year) {
         query = query.ilike('created_at', `${yearSessionFilter.year}%`);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data, error } = await query
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Error fetching courses:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch courses. Please try again later.",
+          description: "Failed to fetch courses",
           variant: "destructive",
         });
         return [];
       }
 
-      return data as Course[];
+      return (data as any) as Course[];
     },
   });
 
@@ -88,7 +85,6 @@ const CoursesPage = () => {
   });
 
   const handleDeleteCourse = async (courseId: string) => {
-    // For now just show a toast. In a real application, we would delete the course.
     toast({
       title: "Not implemented",
       description: "Course deletion functionality is not implemented yet.",

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -73,68 +72,78 @@ const ExamsPage = () => {
   const { data: exams, isLoading, refetch } = useQuery({
     queryKey: ["exams", statusFilter, yearSessionFilter],
     queryFn: async () => {
-      let query = supabase.from("exams").select(`
-        *,
-        subject:subjects(
-          id,
-          name,
-          course_id,
-          course:courses(
+      try {
+        let query = supabase.from("exams").select(`
+          *,
+          subject:subjects(
             id,
-            name
+            name,
+            course_id,
+            course:courses(
+              id,
+              name
+            )
           )
-        )
-      `);
+        `);
 
-      if (statusFilter) {
-        query = query.eq("status", statusFilter);
-      }
+        if (statusFilter) {
+          query = query.eq("status", statusFilter);
+        }
 
-      // Apply year filter if provided (assuming exam_date is in ISO format)
-      if (yearSessionFilter.year) {
-        query = query.ilike('exam_date', `${yearSessionFilter.year}%`);
-      }
+        // Apply year filter if provided (assuming exam_date is in ISO format)
+        if (yearSessionFilter.year) {
+          query = query.ilike('exam_date', `${yearSessionFilter.year}%`);
+        }
 
-      // For teachers, show only exams for subjects they teach
-      if (user?.role === "teacher") {
-        // Get teacher_id
-        const { data: teacherData } = await supabase
-          .from("teachers")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-        
-        if (teacherData) {
-          // Get subject IDs taught by this teacher
-          const { data: teacherSubjects } = await supabase
-            .from("teacher_subjects")
-            .select("subject_id")
-            .eq("teacher_id", teacherData.id);
+        // For teachers, show only exams for subjects they teach
+        if (user?.role === "teacher") {
+          // Get teacher_id
+          const { data: teacherData } = await supabase
+            .from("teachers")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
           
-          if (teacherSubjects && teacherSubjects.length > 0) {
-            const subjectIds = teacherSubjects.map(ts => ts.subject_id);
-            query = query.in("subject_id", subjectIds);
+          if (teacherData) {
+            // Get subject IDs taught by this teacher
+            const { data: teacherSubjects } = await supabase
+              .from("teacher_subjects")
+              .select("subject_id")
+              .eq("teacher_id", teacherData.id);
+            
+            if (teacherSubjects && teacherSubjects.length > 0) {
+              const subjectIds = teacherSubjects.map(ts => ts.subject_id);
+              query = query.in("subject_id", subjectIds);
+            }
           }
         }
-      }
-      // For students, show exams for courses they're enrolled in
-      else if (user?.role === "student") {
-        // This would need custom logic based on your data model
-      }
+        // For students, show exams for courses they're enrolled in
+        else if (user?.role === "student") {
+          // This would need custom logic based on your data model
+        }
 
-      const { data, error } = await query.order("exam_date", { ascending: false });
+        const { data, error } = await query.order("exam_date", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching exams:", error);
+        if (error) {
+          console.error("Error fetching exams:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch exams. Please try again later.",
+            variant: "destructive",
+          });
+          return [];
+        }
+
+        return (data as any) as Exam[];
+      } catch (error) {
+        console.error("Error in fetch function:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch exams. Please try again later.",
+          description: "An unexpected error occurred",
           variant: "destructive",
         });
         return [];
       }
-
-      return data as Exam[];
     },
   });
 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -98,49 +97,54 @@ const AddExamPage = () => {
   const { data: subjects } = useQuery({
     queryKey: ["subjects"],
     queryFn: async () => {
-      let query = supabase.from("subjects").select(`
-        *,
-        course:courses(
-          id,
-          name
-        )
-      `);
+      try {
+        let query = supabase.from("subjects").select(`
+          *,
+          course:courses(
+            id,
+            name
+          )
+        `);
 
-      // For teachers, show only subjects they teach
-      if (user?.role === "teacher") {
-        const { data: teacherData } = await supabase
-          .from("teachers")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-        
-        if (teacherData) {
-          // Get subject IDs taught by this teacher
-          const { data: teacherSubjects } = await supabase
-            .from("teacher_subjects")
-            .select("subject_id")
-            .eq("teacher_id", teacherData.id);
+        // For teachers, show only subjects they teach
+        if (user?.role === "teacher") {
+          const { data: teacherData } = await supabase
+            .from("teachers")
+            .select("id")
+            .eq("user_id", user.id)
+            .single();
           
-          if (teacherSubjects && teacherSubjects.length > 0) {
-            const subjectIds = teacherSubjects.map(ts => ts.subject_id);
-            query = query.in("id", subjectIds);
+          if (teacherData) {
+            // Get subject IDs taught by this teacher
+            const { data: teacherSubjects } = await supabase
+              .from("teacher_subjects")
+              .select("subject_id")
+              .eq("teacher_id", teacherData.id);
+            
+            if (teacherSubjects && teacherSubjects.length > 0) {
+              const subjectIds = teacherSubjects.map((ts: any) => ts.subject_id);
+              query = query.in("id", subjectIds);
+            }
           }
         }
-      }
 
-      const { data, error } = await query.order("name");
+        const { data, error } = await query.order("name");
 
-      if (error) {
-        console.error("Error fetching subjects:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch subjects. Please try again.",
-          variant: "destructive",
-        });
+        if (error) {
+          console.error("Error fetching subjects:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch subjects. Please try again.",
+            variant: "destructive",
+          });
+          return [];
+        }
+
+        return (data as any) as Subject[];
+      } catch (error) {
+        console.error("Error in fetch function:", error);
         return [];
       }
-
-      return data as Subject[];
     },
   });
 
@@ -151,22 +155,27 @@ const AddExamPage = () => {
         throw new Error("End time must be after start time");
       }
 
-      // Insert the new exam
-      const { data, error } = await supabase.from("exams").insert({
-        title: values.title,
-        subject_id: values.subject_id,
-        exam_date: values.exam_date.toISOString().split('T')[0],
-        start_time: values.start_time,
-        end_time: values.end_time,
-        room: values.room || null,
-        description: values.description || null,
-        max_marks: values.max_marks,
-        passing_marks: values.passing_marks,
-        status: "scheduled",
-      });
+      try {
+        // Insert the new exam
+        const { data, error } = await supabase.from("exams").insert({
+          title: values.title,
+          subject_id: values.subject_id,
+          exam_date: values.exam_date.toISOString().split('T')[0],
+          start_time: values.start_time,
+          end_time: values.end_time,
+          room: values.room || null,
+          description: values.description || null,
+          max_marks: values.max_marks,
+          passing_marks: values.passing_marks,
+          status: "scheduled",
+        });
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error("Error in mutation function:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({

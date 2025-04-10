@@ -113,6 +113,33 @@ export type Database = {
           },
         ]
       }
+      classes: {
+        Row: {
+          capacity: number
+          created_at: string
+          id: string
+          name: string
+          room: string
+          updated_at: string
+        }
+        Insert: {
+          capacity: number
+          created_at?: string
+          id?: string
+          name: string
+          room: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          id?: string
+          name?: string
+          room?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           code: string
@@ -120,6 +147,7 @@ export type Database = {
           credits: number
           department_id: string | null
           description: string | null
+          duration: string
           id: string
           is_active: boolean
           name: string
@@ -131,6 +159,7 @@ export type Database = {
           credits: number
           department_id?: string | null
           description?: string | null
+          duration?: string
           id?: string
           is_active?: boolean
           name: string
@@ -142,6 +171,7 @@ export type Database = {
           credits?: number
           department_id?: string | null
           description?: string | null
+          duration?: string
           id?: string
           is_active?: boolean
           name?: string
@@ -180,6 +210,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      exams: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_time: string
+          exam_date: string
+          id: string
+          max_marks: number
+          passing_marks: number
+          room: string | null
+          start_time: string
+          status: string
+          subject_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_time: string
+          exam_date: string
+          id?: string
+          max_marks: number
+          passing_marks: number
+          room?: string | null
+          start_time: string
+          status: string
+          subject_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          exam_date?: string
+          id?: string
+          max_marks?: number
+          passing_marks?: number
+          room?: string | null
+          start_time?: string
+          status?: string
+          subject_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fee_structures: {
         Row: {
@@ -466,6 +552,47 @@ export type Database = {
           },
         ]
       }
+      subjects: {
+        Row: {
+          code: string | null
+          course_id: string | null
+          created_at: string
+          credits: number
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          course_id?: string | null
+          created_at?: string
+          credits: number
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          course_id?: string | null
+          created_at?: string
+          credits?: number
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_config: {
         Row: {
           created_at: string
@@ -538,6 +665,52 @@ export type Database = {
           },
         ]
       }
+      teacher_subjects: {
+        Row: {
+          created_at: string
+          id: string
+          subject_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subject_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subject_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_subjects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_subjects_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_subjects_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teachers: {
         Row: {
           contact_number: string | null
@@ -584,6 +757,71 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timetable_entries: {
+        Row: {
+          class_id: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          start_time: string
+          subject_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          start_time: string
+          subject_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          subject_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timetable_entries_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_entries_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_entries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_entries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers_view"
             referencedColumns: ["id"]
           },
         ]
