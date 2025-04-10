@@ -84,7 +84,8 @@ export function StudentDoubtsCard() {
             created_at: doubt.created_at,
             student_id: doubt.student_id,
             student_name: studentMap.get(doubt.student_id) || 'Unknown Student',
-            subject_name: doubt.subjects ? doubt.subjects.name : 'General'
+            // Fix for the type error - the subjects object may have a different structure than expected
+            subject_name: doubt.subjects && typeof doubt.subjects === 'object' ? doubt.subjects.name : 'General'
           }));
           
           setDoubts(formattedDoubts);
