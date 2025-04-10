@@ -20,7 +20,10 @@ import {
   CheckCircle,
   Megaphone,
   HelpCircle,
-  BarChart
+  BarChart,
+  ClipboardCheck,
+  MessageSquare,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -71,12 +74,13 @@ const Sidebar = () => {
 
   const studentLinks = [
     { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/courses", icon: BookOpen, label: "My Courses" },
-    { path: "/timetable", icon: Calendar, label: "Timetable" },
+    { path: "/student/courses", icon: BookOpen, label: "My Courses" },
+    { path: "/student/attendance", icon: ClipboardCheck, label: "Attendance" },
     { path: "/assignments", icon: FileText, label: "Assignments" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
-    { path: "/exams", icon: FileText, label: "Exams" },
-    { path: "/notifications", icon: Bell, label: "Notifications" },
+    { path: "/student/exams", icon: FileText, label: "Exams & Results" },
+    { path: "/student/notifications", icon: Bell, label: "Notifications" },
+    { path: "/student/feedback", icon: MessageSquare, label: "Feedback" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 

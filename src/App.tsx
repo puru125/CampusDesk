@@ -76,6 +76,14 @@ import AttendanceRecordPage from "@/pages/teacher/AttendanceRecordPage";
 import ExamReportsPage from "@/pages/teacher/ExamReportsPage";
 import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
 
+// Student Module
+import StudentCoursesPage from "@/pages/student/StudentCoursesPage";
+import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
+import StudentExamsPage from "@/pages/student/StudentExamsPage";
+import StudentFeedbackPage from "@/pages/student/StudentFeedbackPage";
+import StudentNotificationsPage from "@/pages/student/StudentNotificationsPage";
+import FeedbackSuccessPage from "@/components/student/FeedbackSuccessPage";
+
 const queryClient = new QueryClient();
 
 function App() {
@@ -138,11 +146,20 @@ function App() {
                     <Route path="teacher/attendance-records" element={<AttendanceRecordPage />} />
                     <Route path="teacher/exam-reports" element={<ExamReportsPage />} />
                     
+                    {/* Student Module Routes */}
+                    <Route path="student/courses" element={<StudentCoursesPage />} />
+                    <Route path="student/attendance" element={<StudentAttendancePage />} />
+                    <Route path="student/exams" element={<StudentExamsPage />} />
+                    <Route path="student/feedback" element={<StudentFeedbackPage />} />
+                    <Route path="student/feedback/success" element={<FeedbackSuccessPage />} />
+                    <Route path="student/notifications" element={<StudentNotificationsPage />} />
+                    
                     {/* Aliases for easier navigation */}
                     <Route path="assignments/new" element={<CreateAssignmentPage />} />
                     <Route path="my-classes" element={<TeacherClassesPage />} />
                     <Route path="attendance" element={<AttendancePage />} />
                     <Route path="assignments" element={<TeacherAssignmentsPage />} />
+                    <Route path="my-courses" element={<StudentCoursesPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>
