@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { BookPlus, Save, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,25 @@ const AddCoursePage = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<Array<{id: string, name: string}>>([]);
+
+  // Fetch departments from the database
+  const { isLoading: isDepartmentsLoading } = useQuery({
+    queryKey: ['departments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name');
+      
+      if (error) {
+        console.error('Error fetching departments:', error);
+        throw error;
+      }
+      
+      setDepartments(data || []);
+      return data;
+    }
+  });
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
@@ -99,6 +118,8 @@ const AddCoursePage = () => {
       // Provide a more helpful error message for UUID format issues
       if (error.code === "22P02" && error.message.includes("uuid")) {
         errorMessage = "Invalid department ID format. Please select a valid department or 'None'.";
+      } else if (error.code === "23503" && error.message.includes("department_id")) {
+        errorMessage = "The selected department doesn't exist in the database. Please select a different department.";
       }
       
       setError(errorMessage);
@@ -220,6 +241,7 @@ const AddCoursePage = () => {
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
+                        disabled={isDepartmentsLoading}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -228,12 +250,11 @@ const AddCoursePage = () => {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
-                          {/* Using valid UUIDs for department IDs */}
-                          <SelectItem value="da9e2e7c-cdb3-4c9f-a247-a3a0becdedff">Computer Science</SelectItem>
-                          <SelectItem value="05de01aa-9fd6-4858-998c-5f7f76ac5020">Engineering</SelectItem>
-                          <SelectItem value="b1d9a5ca-6131-4e8e-83a4-4aba97a9c3d0">Mathematics</SelectItem>
-                          <SelectItem value="ef9c6c06-6c21-498e-9b20-48dddbfcf9c3">Physics</SelectItem>
-                          <SelectItem value="ff6b412f-6e01-4b23-9cae-1edae3e7fe14">Chemistry</SelectItem>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
