@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import { extendedSupabase, isSupabaseError } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -108,14 +107,15 @@ const StudentAssignmentsPage = () => {
         setLoading(true);
         
         // Get courses/subjects the student is enrolled in
-        const { data: enrollments, error: enrollmentsError } = await extendedSupabase
+        const enrollmentsResult = await extendedSupabase
           .from('student_course_enrollments')
           .select('course_id')
           .eq('student_id', studentId)
           .in('status', ['approved', 'active']);
           
-        if (enrollmentsError) throw enrollmentsError;
+        if (enrollmentsResult.error) throw enrollmentsResult.error;
         
+        const enrollments = enrollmentsResult.data;
         if (!enrollments || enrollments.length === 0) {
           setAssignments([]);
           setLoading(false);
@@ -125,13 +125,14 @@ const StudentAssignmentsPage = () => {
         const courseIds = enrollments.map(e => e.course_id);
         
         // Get subjects for these courses
-        const { data: subjects, error: subjectsError } = await extendedSupabase
+        const subjectsResult = await extendedSupabase
           .from('subjects')
           .select('id')
           .in('course_id', courseIds);
           
-        if (subjectsError) throw subjectsError;
+        if (subjectsResult.error) throw subjectsResult.error;
         
+        const subjects = subjectsResult.data;
         if (!subjects || subjects.length === 0) {
           setAssignments([]);
           setLoading(false);
@@ -141,7 +142,7 @@ const StudentAssignmentsPage = () => {
         const subjectIds = subjects.map(s => s.id);
         
         // Get assignments for these subjects
-        const { data: assignmentsData, error: assignmentsError } = await extendedSupabase
+        const assignmentsResult = await extendedSupabase
           .from('assignments')
           .select(`
             id,
@@ -170,30 +171,40 @@ const StudentAssignmentsPage = () => {
           .eq('status', 'active')
           .order('due_date', { ascending: true });
           
-        if (assignmentsError) {
-          console.error("Error fetching assignments:", assignmentsError);
-          throw assignmentsError;
+        if (assignmentsResult.error) {
+          console.error("Error fetching assignments:", assignmentsResult.error);
+          throw assignmentsResult.error;
         }
         
-        // Get student's submissions for these assignments
-        const assignmentIds = assignmentsData ? assignmentsData.map(a => a.id) : [];
+        const assignmentsData = assignmentsResult.data || [];
         
-        const { data: submissions, error: submissionsError } = await extendedSupabase
+        // Get student's submissions for these assignments
+        const assignmentIds = assignmentsData.map(a => a.id);
+        
+        if (assignmentIds.length === 0) {
+          setAssignments([]);
+          setLoading(false);
+          return;
+        }
+        
+        const submissionsResult = await extendedSupabase
           .from('assignment_submissions')
           .select('id, assignment_id, status, score, feedback, submitted_at, file_name')
           .eq('student_id', studentId)
           .in('assignment_id', assignmentIds);
           
-        if (submissionsError) throw submissionsError;
+        if (submissionsResult.error) throw submissionsResult.error;
+        
+        const submissions = submissionsResult.data || [];
         
         // Combine assignments with submissions
-        const assignmentsWithSubmissions = assignmentsData?.map(assignment => {
-          const submission = submissions?.find(s => s.assignment_id === assignment.id);
+        const assignmentsWithSubmissions = assignmentsData.map(assignment => {
+          const submission = submissions.find(s => s.assignment_id === assignment.id);
           return {
             ...assignment,
             submission: submission || undefined
           };
-        }) || [];
+        });
         
         setAssignments(assignmentsWithSubmissions);
       } catch (error) {
@@ -242,12 +253,6 @@ const StudentAssignmentsPage = () => {
         const fileExt = submissionFile.name.split('.').pop();
         fileName = submissionFile.name;
         filePath = `${studentId}/${activeAssignment.id}/${Date.now()}.${fileExt}`;
-        
-        // Create a function that updates progress
-        const onUploadProgressHandler = (event: ProgressEvent) => {
-          const percent = (event.loaded / event.total) * 100;
-          setUploadProgress(percent);
-        };
         
         // Upload the file to the assignments bucket
         // Using the uploadFile method with the proper options
@@ -317,13 +322,11 @@ const StudentAssignmentsPage = () => {
     }
   };
   
-  // Filter assignments based on search term
   const filteredAssignments = assignments.filter(assignment => 
     assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (assignment.subjects?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
   
-  // Group assignments
   const pendingAssignments = filteredAssignments.filter(a => 
     !a.submission && isAfter(parseISO(a.due_date), new Date())
   );
