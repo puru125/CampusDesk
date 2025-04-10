@@ -2,7 +2,7 @@
 import { Database } from "@/integrations/supabase/types";
 import { createClient } from '@supabase/supabase-js';
 
-// New approach: Define the additional tables separately and then merge them
+// Define the table types
 type StudentDoubtsTable = {
   Row: {
     id: string;
@@ -367,7 +367,7 @@ export interface ExtendedDatabase extends Database {
   public: {
     Tables: {
       // Include all existing tables from Database.public.Tables
-      ...Database["public"]["Tables"],
+      ...Database["public"]["Tables"];
       
       // Add our new tables
       student_doubts: StudentDoubtsTable;
