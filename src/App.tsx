@@ -29,6 +29,11 @@ import AddCoursePage from "@/pages/courses/AddCoursePage";
 import CourseDetailsPage from "@/pages/courses/CourseDetailsPage";
 import CourseEditPage from "@/pages/courses/CourseEditPage";
 
+// Classrooms
+import ClassroomsPage from "@/pages/classrooms/ClassroomsPage";
+import AddClassroomPage from "@/pages/classrooms/AddClassroomPage";
+import EditClassroomPage from "@/pages/classrooms/EditClassroomPage";
+
 // Timetable
 import TimetablePage from "@/pages/timetable/TimetablePage";
 import AddTimetableEntryPage from "@/pages/timetable/AddTimetableEntryPage";
@@ -63,7 +68,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={
+            <Route path="/*" element={
               <ProtectedRoute>
                 <Shell>
                   <Routes>
@@ -76,6 +81,9 @@ function App() {
                     <Route path="courses/new" element={<AddCoursePage />} />
                     <Route path="courses/:courseId" element={<CourseDetailsPage />} />
                     <Route path="courses/:courseId/edit" element={<CourseEditPage />} />
+                    <Route path="classrooms" element={<ClassroomsPage />} />
+                    <Route path="classrooms/new" element={<AddClassroomPage />} />
+                    <Route path="classrooms/:classroomId/edit" element={<EditClassroomPage />} />
                     <Route path="timetable" element={<TimetablePage />} />
                     <Route path="timetable/new" element={<AddTimetableEntryPage />} />
                     <Route path="exams" element={<ExamsPage />} />

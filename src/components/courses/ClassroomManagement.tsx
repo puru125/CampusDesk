@@ -88,9 +88,8 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
             id, 
             subject_id,
             classroom_id,
-            courses!inner(id),
-            subjects!inner(id, name),
-            classes!inner(id, name, room, capacity)
+            subjects(id, name),
+            classes(id, name, room, capacity)
           `)
           .eq('course_id', courseId);
         
