@@ -274,7 +274,7 @@ const App: React.FC = () => {
             }
           />
           <Route
-            path="/teacher/reports",
+            path="/teacher/reports"
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
