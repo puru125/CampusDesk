@@ -12,6 +12,11 @@ import { format } from "date-fns";
 import { HelpCircle, Plus, Circle, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+interface Subject {
+  name: string;
+  code: string;
+}
+
 interface Doubt {
   id: string;
   title: string;
@@ -19,10 +24,7 @@ interface Doubt {
   status: string;
   created_at: string;
   subject_id?: string;
-  subjects?: {
-    name: string;
-    code: string;
-  } | null;
+  subject?: Subject | null;
 }
 
 const StudentDoubtsPage = () => {
@@ -55,7 +57,7 @@ const StudentDoubtsPage = () => {
       if (!studentData?.id) return [];
       
       try {
-        // First check if subject_id column exists in student_doubts table
+        // First fetch the student doubts
         const { data, error } = await extendedSupabase
           .from("student_doubts")
           .select(`
@@ -74,33 +76,40 @@ const StudentDoubtsPage = () => {
           return [];
         }
 
-        // Now fetch subject details for each doubt that has a subject_id
-        const doubtIds = data.map(doubt => doubt.id);
-        if (doubtIds.length === 0) return data as Doubt[];
+        // If there are no doubts, return empty array
+        if (!data || data.length === 0) return [];
 
-        const subjectsQuery = await extendedSupabase
-          .from("subjects")
-          .select(`
-            id,
-            name,
-            code
-          `);
+        // Get all subject IDs that exist in the doubts
+        const subjectIds = data
+          .filter(doubt => doubt.subject_id)
+          .map(doubt => doubt.subject_id);
 
-        if (subjectsQuery.error) {
-          console.error("Error fetching subjects:", subjectsQuery.error);
-          return data as Doubt[];
+        // Fetch subject details separately if there are any subject IDs
+        let subjects = [];
+        if (subjectIds.length > 0) {
+          const subjectsResponse = await extendedSupabase
+            .from("subjects")
+            .select("id, name, code")
+            .in("id", subjectIds);
+
+          if (subjectsResponse.error) {
+            console.error("Error fetching subjects:", subjectsResponse.error);
+          } else {
+            subjects = subjectsResponse.data || [];
+          }
         }
 
-        // Combine the data to include subject information
+        // Combine the data
         return data.map(doubt => {
-          if (!doubt.subject_id) return doubt;
+          const subject = doubt.subject_id 
+            ? subjects.find(s => s.id === doubt.subject_id) 
+            : null;
           
-          const subject = subjectsQuery.data.find(s => s.id === doubt.subject_id);
           return {
             ...doubt,
-            subjects: subject ? { name: subject.name, code: subject.code } : null
+            subject: subject ? { name: subject.name, code: subject.code } : null
           };
-        }) as Doubt[];
+        });
       } catch (error) {
         console.error("Error in doubts query:", error);
         return [];
@@ -183,8 +192,8 @@ const StudentDoubtsPage = () => {
                       
                       <div className="flex justify-between text-xs text-gray-500 mt-2">
                         <span>
-                          {doubt.subjects?.name ? 
-                            `${doubt.subjects.name} (${doubt.subjects.code})` : 
+                          {doubt.subject?.name ? 
+                            `${doubt.subject.name} (${doubt.subject.code})` : 
                             "General Question"}
                         </span>
                         <span>

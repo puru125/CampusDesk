@@ -1,220 +1,229 @@
-
-import { useState, useEffect } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Home,
-  Users,
-  BookOpen,
+import {
+  LayoutDashboard,
   Calendar,
+  Book,
+  Users,
+  Settings,
+  HelpCircle,
+  Home,
+  Bell,
+  MessageSquare,
+  BarChart,
+  ListChecks,
   FileText,
   CreditCard,
-  Bell,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  GraduationCap,
-  School,
-  UserPlus,
-  UserCog,
-  CheckCircle,
-  Megaphone,
-  HelpCircle,
-  BarChart,
-  ClipboardCheck,
-  MessageSquare,
-  Star
+  LogOut,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { NavLink } from "react-router-dom";
+
+import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface Route {
+  title: string;
+  icon: any;
+  href: string;
+}
 
 const Sidebar = () => {
-  const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [collapsed, setCollapsed] = useState(false);
+  const { user, logout } = useAuth();
 
-  useEffect(() => {
-    if (isMobile) {
-      setCollapsed(true);
-    }
-  }, [isMobile]);
-
-  if (!user) {
-    return null;
-  }
-
-  const adminLinks = [
-    { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/students", icon: GraduationCap, label: "Students" },
-    { path: "/teachers", icon: Users, label: "Teachers" },
-    { path: "/courses", icon: BookOpen, label: "Courses" },
-    { path: "/timetable", icon: Calendar, label: "Timetable" },
-    { path: "/fees", icon: CreditCard, label: "Fees" },
-    { path: "/exams", icon: FileText, label: "Exams" },
-    { path: "/announcements", icon: Megaphone, label: "Announcements" },
-    { path: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
-    { path: "/settings/approvals", icon: CheckCircle, label: "Approvals" },
-    { path: "/settings", icon: Settings, label: "Settings" },
-  ];
-
-  const teacherLinks = [
-    { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/my-classes", icon: School, label: "My Classes" },
-    { path: "/attendance", icon: FileText, label: "Attendance" },
-    { path: "/assignments", icon: BookOpen, label: "Assignments" },
-    { path: "/students", icon: GraduationCap, label: "My Students" },
-    { path: "/timetable", icon: Calendar, label: "Timetable" },
-    { path: "/teacher/doubts", icon: HelpCircle, label: "Student Doubts" },
-    { path: "/teacher/reports", icon: BarChart, label: "Reports" },
-  ];
-
-  const studentLinks = [
-    { path: "/", icon: Home, label: "Dashboard" },
-    { path: "/student/courses", icon: BookOpen, label: "My Courses" },
-    { path: "/student/attendance", icon: ClipboardCheck, label: "Attendance" },
-    { path: "/student/assignments", icon: FileText, label: "Assignments" },
-    { path: "/fees", icon: CreditCard, label: "Fees" },
-    { path: "/student/exams", icon: FileText, label: "Exams & Results" },
-    { path: "/student/doubts", icon: HelpCircle, label: "Ask Doubts" },
-    { path: "/student/feedback", icon: Star, label: "Feedback" },
-    { path: "/student/notifications", icon: Bell, label: "Notifications" },
-    { path: "/profile", icon: UserCog, label: "My Profile" },
-  ];
-
-  let links;
-  switch (user.role) {
-    case "admin":
-      links = adminLinks;
-      break;
-    case "teacher":
-      links = teacherLinks;
-      break;
-    case "student":
-      links = studentLinks;
-      break;
-    default:
-      links = [];
-  }
-
-  const handleProfileClick = () => {
-    if (user.role === "admin") {
-      navigate("/admin/profile");
-    } else if (user.role === "teacher") {
-      navigate("/teacher/profile");
-    } else {
-      navigate("/profile");
-    }
+  const handleLogout = async () => {
+    await logout();
   };
 
-  const userInitials = user.full_name
-    ? user.full_name.split(" ").map(n => n[0]).join("")
-    : "U";
+  const adminRoutes: Route[] = [
+    {
+      title: "Dashboard",
+      icon: LayoutDashboard,
+      href: "/dashboard",
+    },
+    {
+      title: "Courses",
+      icon: Book,
+      href: "/courses",
+    },
+    {
+      title: "Users",
+      icon: Users,
+      href: "/users",
+    },
+    {
+      title: "Timetable",
+      icon: Calendar,
+      href: "/timetable",
+    },
+    {
+      title: "Attendance",
+      icon: ListChecks,
+      href: "/attendance",
+    },
+    {
+      title: "Fees",
+      icon: CreditCard,
+      href: "/fees",
+    },
+    {
+      title: "Reports",
+      icon: FileText,
+      href: "/reports",
+    },
+    {
+      title: "Analytics",
+      icon: BarChart,
+      href: "/analytics",
+    },
+    {
+      title: "Announcements",
+      icon: Bell,
+      href: "/announcements",
+    },
+    {
+      title: "Feedback",
+      icon: MessageSquare,
+      href: "/feedback",
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      href: "/settings",
+    },
+  ];
+
+  const teacherRoutes: Route[] = [
+    {
+      title: "Dashboard",
+      icon: LayoutDashboard,
+      href: "/dashboard",
+    },
+    {
+      title: "Timetable",
+      icon: Calendar,
+      href: "/timetable",
+    },
+    {
+      title: "Attendance",
+      icon: ListChecks,
+      href: "/attendance",
+    },
+		{
+      title: "Doubts",
+      icon: HelpCircle,
+      href: "/teacher/doubts",
+    },
+    {
+      title: "Assignments",
+      icon: FileText,
+      href: "/assignments",
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      href: "/settings",
+    },
+  ];
+
+  const studentRoutes = [
+    {
+      title: "Dashboard",
+      icon: Home, 
+      href: "/dashboard",
+    },
+    {
+      title: "Timetable",
+      icon: Calendar,
+      href: "/student/timetable", // New timetable route
+    },
+    {
+      title: "Doubts",
+      icon: HelpCircle, 
+      href: "/student/doubts",
+    },
+    {
+      title: "Courses",
+      icon: Book,
+      href: "/student/courses",
+    },
+    {
+      title: "Attendance",
+      icon: ListChecks,
+      href: "/student/attendance",
+    },
+    {
+      title: "Fees",
+      icon: CreditCard,
+      href: "/fees",
+    },
+    {
+      title: "Notifications",
+      icon: Bell,
+      href: "/student/notifications",
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      href: "/settings",
+    },
+  ];
+
+  let routes: Route[] = [];
+  if (user?.role === "admin") {
+    routes = adminRoutes;
+  } else if (user?.role === "teacher") {
+    routes = teacherRoutes;
+  } else if (user?.role === "student") {
+    routes = studentRoutes;
+  }
 
   return (
-    <aside
-      className={cn(
-        "bg-white border-r transition-all duration-300 flex flex-col h-full",
-        collapsed ? "w-[70px]" : "w-[250px]"
-      )}
-    >
-      <div className="h-16 border-b flex items-center px-4 justify-between">
-        {!collapsed && (
-          <div className="flex items-center">
-            <School className="text-institute-600 h-6 w-6 mr-2" />
-            <span className="font-heading font-bold text-lg text-institute-800">
-              IMS
-            </span>
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn("h-8 w-8", collapsed && "mx-auto")}
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </Button>
+    <div className="flex flex-col h-full bg-gray-100 border-r">
+      <div className="flex items-center justify-center h-20">
+        <span className="text-2xl font-bold">Institute</span>
       </div>
-      <nav className="flex-1 py-4 overflow-y-auto">
-        <TooltipProvider delayDuration={0}>
-          <ul className="space-y-1 px-2">
-            {links.map((link) => {
-              const Icon = link.icon;
-              const isActive = location.pathname === link.path;
-              
-              return (
-                <li key={link.path}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <NavLink
-                        to={link.path}
-                        className={cn(
-                          "flex items-center h-10 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                          isActive
-                            ? "bg-institute-50 text-institute-600"
-                            : "text-gray-600 hover:bg-gray-100",
-                          collapsed && "justify-center"
-                        )}
-                      >
-                        <Icon className={cn("h-5 w-5", !collapsed && "mr-2")} />
-                        {!collapsed && <span>{link.label}</span>}
-                      </NavLink>
-                    </TooltipTrigger>
-                    {collapsed && (
-                      <TooltipContent side="right">
-                        <p>{link.label}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </li>
-              );
-            })}
-          </ul>
-        </TooltipProvider>
-      </nav>
-      <div className="p-4 border-t">
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full flex items-center justify-start p-2 rounded-md",
-                  collapsed && "justify-center"
-                )}
-                onClick={handleProfileClick}
+
+      <ScrollArea className="flex-1 space-y-4 p-4">
+        <div className="px-3 py-2">
+          <div className="space-y-1">
+            {routes.map((route) => (
+              <NavLink
+                key={route.title}
+                to={route.href}
+                className={({ isActive }) =>
+                  `flex items-center p-2 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors ${
+                    isActive
+                      ? "bg-gray-200 text-gray-900"
+                      : "text-gray-700"
+                  }`
+                }
               >
-                <Avatar className="h-8 w-8 mr-2">
-                  <AvatarFallback className="bg-institute-600 text-white">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
-                {!collapsed && (
-                  <div className="text-left flex-1 overflow-hidden">
-                    <p className="text-sm font-medium truncate">{user.full_name}</p>
-                    <p className="text-xs text-gray-500 truncate capitalize">{user.role}</p>
-                  </div>
-                )}
-                {!collapsed && (
-                  <UserCog className="h-4 w-4 text-gray-500 ml-2" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            {collapsed && (
-              <TooltipContent side="right">
-                <p>{user.full_name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+                <route.icon className="mr-2 h-4 w-4" />
+                {route.title}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 space-y-4 border-t">
+        <div className="flex items-center space-x-2">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>{user?.full_name?.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">{user?.full_name}</p>
+            <p className="text-xs text-gray-500">{user?.email}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center w-full p-2 text-sm font-medium rounded-md hover:bg-gray-200 text-gray-700 transition-colors"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </button>
       </div>
-    </aside>
+    </div>
   );
 };
 
