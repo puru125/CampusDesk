@@ -82,7 +82,7 @@ const AddStudentPage = () => {
     try {
       setIsSubmitting(true);
       
-      // Instead of using RPC, create a student directly in the database
+      // Step 1: Create the user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
@@ -100,11 +100,15 @@ const AddStudentPage = () => {
         throw userError;
       }
 
-      // Now create the student profile with the user ID
+      // Generate an enrollment number
+      const enrollmentNumber = 'S' + Date.now().toString().slice(-8);
+
+      // Step 2: Create the student profile
       const { error: studentError } = await supabase
         .from('students')
         .insert({
           user_id: userData.id,
+          enrollment_number: enrollmentNumber,
           date_of_birth: format(data.dateOfBirth, "yyyy-MM-dd"),
           contact_number: data.contactNumber || null,
           address: data.address || null,

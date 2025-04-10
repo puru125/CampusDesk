@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export interface User {
@@ -13,7 +14,7 @@ export interface User {
 export interface Teacher {
   id: string;
   user_id: string;
-  employee_id: string;
+  employee_id?: string;
   department?: string;
   specialization?: string;
   qualification?: string;
@@ -34,7 +35,7 @@ export interface Teacher {
 export interface Student {
   id: string;
   user_id: string;
-  enrollment_number: string;
+  enrollment_number?: string;
   date_of_birth?: string;
   enrollment_date?: string;
   enrollment_status?: 'pending' | 'enrolled' | 'rejected';

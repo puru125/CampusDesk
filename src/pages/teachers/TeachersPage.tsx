@@ -32,7 +32,7 @@ const TeachersPage = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      // Use a direct query instead of RPC to avoid TypeScript issues
+      // Use the teachers_view we created
       const { data, error } = await supabase
         .from('teachers_view')
         .select('*');

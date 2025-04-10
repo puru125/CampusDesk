@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Users, 
@@ -73,7 +74,9 @@ const AdminDashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('admin_dashboard_stats_view')
+      // Use the admin_dashboard_stats_view we created
+      const { data, error } = await supabase
+        .from('admin_dashboard_stats_view')
         .select('*')
         .single();
       
@@ -82,6 +85,7 @@ const AdminDashboard = () => {
       }
       
       if (data) {
+        // Cast the data as Stats type since we know it matches our structure
         setStats(data as Stats);
       }
     } catch (error) {

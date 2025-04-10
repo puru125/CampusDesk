@@ -283,6 +283,13 @@ export type Database = {
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_transactions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       student_course_enrollments: {
@@ -334,6 +341,13 @@ export type Database = {
             referencedRelation: "students"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "student_course_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       student_notifications: {
@@ -370,6 +384,13 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_notifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students_view"
             referencedColumns: ["id"]
           },
         ]
@@ -508,6 +529,13 @@ export type Database = {
             referencedRelation: "teachers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "teacher_notifications_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       teachers: {
@@ -607,7 +635,70 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_dashboard_stats_view: {
+        Row: {
+          active_courses: number | null
+          pending_enrollments: number | null
+          recent_fee_collections: number | null
+          total_students: number | null
+          total_teachers: number | null
+          upcoming_exams: number | null
+        }
+        Relationships: []
+      }
+      students_view: {
+        Row: {
+          address: string | null
+          contact_number: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          email: string | null
+          enrollment_date: string | null
+          enrollment_number: string | null
+          enrollment_status: string | null
+          fee_status: string | null
+          full_name: string | null
+          guardian_contact: string | null
+          guardian_name: string | null
+          id: string | null
+          total_fees_due: number | null
+          total_fees_paid: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers_view: {
+        Row: {
+          contact_number: string | null
+          created_at: string | null
+          department: string | null
+          email: string | null
+          employee_id: string | null
+          full_name: string | null
+          id: string | null
+          joining_date: string | null
+          qualification: string | null
+          specialization: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teachers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_student: {

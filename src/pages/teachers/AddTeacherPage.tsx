@@ -91,7 +91,7 @@ const AddTeacherPage = () => {
     try {
       setIsSubmitting(true);
       
-      // Instead of using RPC, create teacher records directly
+      // Step 1: Create the user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert({
@@ -109,11 +109,15 @@ const AddTeacherPage = () => {
         throw userError;
       }
 
-      // Now create the teacher profile
+      // Generate an employee ID
+      const employeeId = 'T' + Date.now().toString().slice(-8);
+
+      // Step 2: Create the teacher profile
       const { error: teacherError } = await supabase
         .from('teachers')
         .insert({
           user_id: userData.id,
+          employee_id: employeeId,
           department: data.department,
           specialization: data.specialization,
           qualification: data.qualification,
