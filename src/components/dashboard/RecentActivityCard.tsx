@@ -21,32 +21,35 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
   const navigate = useNavigate();
 
   return (
-    <Card className="h-full">
-      <CardHeader>
+    <Card className="h-full hover:shadow-md transition-all duration-300">
+      <CardHeader className="pb-4 border-b">
         <CardTitle className="text-lg flex items-center">
           <Bell className="mr-2 h-5 w-5 text-institute-600" />
           Recent Activity
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         {activities.length > 0 ? (
-          <div className="space-y-4">
+          <div className="divide-y">
             {activities.map((activity) => (
-              <div key={activity.id} className="border-b pb-4 last:border-0">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-medium">{activity.title}</h3>
-                  <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">
+              <div
+                key={activity.id}
+                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-medium text-gray-800 dark:text-gray-200">{activity.title}</h3>
+                  <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
                     {activity.user}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                <div className="flex items-center mt-2 text-xs text-gray-500 space-x-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{activity.description}</p>
+                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-3">
                   <div className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
+                    <Clock className="h-3 w-3 mr-1 text-gray-400" />
                     <span>{activity.time}</span>
                   </div>
                   <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
+                    <Calendar className="h-3 w-3 mr-1 text-gray-400" />
                     <span>{activity.date}</span>
                   </div>
                 </div>
@@ -54,17 +57,19 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             No recent activity
           </div>
         )}
-        <Button
-          variant="outline"
-          className="w-full mt-4"
-          onClick={() => navigate("/notifications")}
-        >
-          View All Activity
-        </Button>
+        <div className="p-4">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/notifications")}
+          >
+            View All Activity
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

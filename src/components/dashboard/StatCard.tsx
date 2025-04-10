@@ -31,7 +31,10 @@ const StatCard = ({
     `${changePercentage}%` : trendValue;
   
   return (
-    <Card>
+    <Card className="hover-scale overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-16 h-16 rounded-bl-full bg-primary/5 flex items-start justify-end p-2">
+        <Icon className="h-6 w-6 text-primary/80" />
+      </div>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center">
           <Icon className="mr-2 h-5 w-5 text-institute-600" />
@@ -39,13 +42,13 @@ const StatCard = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-3xl font-bold">{value}</p>
+        <p className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-institute-600 to-institute-800">{value}</p>
         {trendText && (
           <CardDescription className="flex items-center mt-1">
             {trendText}
             {displayTrendValue && (
               <span
-                className={`ml-1 ${
+                className={`ml-1 font-semibold ${
                   displayTrendDirection === "up"
                     ? "text-green-500"
                     : displayTrendDirection === "down"
