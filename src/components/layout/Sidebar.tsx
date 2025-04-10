@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,8 +17,7 @@ import {
   UserPlus,
   UserCog,
   CheckCircle,
-  Megaphone,
-  Building
+  Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -49,7 +47,6 @@ const Sidebar = () => {
     { path: "/students", icon: GraduationCap, label: "Students" },
     { path: "/teachers", icon: Users, label: "Teachers" },
     { path: "/courses", icon: BookOpen, label: "Courses" },
-    { path: "/classrooms", icon: Building, label: "Classrooms" },
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },
