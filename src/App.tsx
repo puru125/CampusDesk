@@ -14,6 +14,8 @@ import Index from "@/pages/Index";
 
 // Dashboard
 import Dashboard from "@/pages/dashboard/Dashboard";
+import StudentLoginSuccessPage from "@/pages/dashboard/StudentLoginSuccessPage";
+import TeacherLoginSuccessPage from "@/pages/dashboard/TeacherLoginSuccessPage";
 
 // Students
 import StudentsPage from "@/pages/students/StudentsPage";
@@ -68,6 +70,8 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/login-success/student" element={<StudentLoginSuccessPage />} />
+            <Route path="/login-success/teacher" element={<TeacherLoginSuccessPage />} />
             <Route path="/*" element={
               <ProtectedRoute>
                 <Shell>
