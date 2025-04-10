@@ -39,7 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Classroom, Subject, AssignedClassroom, CourseClassroom } from '@/types';
+import { Classroom, Subject, AssignedClassroom } from '@/types';
 
 interface ClassroomManagementProps {
   courseId: string;
@@ -82,39 +82,46 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
     queryKey: ['assigned-classrooms', courseId],
     queryFn: async () => {
       try {
-        // Direct join query instead of RPC function
-        const { data, error } = await supabase
-          .from('course_classrooms')
-          .select(`
-            id, 
-            course_id,
-            subject_id,
-            classroom_id,
-            subjects:subject_id(name),
-            classrooms:classroom_id(name, room, capacity)
-          `)
-          .eq('course_id', courseId);
+        // Use a raw SQL query via the rpc method to avoid type issues
+        const { data, error } = await supabase.rpc('get_course_classroom_assignments', {
+          p_course_id: courseId
+        });
         
         if (error) {
           console.error('Error fetching classroom assignments:', error);
           throw error;
         }
 
-        // Transform the data to match AssignedClassroom structure
-        const assignments = data.map(item => ({
+        return data as AssignedClassroom[];
+      } catch (error) {
+        console.error('Failed to get classroom assignments:', error);
+        
+        // Fallback approach if RPC fails - construct the data manually
+        const { data, error: queryError } = await supabase.from('course_classrooms')
+          .select(`
+            id, 
+            subject_id,
+            classroom_id,
+            courses!inner(id),
+            subjects!inner(id, name),
+            classes!inner(id, name, room, capacity)
+          `)
+          .eq('course_id', courseId);
+        
+        if (queryError) throw queryError;
+        
+        // Transform the data
+        const transformed = data.map(item => ({
           id: item.id,
           subject_id: item.subject_id,
           classroom_id: item.classroom_id,
           subject_name: item.subjects?.name,
-          classroom_name: item.classrooms?.name,
-          classroom_room: item.classrooms?.room,
-          classroom_capacity: item.classrooms?.capacity
+          classroom_name: item.classes?.name,
+          classroom_room: item.classes?.room,
+          classroom_capacity: item.classes?.capacity
         })) as AssignedClassroom[];
-
-        return assignments;
-      } catch (error) {
-        console.error('Failed to get classroom assignments:', error);
-        throw error;
+        
+        return transformed;
       }
     }
   });
@@ -134,28 +141,51 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
       let result;
       
       if (existingAssignment) {
-        // Update existing assignment
-        const { data, error } = await supabase
-          .from('course_classrooms')
-          .update({ classroom_id: selectedClassroom })
-          .eq('id', existingAssignment.id)
-          .select();
+        // Update existing assignment through rpc
+        const { data, error } = await supabase.rpc('update_course_classroom_assignment', {
+          p_assignment_id: existingAssignment.id,
+          p_classroom_id: selectedClassroom
+        });
         
-        if (error) throw error;
-        result = data;
+        if (error) {
+          console.error('Error updating assignment:', error);
+          // Fallback approach
+          const updateResult = await supabase
+            .from('course_classrooms')
+            .update({ classroom_id: selectedClassroom })
+            .eq('id', existingAssignment.id)
+            .select();
+            
+          if (updateResult.error) throw updateResult.error;
+          result = updateResult.data;
+        } else {
+          result = data;
+        }
       } else {
-        // Create new assignment
-        const { data, error } = await supabase
-          .from('course_classrooms')
-          .insert({
-            course_id: courseId,
-            subject_id: selectedSubject,
-            classroom_id: selectedClassroom
-          })
-          .select();
+        // Create new assignment through rpc
+        const { data, error } = await supabase.rpc('create_course_classroom_assignment', {
+          p_course_id: courseId,
+          p_subject_id: selectedSubject,
+          p_classroom_id: selectedClassroom
+        });
         
-        if (error) throw error;
-        result = data;
+        if (error) {
+          console.error('Error creating assignment:', error);
+          // Fallback approach
+          const insertResult = await supabase
+            .from('course_classrooms')
+            .insert({
+              course_id: courseId,
+              subject_id: selectedSubject,
+              classroom_id: selectedClassroom
+            })
+            .select();
+            
+          if (insertResult.error) throw insertResult.error;
+          result = insertResult.data;
+        } else {
+          result = data;
+        }
       }
       
       return result;
@@ -183,12 +213,22 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
   // Delete classroom assignment mutation
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: string) => {
-      const { error } = await supabase
-        .from('course_classrooms')
-        .delete()
-        .eq('id', assignmentId);
-        
-      if (error) throw error;
+      // Delete through rpc
+      const { data, error } = await supabase.rpc('delete_course_classroom_assignment', {
+        p_assignment_id: assignmentId
+      });
+      
+      if (error) {
+        console.error('Error deleting assignment:', error);
+        // Fallback approach
+        const deleteResult = await supabase
+          .from('course_classrooms')
+          .delete()
+          .eq('id', assignmentId);
+          
+        if (deleteResult.error) throw deleteResult.error;
+      }
+      
       return true;
     },
     onSuccess: () => {

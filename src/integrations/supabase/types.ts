@@ -216,6 +216,55 @@ export type Database = {
         }
         Relationships: []
       }
+      course_classrooms: {
+        Row: {
+          classroom_id: string
+          course_id: string
+          created_at: string
+          id: string
+          subject_id: string
+          updated_at: string
+        }
+        Insert: {
+          classroom_id: string
+          course_id: string
+          created_at?: string
+          id?: string
+          subject_id: string
+          updated_at?: string
+        }
+        Update: {
+          classroom_id?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          subject_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_classrooms_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_classrooms_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_classrooms_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           code: string
