@@ -7,7 +7,7 @@ import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Users, Search, Filter, Loader2, UserPlus, IdCard } from "lucide-react";
+import { Users, Search, Filter, Loader2, IdCard } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -136,12 +136,7 @@ const TeacherStudentsPage = () => {
         title="My Students"
         description="View students in your classes"
         icon={Users}
-      >
-        <Button onClick={() => navigate("/teacher/students/add")}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add Student
-        </Button>
-      </PageHeader>
+      />
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-6">
         <div className="relative w-full md:w-80">
@@ -220,10 +215,6 @@ const TeacherStudentsPage = () => {
               <p className="mt-1 text-gray-500">
                 No students match your search criteria or you haven't been assigned any students yet.
               </p>
-              <Button className="mt-4" onClick={() => navigate("/teacher/students/add")}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Student
-              </Button>
             </div>
           )}
         </CardContent>
