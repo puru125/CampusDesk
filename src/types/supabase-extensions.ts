@@ -1,3 +1,4 @@
+
 import { Database } from "@/integrations/supabase/types";
 import { createClient } from '@supabase/supabase-js';
 
@@ -94,6 +95,88 @@ export type DoubtAnswersTable = {
       foreignKeyName: "doubt_answers_teacher_id_fkey";
       columns: ["teacher_id"];
       referencedRelation: "teachers";
+      referencedColumns: ["id"];
+    }
+  ];
+};
+
+export type TeacherClassesTable = {
+  Row: {
+    id: string;
+    teacher_id: string;
+    class_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: {
+    id?: string;
+    teacher_id: string;
+    class_id: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Update: {
+    id?: string;
+    teacher_id?: string;
+    class_id?: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "teacher_classes_teacher_id_fkey";
+      columns: ["teacher_id"];
+      referencedRelation: "teachers";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "teacher_classes_class_id_fkey";
+      columns: ["class_id"];
+      referencedRelation: "classes";
+      referencedColumns: ["id"];
+    }
+  ];
+};
+
+export type TeacherMessagesTable = {
+  Row: {
+    id: string;
+    teacher_id: string;
+    student_id: string;
+    title: string;
+    message: string;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: {
+    id?: string;
+    teacher_id: string;
+    student_id: string;
+    title: string;
+    message: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Update: {
+    id?: string;
+    teacher_id?: string;
+    student_id?: string;
+    title?: string;
+    message?: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "teacher_messages_teacher_id_fkey";
+      columns: ["teacher_id"];
+      referencedRelation: "teachers";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "teacher_messages_student_id_fkey";
+      columns: ["student_id"];
+      referencedRelation: "students";
       referencedColumns: ["id"];
     }
   ];
@@ -448,6 +531,8 @@ export interface ExtendedDatabase extends Database {
       assignments: AssignmentsTable;
       assignment_submissions: AssignmentSubmissionsTable;
       teacher_students: TeacherStudentsTable;
+      teacher_classes: TeacherClassesTable;
+      teacher_messages: TeacherMessagesTable;
       attendance_records: AttendanceRecordsTable;
       exam_reports: ExamReportsTable;
       student_feedback: StudentFeedbackTable;
@@ -463,3 +548,4 @@ export interface ExtendedDatabase extends Database {
 
 // Create an extended version of the supabase client
 export type ExtendedSupabaseClient = ReturnType<typeof createClient<ExtendedDatabase>>;
+
