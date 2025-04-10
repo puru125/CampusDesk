@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Student } from "@/types";
+import { Student, StudentView } from "@/types";
 import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import { UserPlus, Search, Calendar, Mail, Phone, Home, Info } from "lucide-reac
 import { format } from "date-fns";
 
 const StudentsPage = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<StudentView[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
@@ -32,16 +32,61 @@ const StudentsPage = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      // Use the students_view we created
+      
+      // Using a regular query with the table name for better TypeScript support
       const { data, error } = await supabase
-        .from('students_view')
-        .select('*');
+        .from('students')
+        .select(`
+          id,
+          user_id,
+          enrollment_number,
+          date_of_birth,
+          enrollment_date,
+          enrollment_status,
+          contact_number,
+          address,
+          guardian_name,
+          guardian_contact,
+          fee_status,
+          total_fees_due,
+          total_fees_paid,
+          last_payment_date,
+          created_at,
+          updated_at,
+          users:user_id (
+            email,
+            full_name
+          )
+        `);
       
       if (error) {
         throw error;
       }
       
-      setStudents(data as Student[] || []);
+      if (data) {
+        const studentsWithUserInfo: StudentView[] = data.map(student => ({
+          id: student.id,
+          user_id: student.user_id,
+          enrollment_number: student.enrollment_number,
+          date_of_birth: student.date_of_birth,
+          enrollment_date: student.enrollment_date,
+          enrollment_status: student.enrollment_status,
+          contact_number: student.contact_number,
+          address: student.address,
+          guardian_name: student.guardian_name,
+          guardian_contact: student.guardian_contact,
+          fee_status: student.fee_status,
+          total_fees_due: student.total_fees_due,
+          total_fees_paid: student.total_fees_paid,
+          last_payment_date: student.last_payment_date,
+          created_at: student.created_at,
+          updated_at: student.updated_at,
+          email: student.users?.email,
+          full_name: student.users?.full_name
+        }));
+        
+        setStudents(studentsWithUserInfo);
+      }
     } catch (error) {
       console.error("Error fetching students:", error);
       toast({

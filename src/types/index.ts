@@ -136,3 +136,23 @@ export interface Stats {
   upcoming_exams: number;
   recent_fee_collections: number;
 }
+
+// Add view type definitions
+export interface DashboardStatsView {
+  total_students: number;
+  total_teachers: number;
+  active_courses: number;
+  pending_enrollments: number;
+  upcoming_exams: number;
+  recent_fee_collections: number;
+}
+
+export interface StudentView extends Student {
+  email: string;
+  full_name: string;
+}
+
+export interface TeacherView extends Teacher {
+  email: string;
+  full_name: string;
+}

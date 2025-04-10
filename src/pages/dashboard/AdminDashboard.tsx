@@ -11,7 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Stats } from "@/types";
+import { Stats, DashboardStatsView } from "@/types";
 import StatCard from "@/components/dashboard/StatCard";
 import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import PageHeader from "@/components/ui/page-header";
@@ -74,10 +74,12 @@ const AdminDashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      // Use the admin_dashboard_stats_view we created
+      
+      // Using a regular query on the 'admin_dashboard_stats_view' view
       const { data, error } = await supabase
         .from('admin_dashboard_stats_view')
         .select('*')
+        .limit(1)
         .single();
       
       if (error) {
@@ -85,8 +87,16 @@ const AdminDashboard = () => {
       }
       
       if (data) {
-        // Cast the data as Stats type since we know it matches our structure
-        setStats(data as Stats);
+        const statsData: Stats = {
+          total_students: data.total_students || 0,
+          total_teachers: data.total_teachers || 0,
+          active_courses: data.active_courses || 0,
+          pending_enrollments: data.pending_enrollments || 0,
+          upcoming_exams: data.upcoming_exams || 0,
+          recent_fee_collections: data.recent_fee_collections || 0
+        };
+        
+        setStats(statsData);
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);

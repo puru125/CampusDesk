@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Teacher } from "@/types";
+import { Teacher, TeacherView } from "@/types";
 import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import { UserPlus, Search, Calendar, Mail, Phone, BookOpen, Info } from "lucide-
 import { format } from "date-fns";
 
 const TeachersPage = () => {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [teachers, setTeachers] = useState<TeacherView[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
@@ -32,16 +32,49 @@ const TeachersPage = () => {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      // Use the teachers_view we created
+      
+      // Using a regular query with the table name for better TypeScript support
       const { data, error } = await supabase
-        .from('teachers_view')
-        .select('*');
+        .from('teachers')
+        .select(`
+          id,
+          user_id,
+          employee_id,
+          department,
+          specialization,
+          qualification,
+          joining_date,
+          contact_number,
+          created_at,
+          updated_at,
+          users:user_id (
+            email,
+            full_name
+          )
+        `);
       
       if (error) {
         throw error;
       }
       
-      setTeachers(data as Teacher[] || []);
+      if (data) {
+        const teachersWithUserInfo: TeacherView[] = data.map(teacher => ({
+          id: teacher.id,
+          user_id: teacher.user_id,
+          employee_id: teacher.employee_id,
+          department: teacher.department,
+          specialization: teacher.specialization,
+          qualification: teacher.qualification,
+          joining_date: teacher.joining_date,
+          contact_number: teacher.contact_number,
+          created_at: teacher.created_at,
+          updated_at: teacher.updated_at,
+          email: teacher.users?.email,
+          full_name: teacher.users?.full_name
+        }));
+        
+        setTeachers(teachersWithUserInfo);
+      }
     } catch (error) {
       console.error("Error fetching teachers:", error);
       toast({

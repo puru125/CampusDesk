@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar as CalendarIcon, ArrowLeft, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -54,9 +53,24 @@ const studentSchema = z.object({
     .max(15, { message: "Contact number must be less than 15 digits" })
     .optional()
     .or(z.literal("")),
-  address: z.string().max(255).optional().or(z.literal("")),
-  guardianName: z.string().max(100).optional().or(z.literal("")),
-  guardianContact: z.string().max(15).optional().or(z.literal("")),
+  address: z
+    .string()
+    .min(5, { message: "Address must be at least 5 characters" })
+    .max(200, { message: "Address must be less than 200 characters" })
+    .optional()
+    .or(z.literal("")),
+  guardianName: z
+    .string()
+    .min(3, { message: "Guardian name must be at least 3 characters" })
+    .max(100, { message: "Guardian name must be less than 100 characters" })
+    .optional()
+    .or(z.literal("")),
+  guardianContact: z
+    .string()
+    .min(10, { message: "Guardian contact must be at least 10 digits" })
+    .max(15, { message: "Guardian contact must be less than 15 digits" })
+    .optional()
+    .or(z.literal("")),
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;
@@ -71,6 +85,7 @@ const AddStudentPage = () => {
     defaultValues: {
       fullName: "",
       email: "",
+      dateOfBirth: new Date(2000, 0, 1),
       contactNumber: "",
       address: "",
       guardianName: "",
@@ -110,12 +125,12 @@ const AddStudentPage = () => {
           user_id: userData.id,
           enrollment_number: enrollmentNumber,
           date_of_birth: format(data.dateOfBirth, "yyyy-MM-dd"),
+          enrollment_date: format(new Date(), "yyyy-MM-dd"),
           contact_number: data.contactNumber || null,
           address: data.address || null,
           guardian_name: data.guardianName || null,
           guardian_contact: data.guardianContact || null,
-          enrollment_status: 'pending',
-          enrollment_date: format(new Date(), "yyyy-MM-dd")
+          enrollment_status: 'pending'
         });
 
       if (studentError) {
