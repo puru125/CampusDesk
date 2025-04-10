@@ -165,7 +165,7 @@ const TeacherCommunicationPage = () => {
                     <SelectValue placeholder="Target Audience" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Students</SelectItem>
+                    <SelectItem value="all-students">All Students</SelectItem>
                     {classes.map(cls => (
                       <SelectItem key={cls.id} value={cls.id}>
                         {cls.name} ({cls.courseCode})
