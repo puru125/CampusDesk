@@ -257,6 +257,18 @@ export interface ExtendedDatabase extends Database {
         ];
       }
     };
+    
+    // Make sure to include views from the original Database type
+    Views: Database["public"]["Views"];
+    
+    // Make sure to include functions from the original Database type
+    Functions: Database["public"]["Functions"];
+    
+    // Make sure to include enums from the original Database type
+    Enums: Database["public"]["Enums"];
+    
+    // Make sure to include CompositeTypes from the original Database type
+    CompositeTypes: Database["public"]["CompositeTypes"];
   };
 }
 
