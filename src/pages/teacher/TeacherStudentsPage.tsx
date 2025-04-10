@@ -7,7 +7,7 @@ import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Users, Search, BookOpen, Filter, Loader2 } from "lucide-react";
+import { Users, Search, BookOpen, Filter, Loader2, UserPlus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,10 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
 
 const TeacherStudentsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -134,7 +136,12 @@ const TeacherStudentsPage = () => {
         title="My Students"
         description="View students in your classes"
         icon={Users}
-      />
+      >
+        <Button onClick={() => navigate("/teacher/students/add")}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add Student
+        </Button>
+      </PageHeader>
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-6">
         <div className="relative w-full md:w-80">
@@ -195,7 +202,8 @@ const TeacherStudentsPage = () => {
                       <td className="px-4 py-3">{student.attendance}</td>
                       <td className="px-4 py-3">{student.grade}</td>
                       <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm">View</Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}`)}>View</Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/students/${student.id}/id-card`)}>ID Card</Button>
                       </td>
                     </tr>
                   ))}
@@ -209,6 +217,10 @@ const TeacherStudentsPage = () => {
               <p className="mt-1 text-gray-500">
                 No students match your search criteria or you haven't been assigned any students yet.
               </p>
+              <Button className="mt-4" onClick={() => navigate("/teacher/students/add")}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add Student
+              </Button>
             </div>
           )}
         </CardContent>

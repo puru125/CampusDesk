@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,31 +27,168 @@ const AttendancePage = () => {
   const [saving, setSaving] = useState(false);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [searchTerm, setSearchTerm] = useState("");
   const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [teacherId, setTeacherId] = useState<string | null>(null);
   
   useEffect(() => {
-    // Mock data for attendances and classes
-    const mockClasses = [
-      { id: "1", name: "Database Systems", code: "CS301" },
-      { id: "2", name: "Web Development", code: "CS302" },
-      { id: "3", name: "Data Structures", code: "CS201" },
-    ];
+    const fetchTeacherData = async () => {
+      try {
+        if (!user) return;
+        
+        // Get teacher profile
+        const { data: teacherProfile, error: teacherError } = await extendedSupabase
+          .from('teachers')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (teacherError) throw teacherError;
+        
+        setTeacherId(teacherProfile.id);
+        
+        // Get teacher's classes and subjects
+        const { data: timetable, error: timetableError } = await extendedSupabase
+          .from('timetable_entries')
+          .select(`
+            class_id,
+            subject_id,
+            classes(id, name, room),
+            subjects(id, name, code)
+          `)
+          .eq('teacher_id', teacherProfile.id);
+          
+        if (timetableError) throw timetableError;
+        
+        // Extract unique classes
+        const uniqueClasses = timetable?.reduce((acc: any[], entry) => {
+          if (entry.classes && !acc.some(c => c.id === entry.classes.id)) {
+            acc.push({
+              id: entry.classes.id,
+              name: entry.classes.name,
+              room: entry.classes.room
+            });
+          }
+          return acc;
+        }, []) || [];
+        
+        setClasses(uniqueClasses);
+        
+        // Extract unique subjects
+        const uniqueSubjects = timetable?.reduce((acc: any[], entry) => {
+          if (entry.subjects && !acc.some(s => s.id === entry.subjects.id)) {
+            acc.push({
+              id: entry.subjects.id,
+              name: entry.subjects.name,
+              code: entry.subjects.code
+            });
+          }
+          return acc;
+        }, []) || [];
+        
+        setSubjects(uniqueSubjects);
+        
+        if (uniqueClasses.length > 0) {
+          setSelectedClass(uniqueClasses[0].id);
+        }
+        
+        if (uniqueSubjects.length > 0) {
+          setSelectedSubject(uniqueSubjects[0].id);
+        }
+        
+      } catch (error) {
+        console.error("Error fetching teacher data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch class data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const mockAttendanceData = [
-      { id: "1", studentId: "1", studentName: "Rajesh Kumar", rollNo: "CS2301", present: true },
-      { id: "2", studentId: "2", studentName: "Priya Sharma", rollNo: "CS2302", present: true },
-      { id: "3", studentId: "3", studentName: "Amit Singh", rollNo: "CS2303", present: false },
-      { id: "4", studentId: "4", studentName: "Neha Patel", rollNo: "CS2304", present: true },
-      { id: "5", studentId: "5", studentName: "Vijay Mehta", rollNo: "CS2305", present: true },
-    ];
+    fetchTeacherData();
+  }, [user, toast]);
+  
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!selectedClass || !teacherId) return;
+      
+      try {
+        setLoading(true);
+        
+        // Get students assigned to this teacher
+        const { data: teacherStudents, error: studentsError } = await extendedSupabase
+          .from('teacher_students')
+          .select(`
+            student_id,
+            students(
+              id,
+              enrollment_number,
+              user_id,
+              users:user_id(
+                full_name
+              )
+            )
+          `)
+          .eq('teacher_id', teacherId);
+          
+        if (studentsError) throw studentsError;
+        
+        // Check if attendance already exists for this date, class, and subject
+        const { data: existingAttendance, error: attendanceError } = await extendedSupabase
+          .from('attendance_records')
+          .select('*')
+          .eq('teacher_id', teacherId)
+          .eq('class_id', selectedClass)
+          .eq('subject_id', selectedSubject)
+          .eq('date', selectedDate);
+        
+        if (attendanceError) throw attendanceError;
+        
+        // Map existing attendance records by student_id for quick lookup
+        const attendanceMap = new Map();
+        existingAttendance?.forEach(record => {
+          attendanceMap.set(record.student_id, record.status === 'present');
+        });
+        
+        // Format students data with attendance status
+        const formattedAttendance = teacherStudents?.map(ts => {
+          const student = ts.students;
+          // Use existing attendance if available, otherwise default to present
+          const isPresent = attendanceMap.has(student.id) 
+            ? attendanceMap.get(student.id) 
+            : true;
+            
+          return {
+            id: crypto.randomUUID(), // For React key prop
+            studentId: student.id,
+            studentName: student.users?.full_name || 'Unknown',
+            rollNo: student.enrollment_number || 'N/A',
+            present: isPresent
+          };
+        }) || [];
+        
+        setAttendanceData(formattedAttendance);
+        
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch student data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    setClasses(mockClasses);
-    setSelectedClass(mockClasses[0].id);
-    setAttendanceData(mockAttendanceData);
-    setLoading(false);
-  }, []);
+    fetchStudents();
+  }, [selectedClass, selectedSubject, selectedDate, teacherId]);
   
   // Filter students based on search term
   const filteredAttendance = attendanceData.filter(attendance => 
@@ -82,17 +219,61 @@ const AttendancePage = () => {
   };
   
   const saveAttendance = async () => {
+    if (!teacherId || !selectedClass || !selectedSubject) {
+      toast({
+        title: "Error",
+        description: "Please select a class and subject",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setSaving(true);
       
-      // In a real implementation, this would save to the database
-      console.log("Saving attendance:", { 
-        date: selectedDate, 
-        classId: selectedClass, 
-        records: attendanceData 
-      });
+      // Check if records already exist for this date, class and subject
+      const { data: existingRecords } = await extendedSupabase
+        .from('attendance_records')
+        .select('id')
+        .eq('teacher_id', teacherId)
+        .eq('class_id', selectedClass)
+        .eq('subject_id', selectedSubject)
+        .eq('date', selectedDate);
       
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      if (existingRecords && existingRecords.length > 0) {
+        // Ask user confirmation to overwrite
+        if (!window.confirm("Attendance records already exist for this date. Do you want to overwrite them?")) {
+          setSaving(false);
+          return;
+        }
+        
+        // Delete existing records
+        await extendedSupabase
+          .from('attendance_records')
+          .delete()
+          .eq('teacher_id', teacherId)
+          .eq('class_id', selectedClass)
+          .eq('subject_id', selectedSubject)
+          .eq('date', selectedDate);
+      }
+      
+      // Prepare records to insert
+      const records = attendanceData.map(item => ({
+        teacher_id: teacherId,
+        student_id: item.studentId,
+        class_id: selectedClass,
+        subject_id: selectedSubject,
+        date: selectedDate,
+        status: item.present ? 'present' : 'absent',
+        remarks: null
+      }));
+      
+      // Insert attendance records
+      const { error } = await extendedSupabase
+        .from('attendance_records')
+        .insert(records);
+        
+      if (error) throw error;
       
       toast({
         title: "Attendance Saved",
@@ -134,7 +315,23 @@ const AttendancePage = () => {
             <SelectContent>
               {classes.map(cls => (
                 <SelectItem key={cls.id} value={cls.id}>
-                  {cls.name} ({cls.code})
+                  {cls.name} ({cls.room})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium mb-2">Select Subject</label>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent>
+              {subjects.map(subject => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name} ({subject.code})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -149,18 +346,18 @@ const AttendancePage = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
           />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium mb-2">Search Students</label>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              placeholder="Search by name or roll no."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      </div>
+      
+      <div className="mt-4">
+        <label className="block text-sm font-medium mb-2">Search Students</label>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Search by name or roll no."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
       
@@ -251,7 +448,7 @@ const AttendancePage = () => {
               <Calendar className="h-12 w-12 mx-auto text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
               <p className="mt-1 text-gray-500">
-                No students match your search criteria.
+                No students match your search criteria or you haven't been assigned any students.
               </p>
             </div>
           )}

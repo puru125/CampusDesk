@@ -64,6 +64,7 @@ import AnnouncementsPage from "@/pages/announcements/AnnouncementsPage";
 import TeacherProfilePage from "@/pages/teacher/TeacherProfilePage";
 import TeacherClassesPage from "@/pages/teacher/TeacherClassesPage";
 import TeacherStudentsPage from "@/pages/teacher/TeacherStudentsPage";
+import TeacherAddStudentPage from "@/pages/teacher/AddStudentPage";
 import TeacherAssignmentsPage from "@/pages/teacher/TeacherAssignmentsPage";
 import CreateAssignmentPage from "@/pages/teacher/CreateAssignmentPage";
 import AssignmentDetailsPage from "@/pages/teacher/AssignmentDetailsPage";
@@ -73,6 +74,7 @@ import AttendancePage from "@/pages/teacher/AttendancePage";
 import TeacherDoubtsPage from "@/pages/teacher/TeacherDoubtsPage";
 import AttendanceRecordPage from "@/pages/teacher/AttendanceRecordPage";
 import ExamReportsPage from "@/pages/teacher/ExamReportsPage";
+import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +127,8 @@ function App() {
                     <Route path="teacher/profile" element={<TeacherProfilePage />} />
                     <Route path="teacher/classes" element={<TeacherClassesPage />} />
                     <Route path="teacher/students" element={<TeacherStudentsPage />} />
+                    <Route path="teacher/students/add" element={<TeacherAddStudentPage />} />
+                    <Route path="teacher/students/:studentId/id-card" element={<StudentIDCardPage />} />
                     <Route path="teacher/assignments" element={<TeacherAssignmentsPage />} />
                     <Route path="teacher/assignments/new" element={<CreateAssignmentPage />} />
                     <Route path="teacher/assignments/:assignmentId" element={<AssignmentDetailsPage />} />

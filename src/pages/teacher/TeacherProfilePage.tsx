@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Calendar, Phone, BookOpen, Building, Loader2 } from "lucide-react";
+import { User, Calendar, Phone, BookOpen, Building, Loader2, IdCard } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useNavigate } from "react-router-dom";
 
 const profileSchema = z.object({
   fullName: z.string().min(3, "Name must be at least 3 characters"),
@@ -32,6 +33,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 const TeacherProfilePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -147,134 +149,158 @@ const TeacherProfilePage = () => {
         icon={User}
       />
       
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+        <div className="lg:col-span-3">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Personal Information</CardTitle>
+                <CardDescription>
+                  Update your personal details and professional information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="Dr. Jane Smith"
+                    {...form.register("fullName")}
+                    disabled
+                  />
+                  {form.formState.errors.fullName && (
+                    <p className="text-sm text-red-500">{form.formState.errors.fullName.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="jane.smith@example.com"
+                    {...form.register("email")}
+                    disabled
+                  />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department</Label>
+                  <Input
+                    id="department"
+                    placeholder="Computer Science"
+                    {...form.register("department")}
+                  />
+                  {form.formState.errors.department && (
+                    <p className="text-sm text-red-500">{form.formState.errors.department.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="specialization">Specialization</Label>
+                  <Input
+                    id="specialization"
+                    placeholder="Machine Learning"
+                    {...form.register("specialization")}
+                  />
+                  {form.formState.errors.specialization && (
+                    <p className="text-sm text-red-500">{form.formState.errors.specialization.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="qualification">Qualification</Label>
+                  <Input
+                    id="qualification"
+                    placeholder="Ph.D. in Computer Science"
+                    {...form.register("qualification")}
+                  />
+                  {form.formState.errors.qualification && (
+                    <p className="text-sm text-red-500">{form.formState.errors.qualification.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="contactNumber">Contact Number</Label>
+                  <Input
+                    id="contactNumber"
+                    placeholder="9876543210"
+                    {...form.register("contactNumber")}
+                  />
+                  {form.formState.errors.contactNumber && (
+                    <p className="text-sm text-red-500">{form.formState.errors.contactNumber.message}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Joining Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !form.getValues("joiningDate") && "text-muted-foreground"
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {form.getValues("joiningDate") ? (
+                          format(form.getValues("joiningDate"), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    {/* Calendar control would go here */}
+                  </Popover>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Employee ID</Label>
+                  <Input value={teacherData?.employee_id || "Not assigned"} disabled />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button type="submit" disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+          </form>
+        </div>
+        
+        <div>
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Personal Information</CardTitle>
-              <CardDescription>
-                Update your personal details and professional information
-              </CardDescription>
+              <CardTitle className="text-lg">ID Card Tools</CardTitle>
+              <CardDescription>Generate and print student ID cards</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  placeholder="Dr. Jane Smith"
-                  {...form.register("fullName")}
-                  disabled
-                />
-                {form.formState.errors.fullName && (
-                  <p className="text-sm text-red-500">{form.formState.errors.fullName.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="jane.smith@example.com"
-                  {...form.register("email")}
-                  disabled
-                />
-                {form.formState.errors.email && (
-                  <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  placeholder="Computer Science"
-                  {...form.register("department")}
-                />
-                {form.formState.errors.department && (
-                  <p className="text-sm text-red-500">{form.formState.errors.department.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="specialization">Specialization</Label>
-                <Input
-                  id="specialization"
-                  placeholder="Machine Learning"
-                  {...form.register("specialization")}
-                />
-                {form.formState.errors.specialization && (
-                  <p className="text-sm text-red-500">{form.formState.errors.specialization.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="qualification">Qualification</Label>
-                <Input
-                  id="qualification"
-                  placeholder="Ph.D. in Computer Science"
-                  {...form.register("qualification")}
-                />
-                {form.formState.errors.qualification && (
-                  <p className="text-sm text-red-500">{form.formState.errors.qualification.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="contactNumber">Contact Number</Label>
-                <Input
-                  id="contactNumber"
-                  placeholder="9876543210"
-                  {...form.register("contactNumber")}
-                />
-                {form.formState.errors.contactNumber && (
-                  <p className="text-sm text-red-500">{form.formState.errors.contactNumber.message}</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Joining Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !form.getValues("joiningDate") && "text-muted-foreground"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {form.getValues("joiningDate") ? (
-                        format(form.getValues("joiningDate"), "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  {/* Calendar control would go here */}
-                </Popover>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Employee ID</Label>
-                <Input value={teacherData?.employee_id || "Not assigned"} disabled />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button type="submit" disabled={saving}>
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
+            <CardContent className="space-y-4">
+              <Button 
+                className="w-full" 
+                variant="outline"
+                onClick={() => navigate("/teacher/students")}
+              >
+                <IdCard className="mr-2 h-4 w-4" />
+                Generate Student ID Cards
               </Button>
-            </CardFooter>
+              <p className="text-sm text-gray-500">
+                You can generate ID cards for any student from the students list.
+              </p>
+            </CardContent>
           </Card>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
