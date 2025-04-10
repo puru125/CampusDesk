@@ -100,6 +100,20 @@ function App() {
                     <Route path="admin/profile" element={<AdminProfilePage />} />
                     <Route path="admin/validation-rules" element={<ValidationRulesPage />} />
                     <Route path="announcements" element={<AnnouncementsPage />} />
+                    
+                    {/* Teacher module routes */}
+                    <Route path="teacher/profile" element={<TeacherProfilePage />} />
+                    <Route path="teacher/classes" element={<TeacherClassesPage />} />
+                    <Route path="teacher/students" element={<TeacherStudentsPage />} />
+                    <Route path="teacher/assignments" element={<TeacherAssignmentsPage />} />
+                    <Route path="teacher/assignments/new" element={<CreateAssignmentPage />} />
+                    <Route path="teacher/assignments/:assignmentId" element={<AssignmentDetailsPage />} />
+                    <Route path="teacher/communication" element={<TeacherCommunicationPage />} />
+                    <Route path="teacher/reports" element={<TeacherReportsPage />} />
+                    <Route path="assignments/new" element={<CreateAssignmentPage />} />
+                    <Route path="my-classes" element={<TeacherClassesPage />} />
+                    <Route path="attendance" element={<AttendancePage />} />
+                    <Route path="assignments" element={<TeacherAssignmentsPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>
