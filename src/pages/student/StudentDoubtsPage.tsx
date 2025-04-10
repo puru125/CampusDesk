@@ -12,6 +12,19 @@ import { format } from "date-fns";
 import { HelpCircle, Plus, Circle, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+interface Doubt {
+  id: string;
+  title: string;
+  question: string;
+  status: string;
+  created_at: string;
+  subject_id?: string;
+  subjects?: {
+    name: string;
+    code: string;
+  } | null;
+}
+
 const StudentDoubtsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -41,26 +54,57 @@ const StudentDoubtsPage = () => {
     queryFn: async () => {
       if (!studentData?.id) return [];
       
-      const { data, error } = await extendedSupabase
-        .from("student_doubts")
-        .select(`
-          *,
-          subjects (
+      try {
+        // First check if subject_id column exists in student_doubts table
+        const { data, error } = await extendedSupabase
+          .from("student_doubts")
+          .select(`
+            id,
+            title,
+            question,
+            status,
+            created_at,
+            subject_id
+          `)
+          .eq("student_id", studentData.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching doubts:", error);
+          return [];
+        }
+
+        // Now fetch subject details for each doubt that has a subject_id
+        const doubtIds = data.map(doubt => doubt.id);
+        if (doubtIds.length === 0) return data as Doubt[];
+
+        const subjectsQuery = await extendedSupabase
+          .from("subjects")
+          .select(`
+            id,
             name,
             code
-          ),
-          teachers: teacher_id (
-            id,
-            users: user_id (
-              full_name
-            )
-          )
-        `)
-        .eq("student_id", studentData.id)
-        .order("created_at", { ascending: false });
+          `);
 
-      if (error) throw error;
-      return data;
+        if (subjectsQuery.error) {
+          console.error("Error fetching subjects:", subjectsQuery.error);
+          return data as Doubt[];
+        }
+
+        // Combine the data to include subject information
+        return data.map(doubt => {
+          if (!doubt.subject_id) return doubt;
+          
+          const subject = subjectsQuery.data.find(s => s.id === doubt.subject_id);
+          return {
+            ...doubt,
+            subjects: subject ? { name: subject.name, code: subject.code } : null
+          };
+        }) as Doubt[];
+      } catch (error) {
+        console.error("Error in doubts query:", error);
+        return [];
+      }
     },
     enabled: !!studentData?.id,
   });
@@ -139,7 +183,9 @@ const StudentDoubtsPage = () => {
                       
                       <div className="flex justify-between text-xs text-gray-500 mt-2">
                         <span>
-                          {doubt.subjects?.name} ({doubt.subjects?.code})
+                          {doubt.subjects?.name ? 
+                            `${doubt.subjects.name} (${doubt.subjects.code})` : 
+                            "General Question"}
                         </span>
                         <span>
                           {format(new Date(doubt.created_at), "MMM d, yyyy")}

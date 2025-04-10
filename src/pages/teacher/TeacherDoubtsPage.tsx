@@ -38,37 +38,85 @@ const TeacherDoubtsPage = () => {
   });
 
   // Fetch doubts assigned to this teacher
-  const { data: doubts, isLoading } = useQuery({
+  const { data: doubtsData, isLoading } = useQuery({
     queryKey: ["teacher-doubts", teacherData?.id, refreshKey],
     queryFn: async () => {
       if (!teacherData?.id) return [];
       
-      const { data, error } = await extendedSupabase
-        .from("student_doubts")
-        .select(`
-          *,
-          subjects (
-            name,
-            code
-          ),
-          students (
+      try {
+        // First get the basic doubt data
+        const { data, error } = await extendedSupabase
+          .from("student_doubts")
+          .select(`
+            id,
+            title,
+            question,
+            status,
+            created_at,
+            updated_at,
+            student_id,
+            teacher_id,
+            subject_id
+          `)
+          .eq("teacher_id", teacherData.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching doubts:", error);
+          return [];
+        }
+
+        if (data.length === 0) return [];
+
+        // Get subject data for all these doubts with subject_id
+        const subjectIds = data
+          .map(d => d.subject_id)
+          .filter(id => id) as string[];
+          
+        const subjectsQuery = subjectIds.length > 0 ? 
+          await extendedSupabase
+            .from("subjects")
+            .select(`id, name, code`)
+            .in("id", subjectIds) : 
+          { data: [] };
+
+        // Get student data for all doubts
+        const studentIds = [...new Set(data.map(d => d.student_id))];
+        
+        const studentsQuery = await extendedSupabase
+          .from("students")
+          .select(`
+            id,
             user_id,
-            users (
+            users:user_id (
               full_name
             )
-          )
-        `)
-        .eq("teacher_id", teacherData.id)
-        .order("created_at", { ascending: false });
+          `)
+          .in("id", studentIds);
 
-      if (error) {
-        console.error("Error fetching doubts:", error);
+        // Combine all the data
+        return data.map(doubt => {
+          const subject = subjectsQuery.data?.find(s => s.id === doubt.subject_id);
+          const student = studentsQuery.data?.find(s => s.id === doubt.student_id);
+          
+          return {
+            ...doubt,
+            subjects: subject ? {
+              name: subject.name,
+              code: subject.code
+            } : null,
+            students: student
+          } as StudentDoubt;
+        });
+      } catch (err) {
+        console.error("Error processing doubts data:", err);
         return [];
       }
-      return data as StudentDoubt[];
     },
     enabled: !!teacherData?.id,
   });
+
+  const doubts = Array.isArray(doubtsData) ? doubtsData : [];
 
   const filteredDoubts = doubts?.filter(doubt => {
     if (activeTab === "all") return true;

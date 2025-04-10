@@ -21,6 +21,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HelpCircle, Send, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
+interface Subject {
+  id: string;
+  name: string;
+  code?: string;
+  teacher_id?: string;
+}
+
 const AskDoubtPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -50,22 +57,46 @@ const AskDoubtPage = () => {
     enabled: !!user,
   });
 
-  // Fetch subjects
+  // Fetch subjects with teacher assignments
   const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
     queryKey: ["student-subjects"],
     queryFn: async () => {
+      // First get teacher_id for each subject
+      const { data: teacherSubjects, error: teacherSubjectsError } = await extendedSupabase
+        .from("teacher_subjects")
+        .select(`
+          subject_id,
+          teacher_id
+        `);
+      
+      if (teacherSubjectsError) {
+        console.error("Error fetching teacher-subject assignments:", teacherSubjectsError);
+        return [];
+      }
+      
+      // Then get all subjects
       const { data, error } = await extendedSupabase
         .from("subjects")
         .select(`
           id,
           name,
-          code,
-          teacher_id
+          code
         `)
         .order("name");
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching subjects:", error);
+        return [];
+      }
+      
+      // Combine the data to add teacher_id to each subject
+      return data.map(subject => {
+        const teacherAssignment = teacherSubjects.find(ts => ts.subject_id === subject.id);
+        return {
+          ...subject,
+          teacher_id: teacherAssignment?.teacher_id
+        };
+      }).filter(subject => subject.teacher_id) as Subject[];
     },
     enabled: !!studentData?.id,
   });
