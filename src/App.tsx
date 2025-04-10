@@ -49,7 +49,7 @@ import FeesPage from "@/pages/fees/FeesPage";
 import AddFeeStructurePage from "@/pages/fees/AddFeeStructurePage";
 import MakePaymentPage from "@/pages/fees/MakePaymentPage";
 
-// Settings
+// Settings/Approvals
 import SettingsPage from "@/pages/settings/SettingsPage";
 import EnrollmentApprovalPage from "@/pages/settings/EnrollmentApprovalPage";
 
@@ -123,7 +123,6 @@ function App() {
                     <Route path="admin/profile" element={<AdminProfilePage />} />
                     <Route path="admin/validation-rules" element={<ValidationRulesPage />} />
                     <Route path="admin/feedback" element={<AdminFeedbackPage />} />
-                    <Route path="settings/approvals" element={<EnrollmentApprovalPage />} />
                     
                     {/* Shared Routes - accessible by both admin and teacher */}
                     <Route path="students" element={<StudentsPage />} />
@@ -137,8 +136,9 @@ function App() {
                     <Route path="fees/make-payment" element={<MakePaymentPage />} />
                     <Route path="announcements" element={<AnnouncementsPage />} />
                     
-                    {/* Admin-only Settings - not for teachers */}
-                    <Route path="settings" element={<SettingsPage />} />
+                    {/* Changed from settings to approvals */}
+                    <Route path="approvals" element={<EnrollmentApprovalPage />} />
+                    <Route path="settings" element={<EnrollmentApprovalPage />} /> {/* Redirect old path */}
                     
                     {/* Teacher Module Routes */}
                     <Route path="teacher/profile" element={<TeacherProfilePage />} />

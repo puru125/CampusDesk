@@ -15,6 +15,7 @@ import {
   Megaphone,
   UserCircle,
   IdCard,
+  CheckCircle,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -66,9 +67,9 @@ export const adminRoutes: Route[] = [
     href: "/admin/feedback",
   },
   {
-    title: "Settings",
-    icon: Settings,
-    href: "/settings",
+    title: "Approvals",
+    icon: CheckCircle,
+    href: "/approvals",
   },
 ];
 
