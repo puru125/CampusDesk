@@ -367,7 +367,7 @@ export interface ExtendedDatabase extends Database {
             referencedColumns: ["id"];
           }
         ];
-      };
+      }
     };
     
     // Make sure to include views from the original Database type
