@@ -48,17 +48,8 @@ const AdminProfilePage = () => {
         setEmail(data.email || "");
         setLastLogin(data.last_login);
         setCreatedAt(data.created_at);
+        setContactNumber(""); // Initialize with empty string since we don't have a dedicated contact field
         
-        // Fetch additional admin info - remove RPC call since it doesn't exist
-        const { data: adminData, error: adminError } = await supabase
-          .from('admins')  // assuming there might be an admins table
-          .select('contact_number')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (!adminError && adminData) {
-          setContactNumber(adminData.contact_number || "");
-        }
       } catch (error) {
         console.error("Error fetching admin profile:", error);
         toast({
@@ -89,9 +80,6 @@ const AdminProfilePage = () => {
         .eq('id', user.id);
         
       if (error) throw error;
-      
-      // Update admin details if needed
-      // This would be a custom function or separate table for admin profiles
       
       toast({
         title: "Profile Updated",
