@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase, isSupabaseError } from "@/integrations/supabase/extendedClient";
+import { extendedSupabase, isSupabaseError, safeQueryResult } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -113,10 +113,12 @@ const StudentAssignmentsPage = () => {
           .eq('student_id', studentId)
           .in('status', ['approved', 'active']);
           
-        if (enrollmentsResult.error) throw enrollmentsResult.error;
+        if (isSupabaseError(enrollmentsResult)) {
+          throw enrollmentsResult.error;
+        }
         
-        const enrollments = enrollmentsResult.data;
-        if (!enrollments || enrollments.length === 0) {
+        const enrollments = enrollmentsResult.data || [];
+        if (enrollments.length === 0) {
           setAssignments([]);
           setLoading(false);
           return;
@@ -130,10 +132,12 @@ const StudentAssignmentsPage = () => {
           .select('id')
           .in('course_id', courseIds);
           
-        if (subjectsResult.error) throw subjectsResult.error;
+        if (isSupabaseError(subjectsResult)) {
+          throw subjectsResult.error;
+        }
         
-        const subjects = subjectsResult.data;
-        if (!subjects || subjects.length === 0) {
+        const subjects = subjectsResult.data || [];
+        if (subjects.length === 0) {
           setAssignments([]);
           setLoading(false);
           return;
@@ -142,7 +146,7 @@ const StudentAssignmentsPage = () => {
         const subjectIds = subjects.map(s => s.id);
         
         // Get assignments for these subjects
-        const assignmentsResult = await extendedSupabase
+        const result = await extendedSupabase
           .from('assignments')
           .select(`
             id,
@@ -171,6 +175,8 @@ const StudentAssignmentsPage = () => {
           .eq('status', 'active')
           .order('due_date', { ascending: true });
           
+        const assignmentsResult = safeQueryResult(result);
+          
         if (assignmentsResult.error) {
           console.error("Error fetching assignments:", assignmentsResult.error);
           throw assignmentsResult.error;
@@ -193,7 +199,9 @@ const StudentAssignmentsPage = () => {
           .eq('student_id', studentId)
           .in('assignment_id', assignmentIds);
           
-        if (submissionsResult.error) throw submissionsResult.error;
+        if (isSupabaseError(submissionsResult)) {
+          throw submissionsResult.error;
+        }
         
         const submissions = submissionsResult.data || [];
         
@@ -254,20 +262,26 @@ const StudentAssignmentsPage = () => {
         fileName = submissionFile.name;
         filePath = `${studentId}/${activeAssignment.id}/${Date.now()}.${fileExt}`;
         
-        // Upload the file to the assignments bucket
-        // Using the uploadFile method with the proper options
-        const { data: uploadData, error: uploadError } = await extendedSupabase.storage
-          .from('assignments')
-          .upload(filePath, submissionFile, {
-            cacheControl: '3600'
-          });
+        try {
+          // Upload the file with progress tracking
+          const { data: uploadData, error: uploadError } = await extendedSupabase.storage
+            .from('assignments')
+            .upload(filePath, submissionFile, {
+              cacheControl: '3600'
+            });
           
-        if (uploadError) {
-          console.error("Error uploading file:", uploadError);
-          throw uploadError;
+          if (uploadError) {
+            console.error("Error uploading file:", uploadError);
+            throw uploadError;
+          }
+          
+          if (uploadData) {
+            filePath = uploadData.path;
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          throw error;
         }
-        
-        filePath = uploadData?.path;
       }
       
       // Create submission record

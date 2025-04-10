@@ -11,3 +11,11 @@ export const extendedSupabase = supabase as unknown as ReturnType<
 export const isSupabaseError = (result: any): boolean => {
   return result && result.error && typeof result.error === 'object';
 };
+
+// Helper function to ensure we handle errors safely when querying Supabase
+export const safeQueryResult = <T>(result: any): { data: T[] | null; error: any } => {
+  if (isSupabaseError(result)) {
+    return { data: null, error: result.error };
+  }
+  return result as { data: T[] | null; error: any };
+};
