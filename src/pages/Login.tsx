@@ -74,14 +74,16 @@ const Login = () => {
         password = "Admin@IMS2023";
         break;
       case "teacher":
-        // Updated correct credentials
         email = "sharma@ims.edu";
         password = "Priyasharma";
         break;
       case "student":
-        // Updated correct credentials
         email = "ravi@ims.edu";
         password = "Raviravi";
+        break;
+      case "custom":
+        email = "rajkamalsangole@gmail.com";
+        password = "puru@1234";
         break;
     }
     
@@ -184,10 +186,11 @@ const Login = () => {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid grid-cols-3 mb-2">
+            <TabsList className="grid grid-cols-4 mb-2">
               <TabsTrigger value="admin">Admin</TabsTrigger>
               <TabsTrigger value="teacher">Teacher</TabsTrigger>
               <TabsTrigger value="student">Student</TabsTrigger>
+              <TabsTrigger value="custom">Test</TabsTrigger>
             </TabsList>
             <TabsContent value="admin" className="bg-gray-50 rounded p-2">
               <div className="text-xs">
@@ -208,6 +211,13 @@ const Login = () => {
                 <div className="font-medium">Student</div>
                 <div>ravi@ims.edu</div>
                 <div className="text-gray-400">Password: Raviravi</div>
+              </div>
+            </TabsContent>
+            <TabsContent value="custom" className="bg-gray-50 rounded p-2">
+              <div className="text-xs">
+                <div className="font-medium">Test Account</div>
+                <div>rajkamalsangole@gmail.com</div>
+                <div className="text-gray-400">Password: puru@1234</div>
               </div>
             </TabsContent>
           </Tabs>

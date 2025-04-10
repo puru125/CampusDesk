@@ -97,9 +97,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log("Attempting login with:", email, "and password");
       
+      // Normalize email to lowercase to ensure consistent matching
+      const normalizedEmail = email.toLowerCase().trim();
+      
       // Call the RPC function to authenticate
       const { data, error } = await supabase.rpc("authenticate_user", {
-        p_email: email,
+        p_email: normalizedEmail,
         p_password: password,
       });
 
