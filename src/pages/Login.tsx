@@ -74,10 +74,12 @@ const Login = () => {
         password = "Admin@IMS2023";
         break;
       case "teacher":
+        // Updated correct credentials
         email = "sharma@ims.edu";
-        password = "Priyasharm";
+        password = "Priyasharma";
         break;
       case "student":
+        // Updated correct credentials
         email = "ravi@ims.edu";
         password = "Raviravi";
         break;
@@ -198,7 +200,7 @@ const Login = () => {
               <div className="text-xs">
                 <div className="font-medium">Teacher</div>
                 <div>sharma@ims.edu</div>
-                <div className="text-gray-400">Password: Priyasharm</div>
+                <div className="text-gray-400">Password: Priyasharma</div>
               </div>
             </TabsContent>
             <TabsContent value="student" className="bg-gray-50 rounded p-2">

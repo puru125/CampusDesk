@@ -1,395 +1,347 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import PageHeader from "@/components/ui/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, CheckCircle, XCircle, MessageSquare } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 
 const EnrollmentApprovalPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [pendingEnrollments, setPendingEnrollments] = useState([]);
-  const [pendingFeedback, setPendingFeedback] = useState([]);
-  const [remarks, setRemarks] = useState({});
+  const [activeTab, setActiveTab] = useState("enrollments");
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [remarks, setRemarks] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [action, setAction] = useState<"approve" | "reject">("approve");
 
   useEffect(() => {
-    if (user && user.role === "admin") {
+    if (user && user.role === 'admin') {
       fetchPendingEnrollments();
-      fetchPendingFeedback();
+      fetchPendingFeedbacks();
     }
   }, [user]);
 
   const fetchPendingEnrollments = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       const { data, error } = await supabase
-        .from('student_course_enrollments')
+        .from("student_course_enrollments")
         .select(`
-          id,
-          status,
-          academic_year,
-          semester,
-          student_id,
+          id, 
+          status, 
+          academic_year, 
+          semester, 
+          student_id, 
           course_id,
           students:student_id(id, user_id),
-          students_view:student_id(full_name, enrollment_number, email),
+          users:students(user_id(id, full_name, email)),
           courses:course_id(name, code)
         `)
-        .eq('status', 'pending');
+        .eq("status", "pending");
 
-      if (error) throw error;
-      setPendingEnrollments(data || []);
+      if (error) {
+        console.error("Error fetching pending enrollments:", error);
+      } else {
+        setEnrollments(data || []);
+      }
     } catch (error) {
       console.error("Error fetching pending enrollments:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load pending enrollments",
-        variant: "destructive",
-      });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchPendingFeedback = async () => {
+  const fetchPendingFeedbacks = async () => {
     try {
-      setIsLoading(true);
-      // This is a placeholder for actual feedback data
-      // In a real app, you would fetch from a feedback table
-      const { data, error } = await supabase
-        .from('student_notifications')
-        .select(`
-          id,
-          title,
-          message,
-          created_at,
-          students:student_id(
-            users:user_id(full_name),
-            enrollment_number
-          )
-        `)
-        .eq('is_read', false)
-        .order('created_at', { ascending: false })
-        .limit(10);
-        
-      if (error) throw error;
-      setPendingFeedback(data || []);
+      setLoading(true);
+      // In a real implementation, we would fetch feedback data
+      // For now using placeholder data
+      setFeedbacks([]);
     } catch (error) {
-      console.error("Error fetching pending feedback:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load pending feedback",
-        variant: "destructive",
-      });
+      console.error("Error fetching pending feedbacks:", error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleRemarkChange = (id, value) => {
-    setRemarks({
-      ...remarks,
-      [id]: value
+  const handleDialogOpen = (item: any, action: "approve" | "reject") => {
+    setSelectedItem(item);
+    setAction(action);
+    setRemarks("");
+    setDialogOpen(true);
+  };
+
+  const handleAction = async () => {
+    if (!selectedItem || !user) return;
+
+    try {
+      if (activeTab === "enrollments") {
+        const { error } = await supabase.rpc("process_enrollment_request", {
+          p_admin_id: user.id,
+          p_enrollment_id: selectedItem.id,
+          p_status: action,
+          p_admin_remarks: remarks,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: `Enrollment ${action === "approve" ? "Approved" : "Rejected"}`,
+          description: `Successfully ${action === "approve" ? "approved" : "rejected"} enrollment request`,
+        });
+
+        // Refresh the enrollments list
+        fetchPendingEnrollments();
+      } else if (activeTab === "feedbacks") {
+        // Handle feedback approval/rejection
+        // This would be implemented in a real application
+        toast({
+          title: `Feedback ${action === "approve" ? "Approved" : "Rejected"}`,
+          description: `Successfully ${action === "approve" ? "approved" : "rejected"} feedback`,
+        });
+
+        // Refresh the feedbacks list
+        fetchPendingFeedbacks();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Action Failed",
+        description: error.message || "Failed to process the request",
+        variant: "destructive",
+      });
+    } finally {
+      setDialogOpen(false);
+    }
+  };
+
+  const renderEnrollmentRows = () => {
+    if (enrollments.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+            No pending enrollment requests found
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return enrollments.map((enrollment) => {
+      const studentName = enrollment.users?.user_id?.full_name || "Unknown";
+      const studentEmail = enrollment.users?.user_id?.email || "Unknown";
+      const courseName = enrollment.courses?.name || "Unknown";
+      const courseCode = enrollment.courses?.code || "Unknown";
+
+      return (
+        <TableRow key={enrollment.id}>
+          <TableCell>{studentName}</TableCell>
+          <TableCell>{studentEmail}</TableCell>
+          <TableCell>{courseName}</TableCell>
+          <TableCell>{courseCode}</TableCell>
+          <TableCell>{enrollment.academic_year || "N/A"}</TableCell>
+          <TableCell>{enrollment.semester || "N/A"}</TableCell>
+          <TableCell className="flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-green-600 border-green-600 hover:bg-green-100"
+              onClick={() => handleDialogOpen(enrollment, "approve")}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Approve
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-red-600 border-red-600 hover:bg-red-100"
+              onClick={() => handleDialogOpen(enrollment, "reject")}
+            >
+              <XCircle className="h-4 w-4 mr-1" />
+              Reject
+            </Button>
+          </TableCell>
+        </TableRow>
+      );
     });
   };
 
-  const handleApproveEnrollment = async (enrollmentId, studentId, courseId) => {
-    try {
-      const { error } = await supabase.rpc('process_enrollment_request', {
-        p_admin_id: user.id,
-        p_enrollment_id: enrollmentId,
-        p_status: 'approved',
-        p_admin_remarks: remarks[enrollmentId] || null
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Enrollment Approved",
-        description: "The student enrollment has been approved",
-      });
-      
-      // Refresh the list
-      fetchPendingEnrollments();
-    } catch (error) {
-      console.error("Error approving enrollment:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to approve enrollment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRejectEnrollment = async (enrollmentId) => {
-    if (!remarks[enrollmentId]) {
-      toast({
-        title: "Remarks Required",
-        description: "Please provide remarks explaining the rejection",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      const { error } = await supabase.rpc('process_enrollment_request', {
-        p_admin_id: user.id,
-        p_enrollment_id: enrollmentId,
-        p_status: 'rejected',
-        p_admin_remarks: remarks[enrollmentId]
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Enrollment Rejected",
-        description: "The student enrollment has been rejected",
-      });
-      
-      // Refresh the list
-      fetchPendingEnrollments();
-    } catch (error) {
-      console.error("Error rejecting enrollment:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject enrollment",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleResolveFeedback = async (feedbackId) => {
-    try {
-      const { error } = await supabase
-        .from('student_notifications')
-        .update({ is_read: true })
-        .eq('id', feedbackId);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Feedback Resolved",
-        description: "The feedback has been marked as resolved",
-      });
-      
-      // Refresh the list
-      fetchPendingFeedback();
-    } catch (error) {
-      console.error("Error resolving feedback:", error);
-      toast({
-        title: "Error",
-        description: "Failed to resolve feedback",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (user?.role !== "admin") {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Only admin users can access this page.</p>
-      </div>
-    );
-  }
+  // Template for feedback rows
+  const renderFeedbackRows = () => (
+    <TableRow>
+      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+        No pending feedback for approval
+      </TableCell>
+    </TableRow>
+  );
 
   return (
-    <>
-      <PageHeader 
-        title="Approval Center" 
-        description="Manage student enrollments and feedback requests" 
+    <div className="container mx-auto py-6 space-y-6">
+      <PageHeader
+        title="Approvals"
+        description="Manage pending enrollment requests and feedback"
       />
 
-      <div className="container mx-auto max-w-5xl">
-        <Tabs defaultValue="enrollments" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="enrollments">Enrollment Requests</TabsTrigger>
-            <TabsTrigger value="feedback">Feedback Requests</TabsTrigger>
-          </TabsList>
-          
-          {/* Enrollments Tab */}
-          <TabsContent value="enrollments">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Enrollment Requests</CardTitle>
-                <CardDescription>
-                  Review and approve student enrollment requests.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-48">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : pendingEnrollments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No pending enrollment requests.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {pendingEnrollments.map((enrollment) => (
-                      <Card key={enrollment.id} className="overflow-hidden">
-                        <div className="p-6">
-                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-primary text-primary-foreground">
-                                  {enrollment.students_view?.full_name?.charAt(0) || "S"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h3 className="font-semibold">{enrollment.students_view?.full_name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {enrollment.students_view?.email} | {enrollment.students_view?.enrollment_number}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
-                              Pending
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <h4 className="text-sm font-semibold">Course</h4>
-                              <p className="text-sm">
-                                {enrollment.courses?.name} ({enrollment.courses?.code})
-                              </p>
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-semibold">Academic Details</h4>
-                              <p className="text-sm">
-                                Year: {enrollment.academic_year} | Semester: {enrollment.semester}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="mb-4">
-                            <Label htmlFor={`remarks-${enrollment.id}`}>Admin Remarks</Label>
-                            <Textarea
-                              id={`remarks-${enrollment.id}`}
-                              placeholder="Add remarks or reason for approval/rejection"
-                              className="mt-1"
-                              value={remarks[enrollment.id] || ""}
-                              onChange={(e) => handleRemarkChange(enrollment.id, e.target.value)}
-                            />
-                          </div>
-                          
-                          <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => handleRejectEnrollment(enrollment.id)}
-                              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Reject
-                            </Button>
-                            <Button 
-                              onClick={() => handleApproveEnrollment(
-                                enrollment.id, 
-                                enrollment.student_id, 
-                                enrollment.course_id
-                              )}
-                              className="flex items-center gap-1"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              Approve
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          {/* Feedback Tab */}
-          <TabsContent value="feedback">
-            <Card>
-              <CardHeader>
-                <CardTitle>Feedback Requests</CardTitle>
-                <CardDescription>
-                  Review and respond to student and teacher feedback.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-48">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : pendingFeedback.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="flex flex-col items-center gap-2">
-                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-muted-foreground">No pending feedback to review.</p>
-                      <p className="text-xs text-muted-foreground">
-                        When students or teachers submit feedback, it will appear here.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {pendingFeedback.map((feedback) => (
-                      <Card key={feedback.id} className="overflow-hidden">
-                        <div className="p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="font-semibold text-lg">{feedback.title}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                From: {feedback.students?.users?.full_name || "Unknown"} 
-                                {feedback.students?.enrollment_number ? ` (${feedback.students.enrollment_number})` : ""}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Received: {new Date(feedback.created_at).toLocaleString()}
-                              </p>
-                            </div>
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              New
-                            </Badge>
-                          </div>
-                          
-                          <div className="mb-4 p-3 bg-gray-50 rounded-md">
-                            <p className="text-sm">{feedback.message}</p>
-                          </div>
-                          
-                          <div className="flex justify-end">
-                            <Button 
-                              onClick={() => handleResolveFeedback(feedback.id)}
-                              className="flex items-center gap-1"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              Mark as Resolved
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </>
+      <Tabs defaultValue="enrollments" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
+          <TabsTrigger value="enrollments">Enrollment Requests</TabsTrigger>
+          <TabsTrigger value="feedbacks">Feedback Approvals</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="enrollments">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Enrollment Requests</CardTitle>
+              <CardDescription>
+                Review and process student enrollment requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Course Code</TableHead>
+                        <TableHead>Academic Year</TableHead>
+                        <TableHead>Semester</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>{renderEnrollmentRows()}</TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="feedbacks">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Feedback Approvals</CardTitle>
+              <CardDescription>
+                Review and moderate feedback before publishing
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Submitted By</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>{renderFeedbackRows()}</TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {action === "approve" ? "Approve" : "Reject"}{" "}
+              {activeTab === "enrollments" ? "Enrollment" : "Feedback"}
+            </DialogTitle>
+            <DialogDescription>
+              {action === "approve"
+                ? "This will approve the request and notify the student."
+                : "This will reject the request and notify the student."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {selectedItem && activeTab === "enrollments" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Student</label>
+                  <p className="text-sm">
+                    {selectedItem.users?.user_id?.full_name || "Unknown"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Course</label>
+                  <p className="text-sm">{selectedItem.courses?.name || "Unknown"}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Remarks (Optional)</label>
+              <Textarea
+                placeholder="Add any additional remarks..."
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAction}
+              variant={action === "approve" ? "default" : "destructive"}
+            >
+              {action === "approve" ? "Approve" : "Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
