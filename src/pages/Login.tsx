@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { School, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -30,6 +31,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState("admin");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -43,17 +45,40 @@ const Login = () => {
     try {
       setError(null);
       console.log("Attempting login with:", data.email);
-      await login(data.email, data.password);
-      navigate("/");
+      const success = await login(data.email, data.password);
+      
+      if (success) {
+        navigate("/");
+      } else {
+        setError("Invalid email or password. Please try again.");
+      }
     } catch (err) {
       console.error("Login error:", err);
-      setError("Invalid email or password. Please try again.");
+      setError("An error occurred during login. Please try again.");
     }
   };
 
-  const handleDemoLogin = () => {
-    form.setValue("email", "admin@ims.edu");
-    form.setValue("password", "Admin@IMS2023");
+  const handleDemoLogin = (type: string) => {
+    let email = "";
+    let password = "";
+    
+    switch (type) {
+      case "admin":
+        email = "admin@ims.edu";
+        password = "Admin@IMS2023";
+        break;
+      case "teacher":
+        email = "sharma@ims.edu";
+        password = "Priyasharm";
+        break;
+      case "student":
+        email = "ravi@ims.edu";
+        password = "Raviravi";
+        break;
+    }
+    
+    form.setValue("email", email);
+    form.setValue("password", password);
   };
 
   const togglePasswordVisibility = () => {
@@ -143,23 +168,47 @@ const Login = () => {
           </form>
         </Form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Demo Account (default admin)
-          </p>
-          <div className="grid grid-cols-1 gap-2 mt-2 text-xs text-gray-500">
-            <div className="bg-gray-50 rounded p-2">
-              <div className="font-medium">Admin</div>
-              <div>admin@ims.edu</div>
-              <div className="text-gray-400 text-xs">Password: Admin@IMS2023</div>
-            </div>
-          </div>
+        <div className="mt-8">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Demo Accounts</h3>
+          <Tabs 
+            defaultValue="admin" 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <TabsList className="grid grid-cols-3 mb-2">
+              <TabsTrigger value="admin">Admin</TabsTrigger>
+              <TabsTrigger value="teacher">Teacher</TabsTrigger>
+              <TabsTrigger value="student">Student</TabsTrigger>
+            </TabsList>
+            <TabsContent value="admin" className="bg-gray-50 rounded p-2">
+              <div className="text-xs">
+                <div className="font-medium">Admin</div>
+                <div>admin@ims.edu</div>
+                <div className="text-gray-400">Password: Admin@IMS2023</div>
+              </div>
+            </TabsContent>
+            <TabsContent value="teacher" className="bg-gray-50 rounded p-2">
+              <div className="text-xs">
+                <div className="font-medium">Teacher</div>
+                <div>sharma@ims.edu</div>
+                <div className="text-gray-400">Password: Priyasharm</div>
+              </div>
+            </TabsContent>
+            <TabsContent value="student" className="bg-gray-50 rounded p-2">
+              <div className="text-xs">
+                <div className="font-medium">Student</div>
+                <div>ravi@ims.edu</div>
+                <div className="text-gray-400">Password: Raviravi</div>
+              </div>
+            </TabsContent>
+          </Tabs>
           <Button 
             variant="outline" 
-            className="mt-2 text-xs"
-            onClick={handleDemoLogin}
+            className="mt-2 text-xs w-full"
+            onClick={() => handleDemoLogin(activeTab)}
           >
-            Auto-fill demo credentials
+            Auto-fill {activeTab} credentials
           </Button>
         </div>
       </div>
