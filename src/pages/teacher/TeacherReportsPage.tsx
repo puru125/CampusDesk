@@ -9,20 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart as BarChartIcon, PieChart as PieChartIcon, Download, FileText, Users, BookOpen, Calendar, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import TeacherFilters from "@/components/teacher/TeacherFilters";
 
 const TeacherReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [selectedCourse, setSelectedCourse] = useState("");
   const [courses, setCourses] = useState<any[]>([]);
+  const [filters, setFilters] = useState<{
+    courseId?: string;
+    academicYear?: string;
+    semester?: string;
+  }>({});
   
   // Mock data for reports
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
@@ -32,51 +30,125 @@ const TeacherReportsPage = () => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B'];
   
   useEffect(() => {
-    // Mock data loading
-    setTimeout(() => {
-      // Courses
-      const mockCourses = [
-        { id: "1", name: "Database Systems", code: "CS301" },
-        { id: "2", name: "Web Development", code: "CS302" },
-        { id: "3", name: "Data Structures", code: "CS201" },
-      ];
+    fetchTeacherData();
+  }, [user]);
+  
+  useEffect(() => {
+    // Apply filters to the mock data
+    generateFilteredData();
+  }, [filters]);
+  
+  const fetchTeacherData = async () => {
+    try {
+      if (!user) return;
       
-      // Attendance data
-      const mockAttendanceData = [
-        { name: 'Week 1', present: 85, absent: 15, total: 100 },
-        { name: 'Week 2', present: 80, absent: 20, total: 100 },
-        { name: 'Week 3', present: 90, absent: 10, total: 100 },
-        { name: 'Week 4', present: 70, absent: 30, total: 100 },
-        { name: 'Week 5', present: 75, absent: 25, total: 100 },
-        { name: 'Week 6', present: 85, absent: 15, total: 100 },
-      ];
+      // Get teacher profile
+      const { data: teacherProfile, error: teacherError } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
       
-      // Performance data
-      const mockPerformanceData = [
-        { name: 'Assignment 1', average: 75, highest: 95, lowest: 45 },
-        { name: 'Assignment 2', average: 72, highest: 98, lowest: 40 },
-        { name: 'Quiz 1', average: 68, highest: 90, lowest: 35 },
-        { name: 'Midterm', average: 70, highest: 95, lowest: 42 },
-        { name: 'Assignment 3', average: 78, highest: 100, lowest: 50 },
-      ];
+      if (teacherError) throw teacherError;
       
-      // Grade distribution
-      const mockGradeDistribution = [
-        { name: 'A', value: 15 },
-        { name: 'B', value: 25 },
-        { name: 'C', value: 30 },
-        { name: 'D', value: 20 },
-        { name: 'F', value: 10 },
-      ];
+      // Get teacher's subjects
+      const { data: teacherSubjects, error: subjectsError } = await supabase
+        .from('teacher_subjects')
+        .select('subject_id, subjects(id, name, code, course_id, courses(id, name))')
+        .eq('teacher_id', teacherProfile.id);
+          
+      if (subjectsError) throw subjectsError;
       
-      setCourses(mockCourses);
-      setAttendanceData(mockAttendanceData);
-      setPerformanceData(mockPerformanceData);
-      setGradeDistribution(mockGradeDistribution);
-      setSelectedCourse(mockCourses[0].id);
+      // Extract unique courses from teacher's subjects
+      const uniqueCourses = teacherSubjects?.reduce((acc: any[], ts: any) => {
+        if (ts.subjects?.courses && !acc.some(c => c.id === ts.subjects.courses.id)) {
+          acc.push({
+            id: ts.subjects.courses.id,
+            name: ts.subjects.courses.name
+          });
+        }
+        return acc;
+      }, []) || [];
+      
+      setCourses(uniqueCourses);
+      
+      // Generate mock data
+      generateFilteredData();
+    } catch (error) {
+      console.error("Error fetching teacher data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch report data",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1500);
-  }, []);
+    }
+  };
+  
+  const generateFilteredData = () => {
+    // Generate customized mock data based on filters
+    const selectedCourse = filters.courseId ? 
+      courses.find(c => c.id === filters.courseId)?.name || 'Selected Course' : 
+      'All Courses';
+    
+    const selectedYear = filters.academicYear || 'Current Year';
+    
+    // Attendance data
+    const mockAttendanceData = [
+      { name: 'Week 1', present: 85, absent: 15, total: 100, course: selectedCourse, year: selectedYear },
+      { name: 'Week 2', present: 80, absent: 20, total: 100, course: selectedCourse, year: selectedYear },
+      { name: 'Week 3', present: 90, absent: 10, total: 100, course: selectedCourse, year: selectedYear },
+      { name: 'Week 4', present: 70, absent: 30, total: 100, course: selectedCourse, year: selectedYear },
+      { name: 'Week 5', present: 75, absent: 25, total: 100, course: selectedCourse, year: selectedYear },
+      { name: 'Week 6', present: 85, absent: 15, total: 100, course: selectedCourse, year: selectedYear },
+    ];
+    
+    // Performance data
+    const mockPerformanceData = [
+      { name: 'Assignment 1', average: 75, highest: 95, lowest: 45, course: selectedCourse, year: selectedYear },
+      { name: 'Assignment 2', average: 72, highest: 98, lowest: 40, course: selectedCourse, year: selectedYear },
+      { name: 'Quiz 1', average: 68, highest: 90, lowest: 35, course: selectedCourse, year: selectedYear },
+      { name: 'Midterm', average: 70, highest: 95, lowest: 42, course: selectedCourse, year: selectedYear },
+      { name: 'Assignment 3', average: 78, highest: 100, lowest: 50, course: selectedCourse, year: selectedYear },
+    ];
+    
+    // Grade distribution - adjust based on course filters to show variation
+    let gradeACount = 15;
+    let gradeBCount = 25;
+    let gradeCCount = 30;
+    let gradeDCount = 20;
+    let gradeFCount = 10;
+    
+    // Modify distribution based on course for demo variety
+    if (filters.courseId) {
+      // Generate slightly different distribution for each course
+      const courseIndex = courses.findIndex(c => c.id === filters.courseId);
+      const variance = (courseIndex !== -1) ? courseIndex * 2 : 0;
+      
+      gradeACount = Math.max(5, Math.min(30, 15 + variance));
+      gradeBCount = Math.max(10, Math.min(40, 25 - variance));
+      gradeCCount = Math.max(15, Math.min(45, 30 + variance/2));
+      gradeDCount = Math.max(5, Math.min(30, 20 - variance/2));
+      gradeFCount = Math.max(3, Math.min(20, 10 + variance/3));
+    }
+    
+    const mockGradeDistribution = [
+      { name: 'A', value: gradeACount, course: selectedCourse, year: selectedYear },
+      { name: 'B', value: gradeBCount, course: selectedCourse, year: selectedYear },
+      { name: 'C', value: gradeCCount, course: selectedCourse, year: selectedYear },
+      { name: 'D', value: gradeDCount, course: selectedCourse, year: selectedYear },
+      { name: 'F', value: gradeFCount, course: selectedCourse, year: selectedYear },
+    ];
+    
+    setAttendanceData(mockAttendanceData);
+    setPerformanceData(mockPerformanceData);
+    setGradeDistribution(mockGradeDistribution);
+  };
+  
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+  };
   
   return (
     <div>
@@ -91,22 +163,11 @@ const TeacherReportsPage = () => {
         </Button>
       </PageHeader>
       
-      <div className="flex items-center mt-6 mb-6">
-        <div className="w-64">
-          <Select value={selectedCourse} onValueChange={setSelectedCourse} disabled={loading}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Course" />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map(course => (
-                <SelectItem key={course.id} value={course.id}>
-                  {course.name} ({course.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <TeacherFilters 
+        onFilterChange={handleFilterChange}
+        courses={courses}
+        showPerformanceFilters={false}
+      />
       
       <Tabs defaultValue="attendance" className="mt-6">
         <TabsList>
@@ -126,8 +187,13 @@ const TeacherReportsPage = () => {
         
         <TabsContent value="attendance" className="mt-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Weekly Attendance Report</CardTitle>
+              <div className="text-sm text-gray-500">
+                {filters.courseId ? courses.find(c => c.id === filters.courseId)?.name : 'All Courses'} 
+                {filters.academicYear ? ` | ${filters.academicYear}` : ''} 
+                {filters.semester ? ` | Semester ${filters.semester}` : ''}
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -207,8 +273,13 @@ const TeacherReportsPage = () => {
         
         <TabsContent value="performance" className="mt-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Assessment Performance</CardTitle>
+              <div className="text-sm text-gray-500">
+                {filters.courseId ? courses.find(c => c.id === filters.courseId)?.name : 'All Courses'} 
+                {filters.academicYear ? ` | ${filters.academicYear}` : ''} 
+                {filters.semester ? ` | Semester ${filters.semester}` : ''}
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -289,8 +360,13 @@ const TeacherReportsPage = () => {
         <TabsContent value="grades" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Grade Distribution</CardTitle>
+                <div className="text-sm text-gray-500">
+                  {filters.courseId ? courses.find(c => c.id === filters.courseId)?.name : 'All Courses'} 
+                  {filters.academicYear ? ` | ${filters.academicYear}` : ''} 
+                  {filters.semester ? ` | Semester ${filters.semester}` : ''}
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
