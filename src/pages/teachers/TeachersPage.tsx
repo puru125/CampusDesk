@@ -24,9 +24,7 @@ const TeachersPage = () => {
   const [teachers, setTeachers] = useState<TeacherView[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [yearFilter, setYearFilter] = useState<YearSessionValues>({
-    year: new Date().getFullYear().toString()
-  });
+  const [yearFilter, setYearFilter] = useState<YearSessionValues>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -38,8 +36,8 @@ const TeachersPage = () => {
     try {
       setLoading(true);
       
-      // Using a regular query with the table name for better TypeScript support
-      const { data, error } = await supabase
+      // Use the teachers table with a join to users
+      let query = supabase
         .from('teachers')
         .select(`
           id,
@@ -56,12 +54,18 @@ const TeachersPage = () => {
             email,
             full_name
           )
-        `)
-        .like(
-          // Filter by year if joining_date is available
-          'joining_date', 
-          yearFilter.year ? `${yearFilter.year}-%` : '%'
-        );
+        `);
+      
+      // Apply year filter if provided
+      if (yearFilter.year) {
+        const startDate = `${yearFilter.year}-01-01`;
+        const endDate = `${yearFilter.year}-12-31`;
+        
+        query = query.gte('joining_date', startDate)
+                     .lte('joining_date', endDate);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;

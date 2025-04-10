@@ -24,9 +24,7 @@ const StudentsPage = () => {
   const [students, setStudents] = useState<StudentView[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [yearFilter, setYearFilter] = useState<YearSessionValues>({
-    year: new Date().getFullYear().toString()
-  });
+  const [yearFilter, setYearFilter] = useState<YearSessionValues>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -38,8 +36,8 @@ const StudentsPage = () => {
     try {
       setLoading(true);
       
-      // Using the students table instead of students_view and joining with users
-      const { data, error } = await supabase
+      // Use the students table with a join to users
+      let query = supabase
         .from('students')
         .select(`
           id,
@@ -62,16 +60,27 @@ const StudentsPage = () => {
             email,
             full_name
           )
-        `)
-        .eq(
-          // Filter by year if enrollment_date is available
-          'enrollment_date', 
-          yearFilter.year ? 
-            `${yearFilter.year}-${yearFilter.session ? 
-              (yearFilter.session.includes('1') ? '01-01' : '07-01') : 
-              '%'}` : 
-            '%'
-        );
+        `);
+      
+      // Apply year filter if provided
+      if (yearFilter.year) {
+        const startDate = yearFilter.session && yearFilter.session.includes('1') 
+          ? `${yearFilter.year}-01-01` 
+          : yearFilter.session && yearFilter.session.includes('2')
+            ? `${yearFilter.year}-07-01`
+            : `${yearFilter.year}-01-01`;
+        
+        const endDate = yearFilter.session && yearFilter.session.includes('1')
+          ? `${yearFilter.year}-06-30`
+          : yearFilter.session && yearFilter.session.includes('2')
+            ? `${yearFilter.year}-12-31`
+            : `${yearFilter.year}-12-31`;
+        
+        query = query.gte('enrollment_date', startDate)
+                     .lte('enrollment_date', endDate);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;
@@ -84,12 +93,12 @@ const StudentsPage = () => {
           enrollment_number: student.enrollment_number,
           date_of_birth: student.date_of_birth,
           enrollment_date: student.enrollment_date,
-          enrollment_status: student.enrollment_status as 'pending' | 'enrolled' | 'rejected' | string,
+          enrollment_status: student.enrollment_status as any,
           contact_number: student.contact_number,
           address: student.address,
           guardian_name: student.guardian_name,
           guardian_contact: student.guardian_contact,
-          fee_status: student.fee_status as 'pending' | 'paid' | 'overdue' | string,
+          fee_status: student.fee_status as any,
           total_fees_due: student.total_fees_due,
           total_fees_paid: student.total_fees_paid,
           last_payment_date: student.last_payment_date,

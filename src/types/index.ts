@@ -1,3 +1,4 @@
+
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export interface User {
@@ -18,7 +19,7 @@ export interface Teacher {
   specialization?: string;
   qualification?: string;
   joining_date?: string;
-  status?: 'active' | 'inactive' | 'on_leave';
+  status?: 'active' | 'inactive' | 'on_leave' | string;
   contact_number?: string;
   office_hours?: string;
   availability?: string;

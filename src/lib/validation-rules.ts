@@ -91,13 +91,36 @@ export const teacherSchema = z.object({
   contactNumber: commonSchemas.contactNumber,
 });
 
+// Course validation schema
+export const courseSchema = z.object({
+  name: commonSchemas.requiredText("Course name", 3, 100),
+  code: z.string().min(2, { message: ERROR_MESSAGES.LENGTH_MIN("Course code", 2) })
+    .max(20, { message: ERROR_MESSAGES.LENGTH_MAX("Course code", 20) }),
+  credits: z.number().min(1, { message: "Credits must be at least 1" })
+    .max(10, { message: "Credits must be at most 10" }),
+  description: commonSchemas.optionalText("Description", 10, 500),
+  department: z.string().optional()
+});
+
+// Fee payment validation schema
+export const feePaymentSchema = z.object({
+  amount: z.number().min(1, { message: "Amount must be greater than 0" }),
+  paymentMethod: z.enum(["cash", "credit_card", "bank_transfer", "online"], {
+    required_error: "Payment method is required"
+  }),
+  transactionId: z.string().optional().or(z.literal("")),
+  remarks: z.string().optional().or(z.literal(""))
+});
+
 // Year session schema for filters
 export const yearSessionSchema = z.object({
-  year: z.string().regex(/^\d{4}$/, { message: "Please enter a valid year" }),
+  year: z.string().regex(/^\d{4}$/, { message: "Please enter a valid year" }).optional(),
   session: z.string().optional(),
 });
 
 // Export types for the schemas
 export type StudentFormValues = z.infer<typeof studentSchema>;
 export type TeacherFormValues = z.infer<typeof teacherSchema>;
+export type CourseFormValues = z.infer<typeof courseSchema>;
+export type FeePaymentValues = z.infer<typeof feePaymentSchema>;
 export type YearSessionValues = z.infer<typeof yearSessionSchema>;

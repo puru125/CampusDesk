@@ -51,7 +51,7 @@ const YearSessionFilter = ({
   const clearFilters = () => {
     setSelectedYear(null);
     setSelectedSession(null);
-    onFilterChange({ year: new Date().getFullYear().toString() });
+    onFilterChange({});
   };
 
   return (
