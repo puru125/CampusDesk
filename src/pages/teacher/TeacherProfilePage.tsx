@@ -11,11 +11,10 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Calendar, Phone, BookOpen, Building, Loader2, IdCard } from "lucide-react";
+import { User, Calendar, IdCard, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 
 const profileSchema = z.object({
@@ -283,19 +282,28 @@ const TeacherProfilePage = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">ID Card Tools</CardTitle>
-              <CardDescription>Generate and print student ID cards</CardDescription>
+              <CardDescription>Generate and print your own ID card</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Button 
+                className="w-full" 
+                onClick={() => navigate("/teacher/id-card")}
+              >
+                <IdCard className="mr-2 h-4 w-4" />
+                Generate My ID Card
+              </Button>
+              
               <Button 
                 className="w-full" 
                 variant="outline"
                 onClick={() => navigate("/teacher/students")}
               >
                 <IdCard className="mr-2 h-4 w-4" />
-                Generate Student ID Cards
+                Student ID Cards
               </Button>
+              
               <p className="text-sm text-gray-500">
-                You can generate ID cards for any student from the students list.
+                You can create your own ID card or generate ID cards for your students.
               </p>
             </CardContent>
           </Card>

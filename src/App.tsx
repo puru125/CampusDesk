@@ -77,6 +77,7 @@ import TeacherDoubtsPage from "@/pages/teacher/TeacherDoubtsPage";
 import AttendanceRecordPage from "@/pages/teacher/AttendanceRecordPage";
 import ExamReportsPage from "@/pages/teacher/ExamReportsPage";
 import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
+import TeacherIDCardPage from "@/pages/teacher/TeacherIDCardPage";
 import TeacherNotificationsPage from "@/pages/teacher/TeacherNotificationsPage";
 
 // Student Module
@@ -143,6 +144,7 @@ function App() {
                     
                     {/* Teacher Module Routes */}
                     <Route path="teacher/profile" element={<TeacherProfilePage />} />
+                    <Route path="teacher/id-card" element={<TeacherIDCardPage />} />
                     <Route path="teacher/classes" element={<TeacherClassesPage />} />
                     <Route path="teacher/students" element={<TeacherStudentsPage />} />
                     <Route path="teacher/students/add" element={<TeacherAddStudentPage />} />
@@ -174,7 +176,7 @@ function App() {
                     <Route path="attendance" element={<AttendancePage />} />
                     <Route path="assignments" element={<TeacherAssignmentsPage />} />
                     <Route path="my-courses" element={<StudentCoursesPage />} />
-                    <Route path="profile" element={<StudentProfilePage />} />
+                    <Route path="profile" element={<TeacherProfilePage />} />
                     <Route path="fees/payment/new" element={<MakePaymentPage />} />
                     <Route path="doubts" element={<TeacherDoubtsPage />} />
                     
