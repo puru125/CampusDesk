@@ -1,3 +1,4 @@
+
 import { Database } from "@/integrations/supabase/types";
 import { createClient } from '@supabase/supabase-js';
 
@@ -439,44 +440,6 @@ export type ExamReportsTable = {
   ];
 };
 
-export type StudentNotificationsTable = {
-  Row: {
-    id: string;
-    student_id: string;
-    title: string;
-    message: string;
-    is_read: boolean;
-    created_at: string;
-    updated_at: string;
-  };
-  Insert: {
-    id?: string;
-    student_id: string;
-    title: string;
-    message: string;
-    is_read?: boolean;
-    created_at?: string;
-    updated_at?: string;
-  };
-  Update: {
-    id?: string;
-    student_id?: string;
-    title?: string;
-    message?: string;
-    is_read?: boolean;
-    created_at?: string;
-    updated_at?: string;
-  };
-  Relationships: [
-    {
-      foreignKeyName: "student_notifications_student_id_fkey";
-      columns: ["student_id"];
-      referencedRelation: "students";
-      referencedColumns: ["id"];
-    }
-  ];
-};
-
 // Define the extended database schema using proper intersection types
 export interface ExtendedDatabase extends Database {
   public: {
@@ -489,7 +452,6 @@ export interface ExtendedDatabase extends Database {
       attendance_records: AttendanceRecordsTable;
       exam_reports: ExamReportsTable;
       student_feedback: StudentFeedbackTable;
-      student_notifications: StudentNotificationsTable;
     };
     Views: Database["public"]["Views"] & {
       student_timetable_view: StudentTimetableView;
