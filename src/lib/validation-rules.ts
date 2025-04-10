@@ -50,7 +50,7 @@ export const teacherSchema = z.object({
     .min(2, "Qualification is required")
     .nonempty("Qualification is required"),
   contactNumber: z.string()
-    .min(10, "Contact number must be at least 10 digits")
+    .min(10, "Contact number must be exactly 10 digits")
     .max(10, "Contact number must be exactly 10 digits")
     .regex(/^\d+$/, "Contact number must contain only digits")
     .nonempty("Contact number is required"),
@@ -86,8 +86,14 @@ export const studentSchema = z.object({
   address: z.string()
     .min(5, "Address is required")
     .nonempty("Address is required"),
-  guardianName: z.string().optional(),
-  guardianContact: z.string().optional(),
+  guardianName: z.string()
+    .min(2, "Guardian name is required")
+    .nonempty("Guardian name is required"),
+  guardianContact: z.string()
+    .min(10, "Guardian contact must be exactly 10 digits")
+    .max(10, "Guardian contact must be exactly 10 digits")
+    .regex(/^\d+$/, "Guardian contact must contain only digits")
+    .nonempty("Guardian contact is required"),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
