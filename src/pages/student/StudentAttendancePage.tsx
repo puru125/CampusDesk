@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -52,11 +53,18 @@ const StudentAttendancePage = () => {
     present: 0,
     percentage: 0,
   });
+  const [activeTab, setActiveTab] = useState("summary");
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
       try {
         if (!user) return;
+
+        // Show loading toast
+        toast({
+          title: "Loading attendance data",
+          description: "Please wait while we fetch your attendance records...",
+        });
 
         // Get student ID first
         const { data: studentData, error: studentError } = await extendedSupabase
@@ -87,6 +95,12 @@ const StudentAttendancePage = () => {
         if (recordsError) throw recordsError;
 
         setAttendanceRecords(recordsData || []);
+
+        // Show success toast for data loaded
+        toast({
+          title: "Data loaded successfully",
+          description: `Loaded ${recordsData?.length || 0} attendance records`,
+        });
 
         // Calculate attendance summary by subject
         const subjectMap = new Map<string, AttendanceSummary>();
@@ -145,6 +159,16 @@ const StudentAttendancePage = () => {
 
     fetchAttendanceData();
   }, [user, toast]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Show toast when switching tabs
+    toast({
+      title: `Viewing ${value === 'summary' ? 'Subject Summary' : 'Attendance Records'}`,
+      description: `Switched to ${value === 'summary' ? 'summary view' : 'detailed records view'}`,
+    });
+  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -231,7 +255,7 @@ const StudentAttendancePage = () => {
             </CardContent>
           </Card>
           
-          <Tabs defaultValue="summary">
+          <Tabs defaultValue="summary" onValueChange={handleTabChange}>
             <TabsList>
               <TabsTrigger value="summary">Subject Summary</TabsTrigger>
               <TabsTrigger value="records">Attendance Records</TabsTrigger>
