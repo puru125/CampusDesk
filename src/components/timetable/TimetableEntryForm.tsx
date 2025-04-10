@@ -4,13 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
+import { Form, FormRequiredLabel } from "@/components/ui/form";
 import { Class, Subject, TeacherView } from "@/types";
 import { timetableSchema, TimetableFormValues } from "./TimetableFormConstants";
 import TimetableClassSubjectFields from "./TimetableClassSubjectFields";
 import TimetableTeacherField from "./TimetableTeacherField";
 import TimetableDayTimeFields from "./TimetableDayTimeFields";
 import { useTimetableEntryMutation } from "./useTimetableEntryMutation";
+import { useToast } from "@/hooks/use-toast";
 
 interface TimetableEntryFormProps {
   classes?: Class[];
@@ -27,6 +28,7 @@ export const TimetableEntryForm = ({
   onCancel,
   onSuccess,
 }: TimetableEntryFormProps) => {
+  const { toast } = useToast();
   const { addTimetableEntryMutation, isSubmitting, setIsSubmitting } = 
     useTimetableEntryMutation(onSuccess);
 
@@ -40,10 +42,31 @@ export const TimetableEntryForm = ({
       start_time: "",
       end_time: "",
     },
+    mode: "onChange", // Validate on change for real-time feedback
   });
 
   const onSubmit = (values: TimetableFormValues) => {
     setIsSubmitting(true);
+    
+    // Validate time format
+    const startTime = values.start_time;
+    const endTime = values.end_time;
+    
+    if (startTime >= endTime) {
+      toast({
+        title: "Invalid time range",
+        description: "End time must be after start time",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
+    toast({
+      title: "Adding timetable entry",
+      description: "Please wait while we process your request...",
+    });
+    
     addTimetableEntryMutation.mutate(values);
   };
 
@@ -71,7 +94,13 @@ export const TimetableEntryForm = ({
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={() => {
+              onCancel();
+              toast({
+                title: "Form cancelled",
+                description: "Timetable entry creation cancelled",
+              });
+            }}
           >
             Cancel
           </Button>

@@ -141,9 +141,25 @@ export const paymentSchema = z.object({
 
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
 
+// Attendance validation
+export const attendanceSchema = z.object({
+  date: z.date({
+    required_error: "Date is required",
+    invalid_type_error: "Please select a valid date",
+  }),
+  classId: z.string().min(1, "Class is required"),
+  subjectId: z.string().min(1, "Subject is required"),
+  status: z.string().min(1, "Status is required"),
+  remarks: z.string().optional(),
+});
+
+export type AttendanceFormValues = z.infer<typeof attendanceSchema>;
+
 // Add YearSessionValues interface for filtering
 export interface YearSessionValues {
   year?: string;
   session?: string;
 }
 
+// Toast variant type to ensure we use valid values
+export type ToastVariant = "default" | "destructive";

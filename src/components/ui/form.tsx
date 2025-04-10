@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -164,6 +165,20 @@ const FormMessage = React.forwardRef<
 })
 FormMessage.displayName = "FormMessage"
 
+// New reusable component for required field labels
+const FormRequiredLabel = React.forwardRef<
+  React.ElementRef<typeof FormLabel>,
+  React.ComponentPropsWithoutRef<typeof FormLabel>
+>(({ children, className, ...props }, ref) => {
+  return (
+    <FormLabel ref={ref} className={className} {...props}>
+      {children}
+      <span className="text-destructive ml-1">*</span>
+    </FormLabel>
+  )
+})
+FormRequiredLabel.displayName = "FormRequiredLabel"
+
 export {
   useFormField,
   Form,
@@ -173,4 +188,5 @@ export {
   FormDescription,
   FormMessage,
   FormField,
+  FormRequiredLabel,
 }
