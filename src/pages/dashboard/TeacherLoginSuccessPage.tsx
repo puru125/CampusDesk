@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, School, CheckCircle } from "lucide-react";
+import { Users, BookOpen, School, CheckCircle, FileText, Bell, Calendar, BarChart } from "lucide-react";
 
 const TeacherLoginSuccessPage = () => {
   const { user, logout } = useAuth();
@@ -27,6 +27,46 @@ const TeacherLoginSuccessPage = () => {
       </div>
     );
   }
+
+  // Module features
+  const features = [
+    {
+      title: "Personal Details",
+      description: "Update your profile information and qualifications",
+      icon: Users,
+      path: "/teacher/profile"
+    },
+    {
+      title: "Class Management",
+      description: "View and manage your assigned courses and schedules",
+      icon: School,
+      path: "/teacher/classes"
+    },
+    {
+      title: "Student Management",
+      description: "Review student details and mark attendance",
+      icon: Users,
+      path: "/teacher/students"
+    },
+    {
+      title: "Assignment & Exams",
+      description: "Create, grade, and manage assessments",
+      icon: FileText,
+      path: "/teacher/assignments"
+    },
+    {
+      title: "Communication",
+      description: "Send announcements and chat with students",
+      icon: Bell,
+      path: "/teacher/communication"
+    },
+    {
+      title: "Reports",
+      description: "Track student performance and generate reports",
+      icon: BarChart,
+      path: "/teacher/reports"
+    }
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -103,6 +143,32 @@ const TeacherLoginSuccessPage = () => {
             <p className="text-sm text-gray-500">Teaching</p>
           </CardContent>
         </Card>
+      </div>
+
+      <h2 className="text-2xl font-bold my-6">Available Features</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {features.map((feature, index) => (
+          <Card key={index} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <feature.icon className="mr-2 h-5 w-5 text-institute-600" />
+                {feature.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">{feature.description}</p>
+            </CardContent>
+            <CardFooter>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => navigate(feature.path)}
+              >
+                Access
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
       </div>
     </div>
   );
