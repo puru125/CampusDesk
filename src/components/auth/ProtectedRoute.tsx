@@ -1,6 +1,6 @@
 
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserRole } from "@/types";
 
@@ -14,6 +14,7 @@ const ProtectedRoute = ({
   allowedRoles = [],
 }: ProtectedRouteProps) => {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -25,6 +26,15 @@ const ProtectedRoute = ({
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Prevent access to routes not meant for this user role
+  if (user?.role === "teacher" && location.pathname.startsWith("/student/")) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (user?.role === "student" && location.pathname.startsWith("/teacher/")) {
+    return <Navigate to="/" replace />;
   }
 
   if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role as UserRole)) {

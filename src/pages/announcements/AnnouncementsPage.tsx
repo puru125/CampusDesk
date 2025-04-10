@@ -57,48 +57,46 @@ const AnnouncementsPage = () => {
     try {
       setLoading(true);
       
-      // Mock data for demo purposes
-      const mockAnnouncements = [
-        {
-          id: "1",
-          title: "Welcome to the New Semester",
-          content: "We hope you're excited for the new academic year. Please complete your profile and course registrations by the end of this week.",
-          target_role: "all",
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          created_by_name: "Admin",
-          is_active: true
-        },
-        {
-          id: "2",
-          title: "Student Council Elections",
-          content: "The student council elections will be held next month. Interested candidates can submit their nominations starting next week.",
-          target_role: "student",
-          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          created_by_name: "Admin",
-          is_active: true
-        },
-        {
-          id: "3",
-          title: "Faculty Meeting",
-          content: "All faculty members are requested to attend a meeting on Friday at 3 PM in the conference room.",
-          target_role: "teacher",
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          created_by_name: "Admin",
-          is_active: true
-        }
-      ];
+      // Fetch real announcements from the database
+      let query = supabase
+        .from('announcements')
+        .select('*');
       
-      // Filter announcements based on user role
-      let filteredAnnouncements;
-      if (user?.role === 'admin') {
-        filteredAnnouncements = mockAnnouncements;
-      } else {
-        filteredAnnouncements = mockAnnouncements.filter(
-          a => a.target_role === 'all' || a.target_role === user?.role
-        );
+      // Filter announcements based on user role if not admin
+      if (user?.role !== 'admin') {
+        query = query.or(`target_role.eq.all,target_role.eq.${user?.role}`);
       }
       
-      setAnnouncements(filteredAnnouncements as unknown as Announcement[]);
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Format data for the announcements
+      const formattedAnnouncements = await Promise.all((data || []).map(async (announcement) => {
+        let createdByName = "Admin";
+        
+        // Fetch user name if there's a created_by ID
+        if (announcement.created_by) {
+          const { data: userData, error: userError } = await supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', announcement.created_by)
+            .single();
+            
+          if (!userError && userData) {
+            createdByName = userData.full_name;
+          }
+        }
+        
+        return {
+          ...announcement,
+          created_by_name: createdByName
+        };
+      }));
+      
+      setAnnouncements(formattedAnnouncements as Announcement[]);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching announcements:", error);
@@ -122,18 +120,29 @@ const AnnouncementsPage = () => {
     }
     
     try {
-      // Mock announcement creation
-      const newAnnouncement = {
-        id: Date.now().toString(),
-        title,
-        content,
-        target_role: targetRole,
-        created_at: new Date().toISOString(),
-        created_by_name: user?.full_name,
-        is_active: true
-      };
+      // Insert announcement into the database
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert({
+          title,
+          content,
+          target_role: targetRole,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
       
-      setAnnouncements([newAnnouncement as unknown as Announcement, ...announcements]);
+      if (error) {
+        throw error;
+      }
+      
+      // Add created_by_name to the announcement
+      const newAnnouncement = {
+        ...data,
+        created_by_name: user?.full_name || "Admin"
+      } as Announcement;
+      
+      setAnnouncements([newAnnouncement, ...announcements]);
       
       toast({
         title: "Success",
@@ -164,7 +173,22 @@ const AnnouncementsPage = () => {
     }
     
     try {
-      // Mock announcement update
+      // Update announcement in the database
+      const { error } = await supabase
+        .from('announcements')
+        .update({
+          title,
+          content,
+          target_role: targetRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
       const updatedAnnouncements = announcements.map(announcement => {
         if (announcement.id === editingId) {
           return {
@@ -205,7 +229,17 @@ const AnnouncementsPage = () => {
     }
     
     try {
-      // Mock announcement deletion
+      // Delete announcement from the database
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Remove from local state
       const filteredAnnouncements = announcements.filter(a => a.id !== id);
       setAnnouncements(filteredAnnouncements);
       

@@ -112,11 +112,6 @@ export const teacherRoutes: Route[] = [
     icon: Bell,
     href: "/teacher/communication",
   },
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
 ];
 
 export const studentRoutes: Route[] = [
