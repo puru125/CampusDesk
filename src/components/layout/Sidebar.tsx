@@ -16,7 +16,8 @@ import {
   GraduationCap,
   School,
   UserPlus,
-  UserCog
+  UserCog,
+  CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ const Sidebar = () => {
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },
-    { path: "/settings", icon: Settings, label: "Settings" },
+    { path: "/settings", icon: CheckCircle, label: "Approvals" },
   ];
 
   const teacherLinks = [

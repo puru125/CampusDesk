@@ -22,7 +22,7 @@ import TimetablePage from "./pages/timetable/TimetablePage";
 import AddTimetableEntryPage from "./pages/timetable/AddTimetableEntryPage";
 import ExamsPage from "./pages/exams/ExamsPage";
 import AddExamPage from "./pages/exams/AddExamPage";
-import SettingsPage from "./pages/settings/SettingsPage";
+import EnrollmentApprovalPage from "./pages/settings/EnrollmentApprovalPage";
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
 
 // Fee Management Pages
@@ -207,13 +207,13 @@ const App = () => (
               } 
             />
             
-            {/* Settings Routes */}
+            {/* Replaced Settings with Enrollment Approval Page */}
             <Route 
               path="/settings" 
               element={
                 <ProtectedRoute>
                   <Shell>
-                    <SettingsPage />
+                    <EnrollmentApprovalPage />
                   </Shell>
                 </ProtectedRoute>
               } 
