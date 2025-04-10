@@ -21,36 +21,81 @@ const CourseEditModule = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("course-details");
 
-  // Fetch course data
-  const { data: course, isLoading: courseLoading } = useQuery({
+  // Fetch course data with error handling and retry mechanisms
+  const { data: course, isLoading: courseLoading, error: courseError } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select(`
-          *,
-          subjects(*)
-        `)
-        .eq("id", courseId)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("courses")
+          .select(`
+            *,
+            subjects(*)
+          `)
+          .eq("id", courseId)
+          .single();
 
-      if (error) {
+        if (error) {
+          console.error("Error fetching course:", error);
+          throw error;
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Failed to fetch course details:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch course details",
+          description: "Failed to fetch course details. Please try again.",
           variant: "destructive",
         });
         throw error;
       }
-      
-      return data;
     },
     enabled: !!courseId,
+    retry: 2, // Retry failed requests up to 2 times
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+  });
+
+  // Handle deletion of a course
+  const deleteCourse = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("courses")
+        .delete()
+        .eq("id", courseId);
+      
+      if (error) {
+        console.error("Error deleting course:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Course deleted successfully",
+      });
+      navigate("/courses");
+    },
+    onError: (error) => {
+      console.error("Failed to delete course:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete course. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Handle back navigation
   const handleBackClick = () => {
     navigate("/courses");
+  };
+
+  // Handle confirming course deletion
+  const handleDeleteConfirm = () => {
+    if (confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
+      deleteCourse.mutate();
+    }
   };
 
   if (courseLoading) {
@@ -61,7 +106,7 @@ const CourseEditModule = () => {
     );
   }
 
-  if (!course && !courseLoading) {
+  if (courseError || (!course && !courseLoading)) {
     return (
       <div className="h-full flex flex-col items-center justify-center">
         <div className="text-center">
@@ -85,10 +130,26 @@ const CourseEditModule = () => {
         description={`Edit details for ${course?.name}`}
         icon={BookOpen}
       >
-        <Button variant="outline" onClick={handleBackClick}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleBackClick}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={handleDeleteConfirm}
+            disabled={deleteCourse.isPending}
+          >
+            {deleteCourse.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              "Delete Course"
+            )}
+          </Button>
+        </div>
       </PageHeader>
 
       <Tabs defaultValue="course-details" onValueChange={setActiveTab} value={activeTab}>

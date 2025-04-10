@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { 
   Book, 
@@ -32,6 +32,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import PageHeader from "@/components/ui/page-header";
 import { Course } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,9 +55,11 @@ const CoursesPage = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [yearSessionFilter, setYearSessionFilter] = useState<YearSessionValues>({});
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
 
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ["courses"],
+  // Fetch courses query
+  const { data: courses, isLoading, refetch } = useQuery({
+    queryKey: ["courses", yearSessionFilter],
     queryFn: async () => {
       let query = supabase
         .from("courses")
@@ -76,6 +89,54 @@ const CoursesPage = () => {
     },
   });
 
+  // Delete course mutation
+  const deleteCourse = useMutation({
+    mutationFn: async (courseId: string) => {
+      // First check if there are teacher assignments or other dependencies
+      const { data: teacherSubjects, error: checkError } = await supabase
+        .from("teacher_subjects")
+        .select("id")
+        .eq("subject_id", courseId);
+      
+      if (checkError) {
+        console.error("Error checking course dependencies:", checkError);
+        throw new Error("Failed to check course dependencies");
+      }
+      
+      if (teacherSubjects && teacherSubjects.length > 0) {
+        throw new Error("Cannot delete course with assigned teachers. Please remove teacher assignments first.");
+      }
+      
+      // If no dependencies, proceed with deletion
+      const { error } = await supabase
+        .from("courses")
+        .delete()
+        .eq("id", courseId);
+      
+      if (error) {
+        console.error("Error deleting course:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Course deleted successfully",
+      });
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete course",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setCourseToDelete(null);
+    }
+  });
+
   const filteredCourses = courses?.filter((course) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -85,12 +146,14 @@ const CoursesPage = () => {
     );
   });
 
-  const handleDeleteCourse = async (courseId: string) => {
-    toast({
-      title: "Not implemented",
-      description: "Course deletion functionality is not implemented yet.",
-      variant: "default",
-    });
+  const handleDeleteCourse = (courseId: string) => {
+    setCourseToDelete(courseId);
+  };
+
+  const confirmDelete = () => {
+    if (courseToDelete) {
+      deleteCourse.mutate(courseToDelete);
+    }
   };
 
   return (
@@ -186,13 +249,35 @@ const CoursesPage = () => {
                           <Users className="h-4 w-4 mr-1" />
                           Students
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteCourse(course.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
+                        <AlertDialog open={courseToDelete === course.id} onOpenChange={(open) => !open && setCourseToDelete(null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteCourse(course.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Course</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this course? This action cannot be undone.
+                                All related data will be permanently deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={confirmDelete}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                {deleteCourse.isPending ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </TableCell>
                     </TableRow>
                   ))}
