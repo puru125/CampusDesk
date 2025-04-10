@@ -30,11 +30,19 @@ const ProtectedRoute = ({
 
   // Prevent access to routes not meant for this user role
   if (user?.role === "teacher" && location.pathname.startsWith("/student/")) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/teacher/profile" replace />;
   }
 
   if (user?.role === "student" && location.pathname.startsWith("/teacher/")) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/student/profile" replace />;
+  }
+
+  if (user?.role === "teacher" && location.pathname === "/profile") {
+    return <Navigate to="/teacher/profile" replace />;
+  }
+
+  if (user?.role === "student" && location.pathname === "/profile") {
+    return <Navigate to="/student/profile" replace />;
   }
 
   if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role as UserRole)) {

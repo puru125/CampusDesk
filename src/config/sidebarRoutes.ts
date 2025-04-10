@@ -1,4 +1,3 @@
-
 import {
   LayoutDashboard,
   Calendar,
@@ -14,6 +13,8 @@ import {
   FileText,
   CreditCard,
   Megaphone,
+  UserCircle,
+  IdCard,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -111,6 +112,16 @@ export const teacherRoutes: Route[] = [
     title: "Communication",
     icon: Bell,
     href: "/teacher/communication",
+  },
+  {
+    title: "My Profile",
+    icon: UserCircle,
+    href: "/teacher/profile",
+  },
+  {
+    title: "ID Card",
+    icon: IdCard,
+    href: "/teacher/id-card",
   },
 ];
 
