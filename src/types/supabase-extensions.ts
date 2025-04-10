@@ -1,5 +1,6 @@
 
 import { Database } from "@/integrations/supabase/types";
+import { createClient } from '@supabase/supabase-js';
 
 // Extend the existing Database type to include our new tables
 export interface ExtendedDatabase extends Database {
@@ -7,6 +8,7 @@ export interface ExtendedDatabase extends Database {
     Tables: {
       // Include all existing tables from Database.public.Tables
       ...Database["public"]["Tables"],
+      
       // Add new tables
       student_doubts: {
         Row: {
@@ -63,6 +65,7 @@ export interface ExtendedDatabase extends Database {
           }
         ];
       };
+      
       doubt_answers: {
         Row: {
           id: string;
@@ -103,6 +106,7 @@ export interface ExtendedDatabase extends Database {
           }
         ];
       };
+      
       assignments: {
         Row: {
           id: string;
@@ -155,6 +159,7 @@ export interface ExtendedDatabase extends Database {
           }
         ];
       };
+      
       assignment_submissions: {
         Row: {
           id: string;
@@ -213,6 +218,7 @@ export interface ExtendedDatabase extends Database {
           }
         ];
       };
+      
       teacher_students: {
         Row: {
           id: string;
@@ -256,6 +262,3 @@ export interface ExtendedDatabase extends Database {
 
 // Create an extended version of the supabase client
 export type ExtendedSupabaseClient = ReturnType<typeof createClient<ExtendedDatabase>>;
-
-// Helper function to create a typed supabase client
-import { createClient } from '@supabase/supabase-js';
