@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";

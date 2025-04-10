@@ -1,8 +1,7 @@
 
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@/components/ui/page-header";
-import StudentDoubtsCard from "@/components/teacher/StudentDoubtsCard";
+import { StudentDoubtsCard } from "@/components/teacher/StudentDoubtsCard";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, ArrowLeft } from "lucide-react";
 

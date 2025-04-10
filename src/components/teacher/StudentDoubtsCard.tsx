@@ -84,7 +84,7 @@ export function StudentDoubtsCard() {
             created_at: doubt.created_at,
             student_id: doubt.student_id,
             student_name: studentMap.get(doubt.student_id) || 'Unknown Student',
-            subject_name: doubt.subjects?.name || 'General'
+            subject_name: doubt.subjects ? doubt.subjects.name : 'General'
           }));
           
           setDoubts(formattedDoubts);
