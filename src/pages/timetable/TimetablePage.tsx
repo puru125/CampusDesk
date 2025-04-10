@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -55,7 +56,7 @@ const TimetablePage = () => {
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from("classes")
+          .from('classes')
           .select("*")
           .order("name");
 
@@ -69,7 +70,7 @@ const TimetablePage = () => {
           return [];
         }
 
-        return (data as any) as Class[];
+        return data as Class[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         return [];
@@ -83,7 +84,7 @@ const TimetablePage = () => {
     queryFn: async () => {
       try {
         let query = supabase
-          .from("timetable_entries")
+          .from('timetable_entries')
           .select(`
             *,
             class:classes(*),
@@ -96,7 +97,7 @@ const TimetablePage = () => {
         } else if (user?.role === "teacher") {
           // For teachers, show only their classes
           const { data: teacherData } = await supabase
-            .from("teachers")
+            .from('teachers')
             .select("id")
             .eq("user_id", user.id)
             .single();
@@ -108,7 +109,7 @@ const TimetablePage = () => {
           // For students, show classes from their enrolled courses
           // This is a simplified example - in a real app, you'd need to join with enrollments
           const { data: studentData } = await supabase
-            .from("students")
+            .from('students')
             .select("id")
             .eq("user_id", user.id)
             .single();
@@ -131,7 +132,7 @@ const TimetablePage = () => {
           return [];
         }
 
-        return (data as any) as TimetableEntry[];
+        return data as TimetableEntry[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         return [];

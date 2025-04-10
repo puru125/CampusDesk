@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -98,7 +99,8 @@ const AddExamPage = () => {
     queryKey: ["subjects"],
     queryFn: async () => {
       try {
-        let query = supabase.from("subjects").select(`
+        // Making a direct request to get subjects without relying on database type definitions
+        let query = supabase.from('subjects').select(`
           *,
           course:courses(
             id,
@@ -109,7 +111,7 @@ const AddExamPage = () => {
         // For teachers, show only subjects they teach
         if (user?.role === "teacher") {
           const { data: teacherData } = await supabase
-            .from("teachers")
+            .from('teachers')
             .select("id")
             .eq("user_id", user.id)
             .single();
@@ -117,7 +119,7 @@ const AddExamPage = () => {
           if (teacherData) {
             // Get subject IDs taught by this teacher
             const { data: teacherSubjects } = await supabase
-              .from("teacher_subjects")
+              .from('teacher_subjects')
               .select("subject_id")
               .eq("teacher_id", teacherData.id);
             
@@ -140,7 +142,7 @@ const AddExamPage = () => {
           return [];
         }
 
-        return (data as any) as Subject[];
+        return data as Subject[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         return [];
@@ -157,7 +159,7 @@ const AddExamPage = () => {
 
       try {
         // Insert the new exam
-        const { data, error } = await supabase.from("exams").insert({
+        const { data, error } = await supabase.from('exams').insert({
           title: values.title,
           subject_id: values.subject_id,
           exam_date: values.exam_date.toISOString().split('T')[0],

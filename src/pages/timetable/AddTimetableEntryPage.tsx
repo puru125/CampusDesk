@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -97,7 +98,7 @@ const AddTimetableEntryPage = () => {
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from("classes")
+          .from('classes')
           .select("*")
           .order("name");
 
@@ -111,7 +112,7 @@ const AddTimetableEntryPage = () => {
           return [];
         }
 
-        return (data as any) as Class[];
+        return data as Class[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         return [];
@@ -125,7 +126,7 @@ const AddTimetableEntryPage = () => {
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from("subjects")
+          .from('subjects')
           .select(`
           *,
           course:courses(id, name)
@@ -142,7 +143,7 @@ const AddTimetableEntryPage = () => {
           return [];
         }
 
-        return (data as any) as Subject[];
+        return data as Subject[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         return [];
@@ -170,7 +171,7 @@ const AddTimetableEntryPage = () => {
           return [];
         }
 
-        return (data as any) as TeacherView[];
+        return data as TeacherView[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         return [];
@@ -184,7 +185,7 @@ const AddTimetableEntryPage = () => {
       try {
         // First check if there's a conflict
         const { data: existingEntries } = await supabase
-          .from("timetable_entries")
+          .from('timetable_entries')
           .select("*")
           .eq("class_id", values.class_id)
           .eq("day_of_week", values.day_of_week)
@@ -195,7 +196,7 @@ const AddTimetableEntryPage = () => {
         }
 
         // Insert the new timetable entry
-        const { data, error } = await supabase.from("timetable_entries").insert({
+        const { data, error } = await supabase.from('timetable_entries').insert({
           class_id: values.class_id,
           subject_id: values.subject_id,
           teacher_id: values.teacher_id,

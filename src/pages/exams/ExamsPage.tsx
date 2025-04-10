@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -73,7 +74,7 @@ const ExamsPage = () => {
     queryKey: ["exams", statusFilter, yearSessionFilter],
     queryFn: async () => {
       try {
-        let query = supabase.from("exams").select(`
+        let query = supabase.from('exams').select(`
           *,
           subject:subjects(
             id,
@@ -99,7 +100,7 @@ const ExamsPage = () => {
         if (user?.role === "teacher") {
           // Get teacher_id
           const { data: teacherData } = await supabase
-            .from("teachers")
+            .from('teachers')
             .select("id")
             .eq("user_id", user.id)
             .single();
@@ -107,12 +108,12 @@ const ExamsPage = () => {
           if (teacherData) {
             // Get subject IDs taught by this teacher
             const { data: teacherSubjects } = await supabase
-              .from("teacher_subjects")
+              .from('teacher_subjects')
               .select("subject_id")
               .eq("teacher_id", teacherData.id);
             
             if (teacherSubjects && teacherSubjects.length > 0) {
-              const subjectIds = teacherSubjects.map(ts => ts.subject_id);
+              const subjectIds = teacherSubjects.map((ts: any) => ts.subject_id);
               query = query.in("subject_id", subjectIds);
             }
           }
@@ -120,6 +121,7 @@ const ExamsPage = () => {
         // For students, show exams for courses they're enrolled in
         else if (user?.role === "student") {
           // This would need custom logic based on your data model
+          // to fetch timetable entries for the student's classes
         }
 
         const { data, error } = await query.order("exam_date", { ascending: false });
@@ -134,7 +136,7 @@ const ExamsPage = () => {
           return [];
         }
 
-        return (data as any) as Exam[];
+        return data as Exam[];
       } catch (error) {
         console.error("Error in fetch function:", error);
         toast({
