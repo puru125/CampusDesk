@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Users, 
@@ -11,21 +10,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Stats } from "@/types";
 import StatCard from "@/components/dashboard/StatCard";
 import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Types for dashboard stats
-interface DashboardStats {
-  total_students: number;
-  total_teachers: number;
-  active_courses: number;
-  pending_enrollments: number;
-  upcoming_exams: number;
-  recent_fee_collections: number;
-}
 
 // Mock data for recent activities and pending tasks
 const recentActivities = [
@@ -73,7 +63,7 @@ const pendingTasks = [
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -83,14 +73,16 @@ const AdminDashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc("get_admin_dashboard_stats");
+      const { data, error } = await supabase.from('admin_dashboard_stats_view')
+        .select('*')
+        .single();
       
       if (error) {
         throw error;
       }
       
-      if (data && data.length > 0) {
-        setStats(data[0]);
+      if (data) {
+        setStats(data as Stats);
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);

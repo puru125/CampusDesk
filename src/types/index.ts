@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export interface User {
@@ -14,36 +13,45 @@ export interface User {
 export interface Teacher {
   id: string;
   user_id: string;
-  specialization: string;
-  qualification: string;
-  joining_date: string;
-  status: 'active' | 'inactive' | 'on_leave';
+  employee_id: string;
   department?: string;
+  specialization?: string;
+  qualification?: string;
+  joining_date?: string;
+  status?: 'active' | 'inactive' | 'on_leave';
   contact_number?: string;
   office_hours?: string;
   availability?: string;
   profile_picture_url?: string;
   resume_url?: string;
-  user?: User;
+  created_at?: string;
+  updated_at?: string;
+  
+  email?: string;
+  full_name?: string;
 }
 
 export interface Student {
   id: string;
   user_id: string;
   enrollment_number: string;
-  date_of_birth: string;
-  admission_date: string;
-  status: 'active' | 'inactive' | 'graduated' | 'suspended' | 'on_leave';
+  date_of_birth?: string;
+  enrollment_date?: string;
+  enrollment_status?: 'pending' | 'enrolled' | 'rejected';
   contact_number?: string;
   address?: string;
+  guardian_name?: string;
+  guardian_contact?: string;
   profile_picture_url?: string;
-  enrollment_status: 'pending' | 'enrolled' | 'rejected';
-  fee_status: 'pending' | 'paid' | 'overdue';
-  total_fees_due: number;
-  total_fees_paid: number;
+  fee_status?: 'pending' | 'paid' | 'overdue';
+  total_fees_due?: number;
+  total_fees_paid?: number;
   last_payment_date?: string;
-  payment_status: 'pending' | 'partial' | 'complete' | 'overdue';
-  user?: User;
+  created_at?: string;
+  updated_at?: string;
+  
+  email?: string;
+  full_name?: string;
 }
 
 export interface Course {
@@ -120,10 +128,10 @@ export interface AuthState {
 }
 
 export interface Stats {
-  totalStudents: number;
-  totalTeachers: number;
-  totalCourses: number;
-  activeStudents: number;
-  pendingEnrollments: number;
-  upcomingExams: number;
+  total_students: number;
+  total_teachers: number;
+  active_courses: number;
+  pending_enrollments: number;
+  upcoming_exams: number;
+  recent_fee_collections: number;
 }

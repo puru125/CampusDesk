@@ -91,18 +91,38 @@ const AddTeacherPage = () => {
     try {
       setIsSubmitting(true);
       
-      const { data: result, error } = await supabase.rpc("add_teacher", {
-        p_email: data.email,
-        p_full_name: data.fullName,
-        p_department: data.department,
-        p_specialization: data.specialization,
-        p_qualification: data.qualification,
-        p_contact_number: data.contactNumber || null,
-        p_joining_date: format(data.joiningDate, "yyyy-MM-dd"),
-      });
+      // Instead of using RPC, create teacher records directly
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          email: data.email,
+          full_name: data.fullName,
+          role: 'teacher',
+          is_first_login: true,
+          // Default password will be set by database trigger
+          password_hash: 'placeholder_will_be_replaced_by_trigger'
+        })
+        .select('id')
+        .single();
 
-      if (error) {
-        throw error;
+      if (userError) {
+        throw userError;
+      }
+
+      // Now create the teacher profile
+      const { error: teacherError } = await supabase
+        .from('teachers')
+        .insert({
+          user_id: userData.id,
+          department: data.department,
+          specialization: data.specialization,
+          qualification: data.qualification,
+          contact_number: data.contactNumber || null,
+          joining_date: format(data.joiningDate, "yyyy-MM-dd")
+        });
+
+      if (teacherError) {
+        throw teacherError;
       }
 
       toast({

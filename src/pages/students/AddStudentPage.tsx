@@ -82,18 +82,40 @@ const AddStudentPage = () => {
     try {
       setIsSubmitting(true);
       
-      const { data: result, error } = await supabase.rpc("add_student", {
-        p_email: data.email,
-        p_full_name: data.fullName,
-        p_date_of_birth: format(data.dateOfBirth, "yyyy-MM-dd"),
-        p_contact_number: data.contactNumber || null,
-        p_address: data.address || null,
-        p_guardian_name: data.guardianName || null,
-        p_guardian_contact: data.guardianContact || null,
-      });
+      // Instead of using RPC, create a student directly in the database
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert({
+          email: data.email,
+          full_name: data.fullName,
+          role: 'student',
+          is_first_login: true,
+          // Default password will be set by database trigger
+          password_hash: 'placeholder_will_be_replaced_by_trigger'
+        })
+        .select('id')
+        .single();
 
-      if (error) {
-        throw error;
+      if (userError) {
+        throw userError;
+      }
+
+      // Now create the student profile with the user ID
+      const { error: studentError } = await supabase
+        .from('students')
+        .insert({
+          user_id: userData.id,
+          date_of_birth: format(data.dateOfBirth, "yyyy-MM-dd"),
+          contact_number: data.contactNumber || null,
+          address: data.address || null,
+          guardian_name: data.guardianName || null,
+          guardian_contact: data.guardianContact || null,
+          enrollment_status: 'pending',
+          enrollment_date: format(new Date(), "yyyy-MM-dd")
+        });
+
+      if (studentError) {
+        throw studentError;
       }
 
       toast({

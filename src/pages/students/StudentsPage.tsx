@@ -32,13 +32,16 @@ const StudentsPage = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc("get_all_students");
+      // Use a direct query instead of RPC to avoid TypeScript issues
+      const { data, error } = await supabase
+        .from('students_view')
+        .select('*');
       
       if (error) {
         throw error;
       }
       
-      setStudents(data || []);
+      setStudents(data as Student[] || []);
     } catch (error) {
       console.error("Error fetching students:", error);
       toast({
