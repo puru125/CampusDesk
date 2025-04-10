@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -70,13 +70,14 @@ const StudentAssignmentsPage = () => {
   const [submissionFile, setSubmissionFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   useEffect(() => {
     const fetchStudentProfile = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        const { data, error } = await extendedSupabase
           .from('students')
           .select('id')
           .eq('user_id', user.id)
@@ -107,7 +108,7 @@ const StudentAssignmentsPage = () => {
         setLoading(true);
         
         // Get courses/subjects the student is enrolled in
-        const { data: enrollments, error: enrollmentsError } = await supabase
+        const { data: enrollments, error: enrollmentsError } = await extendedSupabase
           .from('student_course_enrollments')
           .select('course_id')
           .eq('student_id', studentId)
@@ -124,7 +125,7 @@ const StudentAssignmentsPage = () => {
         const courseIds = enrollments.map(e => e.course_id);
         
         // Get subjects for these courses
-        const { data: subjects, error: subjectsError } = await supabase
+        const { data: subjects, error: subjectsError } = await extendedSupabase
           .from('subjects')
           .select('id')
           .in('course_id', courseIds);
@@ -140,7 +141,7 @@ const StudentAssignmentsPage = () => {
         const subjectIds = subjects.map(s => s.id);
         
         // Get assignments for these subjects
-        const { data: assignmentsData, error: assignmentsError } = await supabase
+        const { data: assignmentsData, error: assignmentsError } = await extendedSupabase
           .from('assignments')
           .select(`
             id,
@@ -174,7 +175,7 @@ const StudentAssignmentsPage = () => {
         // Get student's submissions for these assignments
         const assignmentIds = assignmentsData ? assignmentsData.map(a => a.id) : [];
         
-        const { data: submissions, error: submissionsError } = await supabase
+        const { data: submissions, error: submissionsError } = await extendedSupabase
           .from('assignment_submissions')
           .select('id, assignment_id, status, score, feedback, submitted_at, file_name')
           .eq('student_id', studentId)
@@ -220,6 +221,7 @@ const StudentAssignmentsPage = () => {
     
     try {
       setSubmitting(true);
+      setUploadProgress(0);
       
       // Create submission record
       const submission = {
@@ -236,17 +238,28 @@ const StudentAssignmentsPage = () => {
       if (submissionFile) {
         const fileExt = submissionFile.name.split('.').pop();
         fileName = submissionFile.name;
-        filePath = `submissions/${studentId}/${activeAssignment.id}/${Date.now()}.${fileExt}`;
+        filePath = `${studentId}/${activeAssignment.id}/${Date.now()}.${fileExt}`;
         
-        const { error: uploadError } = await supabase.storage
+        // Upload the file to the assignments bucket
+        const { data: uploadData, error: uploadError } = await extendedSupabase.storage
           .from('assignments')
-          .upload(filePath, submissionFile);
+          .upload(filePath, submissionFile, {
+            onUploadProgress: (progress) => {
+              const percent = (progress.loaded / progress.total) * 100;
+              setUploadProgress(percent);
+            }
+          });
           
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Error uploading file:", uploadError);
+          throw uploadError;
+        }
+        
+        filePath = uploadData?.path;
       }
       
       // Create submission record
-      const { error: submissionError } = await supabase
+      const { error: submissionError } = await extendedSupabase
         .from('assignment_submissions')
         .insert({
           ...submission,
@@ -262,7 +275,7 @@ const StudentAssignmentsPage = () => {
       });
       
       // Refresh assignments to show the new submission
-      const { data, error } = await supabase
+      const { data, error } = await extendedSupabase
         .from('assignment_submissions')
         .select('id, status, score, feedback, submitted_at, file_name')
         .eq('assignment_id', activeAssignment.id)
@@ -293,6 +306,7 @@ const StudentAssignmentsPage = () => {
       });
     } finally {
       setSubmitting(false);
+      setUploadProgress(0);
     }
   };
   
@@ -411,7 +425,7 @@ const StudentAssignmentsPage = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium">Your Submission</h4>
-                  <Badge variant={activeAssignment.submission.status === 'graded' ? 'default' : 'outline'}>
+                  <Badge variant={activeAssignment.submission.status === 'graded' ? 'default' : 'secondary'}>
                     {activeAssignment.submission.status === 'graded' ? 'Graded' : 'Submitted'}
                   </Badge>
                 </div>
@@ -472,6 +486,14 @@ const StudentAssignmentsPage = () => {
                     <p className="text-xs text-gray-500 mt-1">Selected: {submissionFile.name}</p>
                   )}
                 </div>
+                
+                {uploadProgress > 0 && uploadProgress < 100 && (
+                  <div className="mt-2">
+                    <h4 className="text-sm font-medium mb-1">Upload Progress</h4>
+                    <Progress value={uploadProgress} className="h-2" />
+                    <p className="text-xs text-gray-500 mt-1">{Math.round(uploadProgress)}% complete</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
