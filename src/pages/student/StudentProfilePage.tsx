@@ -30,7 +30,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, User, UserRound, School, Phone, Mail, Home, Users } from "lucide-react";
+import { Loader2, Save, User, UserRound, School, IdCard } from "lucide-react";
+import StudentIDCard from "@/components/student/StudentIDCard";
 
 // Define form schema for student profile
 const studentProfileSchema = z.object({
@@ -69,6 +70,7 @@ const StudentProfilePage = () => {
   const [profileData, setProfileData] = useState<StudentProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("personal");
 
   const form = useForm<StudentProfileFormValues>({
     resolver: zodResolver(studentProfileSchema),
@@ -113,6 +115,24 @@ const StudentProfilePage = () => {
         .single();
         
       if (error) throw error;
+      
+      // If no fees are set but student exists, set default fee for MCA students
+      if (data && (!data.total_fees_due || data.total_fees_due === 0)) {
+        // Check if student is in MCA program based on enrollment number
+        const isMCAStudent = data.enrollment_number?.startsWith('S') || false;
+        
+        if (isMCAStudent) {
+          const { error: updateError } = await supabase
+            .from('students')
+            .update({ total_fees_due: 45000 })
+            .eq('id', data.id);
+            
+          if (!updateError) {
+            data.total_fees_due = 45000;
+            data.fee_status = 'pending';
+          }
+        }
+      }
       
       setProfileData(data);
       
@@ -201,7 +221,7 @@ const StudentProfilePage = () => {
       </PageHeader>
 
       <div className="space-y-6">
-        <Tabs defaultValue="personal">
+        <Tabs defaultValue="personal" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full max-w-md mb-6">
             <TabsTrigger value="personal" className="flex-1">
               <UserRound className="w-4 h-4 mr-2" />
@@ -210,6 +230,10 @@ const StudentProfilePage = () => {
             <TabsTrigger value="academic" className="flex-1">
               <School className="w-4 h-4 mr-2" />
               Academic Info
+            </TabsTrigger>
+            <TabsTrigger value="id-card" className="flex-1">
+              <IdCard className="w-4 h-4 mr-2" />
+              ID Card
             </TabsTrigger>
           </TabsList>
           
@@ -417,7 +441,7 @@ const StudentProfilePage = () => {
                   
                   <div className="space-y-1">
                     <h4 className="text-sm font-medium text-gray-500">Fee Status</h4>
-                    <p className="text-base capitalize">{profileData?.fee_status || "Not available"}</p>
+                    <p className="text-base capitalize">{profileData?.fee_status || "pending"}</p>
                   </div>
                   
                   <div className="space-y-1">
@@ -425,7 +449,7 @@ const StudentProfilePage = () => {
                     <p className="text-base">
                       {profileData?.total_fees_due !== undefined
                         ? `₹${profileData.total_fees_due.toLocaleString()}`
-                        : "Not available"}
+                        : "₹45,000"} {/* Default for MCA */}
                     </p>
                   </div>
                   
@@ -434,19 +458,16 @@ const StudentProfilePage = () => {
                     <p className="text-base">
                       {profileData?.total_fees_paid !== undefined
                         ? `₹${profileData.total_fees_paid.toLocaleString()}`
-                        : "Not available"}
+                        : "₹0"}
                     </p>
                   </div>
                   
-                  {profileData?.total_fees_due !== undefined && 
-                   profileData?.total_fees_paid !== undefined && (
-                    <div className="space-y-1 md:col-span-2">
-                      <h4 className="text-sm font-medium text-gray-500">Remaining Balance</h4>
-                      <p className="text-base font-medium">
-                        ₹{(profileData.total_fees_due - profileData.total_fees_paid).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
+                  <div className="space-y-1 md:col-span-2">
+                    <h4 className="text-sm font-medium text-gray-500">Remaining Balance</h4>
+                    <p className="text-base font-medium">
+                      ₹{((profileData?.total_fees_due || 45000) - (profileData?.total_fees_paid || 0)).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
               <CardFooter className="bg-gray-50 border-t flex justify-end">
@@ -458,6 +479,14 @@ const StudentProfilePage = () => {
                   Make Fee Payment
                 </Button>
               </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="id-card">
+            <Card>
+              <CardContent className="pt-6">
+                <StudentIDCard studentData={profileData} />
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

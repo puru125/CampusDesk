@@ -69,6 +69,17 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
+// Default MCA fee structure for students with no applicable fees
+const DEFAULT_MCA_FEE: FeeStructure = {
+  id: "default-mca-fee",
+  fee_type: "MCA Program Fee",
+  amount: 45000,
+  academic_year: "2024-2025",
+  semester: 1,
+  course_id: null,
+  course_name: "Master of Computer Applications"
+};
+
 const MakePaymentPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -79,6 +90,7 @@ const MakePaymentPage = () => {
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [studentInfo, setStudentInfo] = useState<any>(null);
   
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -126,7 +138,7 @@ const MakePaymentPage = () => {
       // Get student ID and summary
       const { data: student, error: studentError } = await supabase
         .from('students')
-        .select('id, total_fees_due, total_fees_paid')
+        .select('id, total_fees_due, total_fees_paid, enrollment_number')
         .eq('user_id', user.id)
         .single();
         
@@ -134,10 +146,11 @@ const MakePaymentPage = () => {
       
       if (student) {
         setStudentId(student.id);
+        setStudentInfo(student);
         setPaymentSummary({
-          total_due: student.total_fees_due || 0,
+          total_due: student.total_fees_due || 45000, // Default to 45000 for MCA students
           total_paid: student.total_fees_paid || 0,
-          pending_amount: (student.total_fees_due || 0) - (student.total_fees_paid || 0)
+          pending_amount: (student.total_fees_due || 45000) - (student.total_fees_paid || 0)
         });
       }
     } catch (error) {
@@ -164,6 +177,8 @@ const MakePaymentPage = () => {
         
       if (enrollmentsError) throw enrollmentsError;
       
+      let fees = [];
+      
       if (enrollments && enrollments.length > 0) {
         // Get fee structures for student's enrolled courses
         const courseIds = enrollments.map(e => e.course_id);
@@ -171,7 +186,7 @@ const MakePaymentPage = () => {
         const semesters = [...new Set(enrollments.map(e => e.semester))];
         
         // Complex query to get all applicable fee structures
-        const { data: fees, error: feesError } = await supabase
+        const { data: feesData, error: feesError } = await supabase
           .from('fee_structures')
           .select(`
             id, 
@@ -183,13 +198,12 @@ const MakePaymentPage = () => {
             courses:course_id (name)
           `)
           .in('academic_year', academicYears)
-          // This line was fixed by removing is_active filter which doesn't exist
           .or(`course_id.in.(${courseIds.join(',')}),course_id.is.null`);
           
         if (feesError) throw feesError;
         
-        if (fees) {
-          const formattedFees = fees.map(fee => ({
+        if (feesData && feesData.length > 0) {
+          fees = feesData.map(fee => ({
             id: fee.id,
             fee_type: fee.fee_type,
             amount: fee.amount,
@@ -198,9 +212,39 @@ const MakePaymentPage = () => {
             course_id: fee.course_id,
             course_name: fee.courses?.name
           }));
-          
-          setFeeStructures(formattedFees);
         }
+      }
+      
+      // If no fee structures are found, add a default MCA fee structure
+      if (fees.length === 0) {
+        // Check if the student is in MCA program based on enrollment_number pattern
+        const isMCAStudent = studentInfo?.enrollment_number?.startsWith('S') || false;
+        
+        if (isMCAStudent) {
+          fees.push(DEFAULT_MCA_FEE);
+          
+          // Set default fee in the student record if not already set
+          if (!paymentSummary?.total_due || paymentSummary.total_due === 0) {
+            await supabase
+              .from('students')
+              .update({ total_fees_due: DEFAULT_MCA_FEE.amount })
+              .eq('id', studentId);
+              
+            setPaymentSummary({
+              total_due: DEFAULT_MCA_FEE.amount,
+              total_paid: paymentSummary?.total_paid || 0,
+              pending_amount: DEFAULT_MCA_FEE.amount - (paymentSummary?.total_paid || 0)
+            });
+          }
+        }
+      }
+      
+      setFeeStructures(fees);
+      
+      // Auto-select the first fee structure if it exists
+      if (fees.length > 0 && !watchedFeeStructureId) {
+        form.setValue("fee_structure_id", fees[0].id);
+        form.setValue("amount", fees[0].amount);
       }
     } catch (error) {
       console.error("Error fetching fee structures:", error);
@@ -217,6 +261,27 @@ const MakePaymentPage = () => {
     
     setLoading(true);
     try {
+      // For the default MCA fee which doesn't exist in the database
+      if (values.fee_structure_id === "default-mca-fee") {
+        // Create a new fee structure entry
+        const { data: newFeeStructure, error: feeStructureError } = await supabase
+          .from('fee_structures')
+          .insert({
+            fee_type: DEFAULT_MCA_FEE.fee_type,
+            amount: DEFAULT_MCA_FEE.amount,
+            academic_year: DEFAULT_MCA_FEE.academic_year,
+            semester: DEFAULT_MCA_FEE.semester,
+            is_active: true
+          })
+          .select()
+          .single();
+          
+        if (feeStructureError) throw feeStructureError;
+        
+        // Update the fee_structure_id to the newly created one
+        values.fee_structure_id = newFeeStructure.id;
+      }
+      
       const { data, error } = await supabase.rpc(
         'record_fee_payment', 
         {
@@ -256,7 +321,7 @@ const MakePaymentPage = () => {
     );
   }
   
-  // Show message if there are no fee structures available
+  // Show message if there are no fee structures available after trying to add default
   if (feeStructures.length === 0 && !initialLoading) {
     return (
       <>
