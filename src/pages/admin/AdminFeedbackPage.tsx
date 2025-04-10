@@ -27,21 +27,18 @@ const AdminFeedbackPage = () => {
   const { data: feedbacks, isLoading } = useQuery({
     queryKey: ["admin-feedbacks"],
     queryFn: async () => {
-      // Join with students_view to get student names
-      const { data, error } = await extendedSupabase
+      // Join with profiles to get student names
+      // First, get all feedback entries
+      const { data: feedbackData, error: feedbackError } = await extendedSupabase
         .from("student_feedback")
-        .select(`
-          *,
-          students_view!student_feedback_student_id_fkey(full_name)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (feedbackError) throw feedbackError;
       
-      // Format the response to match our Feedback interface
-      return (data || []).map(item => {
-        // Safely handle potentially null items
-        if (!item) {
+      // For each feedback entry, get the student name
+      const feedbackWithNames = await Promise.all((feedbackData || []).map(async (feedback) => {
+        if (!feedback) {
           return {
             id: '',
             created_at: '',
@@ -54,25 +51,26 @@ const AdminFeedbackPage = () => {
           } as Feedback;
         }
         
-        // Get student name safely
-        const studentViewData = item.students_view || {};
-        const studentName = typeof studentViewData === 'object' && 
-                           'full_name' in studentViewData && 
-                           studentViewData.full_name 
-                           ? String(studentViewData.full_name) 
-                           : "Unknown Student";
+        // Get student name from students table
+        const { data: studentData } = await extendedSupabase
+          .from("students_view")
+          .select("full_name")
+          .eq("id", feedback.student_id)
+          .single();
           
         return {
-          id: item.id ? String(item.id) : '',
-          created_at: item.created_at ? String(item.created_at) : '',
-          student_id: item.student_id ? String(item.student_id) : '',
-          title: item.title ? String(item.title) : '',
-          message: item.message ? String(item.message) : '',
-          rating: typeof item.rating === 'number' ? item.rating : 0,
-          is_read: item.is_read === true,
-          student_name: studentName
+          id: feedback.id ? String(feedback.id) : '',
+          created_at: feedback.created_at ? String(feedback.created_at) : '',
+          student_id: feedback.student_id ? String(feedback.student_id) : '',
+          title: feedback.title ? String(feedback.title) : '',
+          message: feedback.message ? String(feedback.message) : '',
+          rating: typeof feedback.rating === 'number' ? feedback.rating : 0,
+          is_read: feedback.is_read === true,
+          student_name: studentData?.full_name || "Unknown Student"
         } as Feedback;
-      });
+      }));
+      
+      return feedbackWithNames;
     },
   });
 
