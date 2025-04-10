@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -56,6 +57,7 @@ const Sidebar = () => {
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },
     { path: "/announcements", icon: Megaphone, label: "Announcements" },
+    { path: "/admin/feedback", icon: MessageSquare, label: "Feedback" },
     { path: "/settings/approvals", icon: CheckCircle, label: "Approvals" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
@@ -78,8 +80,9 @@ const Sidebar = () => {
     { path: "/student/assignments", icon: FileText, label: "Assignments" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/student/exams", icon: FileText, label: "Exams & Results" },
+    { path: "/student/doubts", icon: HelpCircle, label: "Ask Doubts" },
+    { path: "/student/feedback", icon: Star, label: "Feedback" },
     { path: "/student/notifications", icon: Bell, label: "Notifications" },
-    { path: "/student/feedback", icon: MessageSquare, label: "Feedback" },
     { path: "/profile", icon: UserCog, label: "My Profile" },
   ];
 

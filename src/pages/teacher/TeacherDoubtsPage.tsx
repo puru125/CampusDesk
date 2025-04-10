@@ -1,65 +1,85 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import PageHeader from "@/components/ui/page-header";
 import { StudentDoubtsCard, StudentDoubt } from "@/components/teacher/StudentDoubtsCard";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, ArrowLeft } from "lucide-react";
+import { HelpCircle, ArrowLeft, MessageSquare } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import DoubtDetailsModal from "@/components/teacher/DoubtDetailsModal";
 
 const TeacherDoubtsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedDoubt, setSelectedDoubt] = useState<StudentDoubt | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("pending");
+  const [refreshKey, setRefreshKey] = useState(0);
   
-  // Mock data for demonstration - replace with actual data fetch
-  const mockDoubts: StudentDoubt[] = [
-    {
-      id: "1",
-      title: "Question about React Hooks",
-      question: "I'm struggling to understand how useEffect dependencies work. Can you explain?",
-      status: "pending",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      student_id: "student1",
-      teacher_id: "teacher1",
-      subject_id: "subject1",
-      subjects: {
-        name: "React Programming",
-        code: "CSE101"
-      },
-      students: {
-        user_id: "user1",
-        users: {
-          full_name: "John Doe"
-        }
-      }
+  // Fetch teacher ID
+  const { data: teacherData } = useQuery({
+    queryKey: ["teacher-id", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await extendedSupabase
+        .from("teachers")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
-    {
-      id: "2",
-      title: "Trouble with Array Methods",
-      question: "Can you explain the difference between map, filter, and reduce?",
-      status: "answered",
-      created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      updated_at: new Date(Date.now() - 86400000).toISOString(),
-      student_id: "student2",
-      teacher_id: "teacher1",
-      subject_id: "subject2",
-      subjects: {
-        name: "JavaScript Fundamentals",
-        code: "CSE102"
-      },
-      students: {
-        user_id: "user2",
-        users: {
-          full_name: "Jane Smith"
-        }
-      }
-    }
-  ];
+    enabled: !!user,
+  });
+
+  // Fetch doubts assigned to this teacher
+  const { data: doubts, isLoading } = useQuery({
+    queryKey: ["teacher-doubts", teacherData?.id, refreshKey],
+    queryFn: async () => {
+      if (!teacherData?.id) return [];
+      
+      const { data, error } = await extendedSupabase
+        .from("student_doubts")
+        .select(`
+          *,
+          subjects (
+            name,
+            code
+          ),
+          students (
+            user_id,
+            users (
+              full_name
+            )
+          )
+        `)
+        .eq("teacher_id", teacherData.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as StudentDoubt[];
+    },
+    enabled: !!teacherData?.id,
+  });
+
+  const filteredDoubts = doubts?.filter(doubt => {
+    if (activeTab === "all") return true;
+    return doubt.status === activeTab;
+  });
   
   const handleViewDoubt = (doubt: StudentDoubt) => {
     setSelectedDoubt(doubt);
-    // Navigate to detail page or open modal
-    console.log("Viewing doubt:", doubt);
+    setIsModalOpen(true);
+  };
+
+  const handleStatusChange = () => {
+    // Trigger a refresh of the doubts data
+    setRefreshKey(prev => prev + 1);
   };
   
   return (
@@ -75,15 +95,44 @@ const TeacherDoubtsPage = () => {
         </Button>
       </PageHeader>
       
-      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {mockDoubts.map(doubt => (
-          <StudentDoubtsCard 
-            key={doubt.id} 
-            doubt={doubt} 
-            onViewClick={handleViewDoubt} 
-          />
-        ))}
+      <div className="mt-6">
+        <Tabs defaultValue="pending" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="answered">Answered</TabsTrigger>
+            <TabsTrigger value="closed">Closed</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={activeTab} className="mt-4">
+            {isLoading ? (
+              <div className="text-center py-8">Loading student doubts...</div>
+            ) : filteredDoubts?.length === 0 ? (
+              <div className="text-center py-8">
+                <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                <p className="text-gray-500">No student doubts found</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredDoubts?.map(doubt => (
+                  <StudentDoubtsCard 
+                    key={doubt.id} 
+                    doubt={doubt} 
+                    onViewClick={handleViewDoubt} 
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <DoubtDetailsModal
+        doubt={selectedDoubt}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onStatusChange={handleStatusChange}
+      />
     </div>
   );
 };

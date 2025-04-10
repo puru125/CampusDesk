@@ -56,6 +56,7 @@ import EnrollmentApprovalPage from "@/pages/settings/EnrollmentApprovalPage";
 // Admin
 import AdminProfilePage from "@/pages/admin/AdminProfilePage";
 import ValidationRulesPage from "@/pages/admin/ValidationRulesPage";
+import AdminFeedbackPage from "@/pages/admin/AdminFeedbackPage";
 
 // Announcements
 import AnnouncementsPage from "@/pages/announcements/AnnouncementsPage";
@@ -79,12 +80,14 @@ import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
 // Student Module
 import StudentCoursesPage from "@/pages/student/StudentCoursesPage";
 import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
-import StudentAssignmentsPage from "@/pages/student/StudentAssignmentsPage"; // New import
+import StudentAssignmentsPage from "@/pages/student/StudentAssignmentsPage";
 import StudentExamsPage from "@/pages/student/StudentExamsPage";
 import StudentFeedbackPage from "@/pages/student/StudentFeedbackPage";
 import StudentNotificationsPage from "@/pages/student/StudentNotificationsPage";
 import StudentProfilePage from "@/pages/student/StudentProfilePage";
 import FeedbackSuccessPage from "@/components/student/FeedbackSuccessPage";
+import StudentDoubtsPage from "@/pages/student/StudentDoubtsPage";
+import AskDoubtPage from "@/pages/student/AskDoubtPage";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +119,7 @@ function App() {
                     <Route path="fees/new" element={<AddFeeStructurePage />} />
                     <Route path="admin/profile" element={<AdminProfilePage />} />
                     <Route path="admin/validation-rules" element={<ValidationRulesPage />} />
+                    <Route path="admin/feedback" element={<AdminFeedbackPage />} />
                     <Route path="settings/approvals" element={<EnrollmentApprovalPage />} />
                     
                     {/* Shared Routes - accessible by both admin and teacher */}
@@ -157,6 +161,8 @@ function App() {
                     <Route path="student/feedback" element={<StudentFeedbackPage />} />
                     <Route path="student/feedback/success" element={<FeedbackSuccessPage />} />
                     <Route path="student/notifications" element={<StudentNotificationsPage />} />
+                    <Route path="student/doubts" element={<StudentDoubtsPage />} />
+                    <Route path="student/doubts/ask" element={<AskDoubtPage />} />
                     
                     {/* Aliases for easier navigation */}
                     <Route path="assignments/new" element={<CreateAssignmentPage />} />
@@ -166,6 +172,7 @@ function App() {
                     <Route path="my-courses" element={<StudentCoursesPage />} />
                     <Route path="profile" element={<StudentProfilePage />} />
                     <Route path="fees/payment/new" element={<MakePaymentPage />} />
+                    <Route path="doubts" element={<TeacherDoubtsPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>

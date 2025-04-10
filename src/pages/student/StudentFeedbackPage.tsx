@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,16 +44,15 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
-      // Create a new feedback entry
-      // IMPORTANT: Replace "student_feedback" with an existing table
-      // or set up a new method to handle feedback
+      // Create a new feedback entry in the student_feedback table
       const { error } = await extendedSupabase
-        .from('student_notifications') // Example: using student_notifications table
+        .from('student_feedback')
         .insert([
           { 
             student_id: studentData.id,
-            title: "New Feedback",
-            message: `Subject: ${subject}, Rating: ${rating}, Feedback: ${feedbackText}`,
+            title: subject,
+            message: feedbackText,
+            rating: rating,
             is_read: false,
           }
         ]);
