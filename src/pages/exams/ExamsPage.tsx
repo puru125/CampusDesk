@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -91,14 +90,11 @@ const ExamsPage = () => {
           query = query.eq("status", statusFilter);
         }
 
-        // Apply year filter if provided (assuming exam_date is in ISO format)
         if (yearSessionFilter.year) {
           query = query.ilike('exam_date', `${yearSessionFilter.year}%`);
         }
 
-        // For teachers, show only exams for subjects they teach
         if (user?.role === "teacher") {
-          // Get teacher_id
           const { data: teacherData } = await supabase
             .from('teachers')
             .select("id")
@@ -106,7 +102,6 @@ const ExamsPage = () => {
             .single();
           
           if (teacherData) {
-            // Get subject IDs taught by this teacher
             const { data: teacherSubjects } = await supabase
               .from('teacher_subjects')
               .select("subject_id")
@@ -117,11 +112,6 @@ const ExamsPage = () => {
               query = query.in("subject_id", subjectIds);
             }
           }
-        }
-        // For students, show exams for courses they're enrolled in
-        else if (user?.role === "student") {
-          // This would need custom logic based on your data model
-          // to fetch timetable entries for the student's classes
         }
 
         const { data, error } = await query.order("exam_date", { ascending: false });
@@ -159,7 +149,6 @@ const ExamsPage = () => {
   });
 
   const handleDeleteExam = async (examId: string) => {
-    // For now just show a toast. In a real application, we would delete the exam.
     toast({
       title: "Not implemented",
       description: "Exam deletion functionality is not implemented yet.",
@@ -208,7 +197,7 @@ const ExamsPage = () => {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all-statuses">All Statuses</SelectItem>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="ongoing">Ongoing</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
