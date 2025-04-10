@@ -68,7 +68,7 @@ const TeacherDashboard = () => {
         )].filter(Boolean);
         
         // Count students in teacher's courses
-        const { data: studentCount, error: studentError } = await supabase
+        const { data: studentCountData, error: studentError } = await supabase
           .from('student_course_enrollments')
           .select('count', { count: 'exact' })
           .in('course_id', courseIds)
@@ -96,9 +96,12 @@ const TeacherDashboard = () => {
         if (timetableError) throw timetableError;
         
         // Calculate stats
+        // Fix: Access student count properly, as it's returned as count property in the metadata, not in the data
+        const studentCount = studentCountData || 0;
+        
         setStats({
           classes: timetableEntries?.filter(te => te.day_of_week === currentDay).length || 0,
-          students: studentCount?.count || 0,
+          students: typeof studentCountData === 'number' ? studentCountData : 0,
           courses: courseIds.length,
           upcomingClasses: timetableEntries?.length || 0
         });
