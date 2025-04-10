@@ -1,188 +1,20 @@
 
-import {
-  LayoutDashboard,
-  Calendar,
-  Book,
-  Users,
-  Settings,
-  HelpCircle,
-  Home,
-  Bell,
-  MessageSquare,
-  BarChart,
-  ListChecks,
-  FileText,
-  CreditCard,
-  LogOut,
-  Megaphone,
-} from "lucide-react";
-import { NavLink } from "react-router-dom";
-
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { adminRoutes, teacherRoutes, studentRoutes } from "@/config/sidebarRoutes";
+import SidebarNav from "./SidebarNav";
+import UserProfile from "./UserProfile";
+import { Route } from "@/config/sidebarRoutes";
 
-interface Route {
-  title: string;
-  icon: any;
-  href: string;
-}
-
-const Sidebar = () => {
+const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
   };
-
-  const adminRoutes: Route[] = [
-    {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      href: "/",
-    },
-    {
-      title: "Students",
-      icon: Users,
-      href: "/students",
-    },
-    {
-      title: "Teachers",
-      icon: Users,
-      href: "/teachers",
-    },
-    {
-      title: "Courses",
-      icon: Book,
-      href: "/courses",
-    },
-    {
-      title: "Timetable",
-      icon: Calendar,
-      href: "/timetable",
-    },
-    {
-      title: "Fees",
-      icon: CreditCard,
-      href: "/fees",
-    },
-    {
-      title: "Announcements",
-      icon: Megaphone,
-      href: "/announcements",
-    },
-    {
-      title: "Student Feedback",
-      icon: MessageSquare,
-      href: "/admin/feedback",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      href: "/settings",
-    },
-  ];
-
-  const teacherRoutes: Route[] = [
-    {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      href: "/",
-    },
-    {
-      title: "My Classes",
-      icon: Book,
-      href: "/my-classes",
-    },
-    {
-      title: "Timetable",
-      icon: Calendar,
-      href: "/timetable",
-    },
-    {
-      title: "Attendance",
-      icon: ListChecks,
-      href: "/attendance",
-    },
-    {
-      title: "Doubts",
-      icon: HelpCircle,
-      href: "/teacher/doubts",
-    },
-    {
-      title: "Assignments",
-      icon: FileText,
-      href: "/assignments",
-    },
-    {
-      title: "Announcements",
-      icon: Megaphone,
-      href: "/announcements",
-    },
-    {
-      title: "Communication",
-      icon: Bell,
-      href: "/teacher/communication",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      href: "/settings",
-    },
-  ];
-
-  const studentRoutes = [
-    {
-      title: "Dashboard",
-      icon: Home, 
-      href: "/",
-    },
-    {
-      title: "My Courses",
-      icon: Book,
-      href: "/student/courses",
-    },
-    {
-      title: "Timetable",
-      icon: Calendar,
-      href: "/student/timetable",
-    },
-    {
-      title: "Attendance",
-      icon: ListChecks,
-      href: "/student/attendance",
-    },
-    {
-      title: "Submit Feedback",
-      icon: MessageSquare,
-      href: "/student/feedback",
-    },
-    {
-      title: "Doubts",
-      icon: HelpCircle, 
-      href: "/student/doubts",
-    },
-    {
-      title: "Fees",
-      icon: CreditCard,
-      href: "/fees",
-    },
-    {
-      title: "Announcements",
-      icon: Megaphone,
-      href: "/announcements",
-    },
-    {
-      title: "Notifications",
-      icon: Bell,
-      href: "/student/notifications",
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      href: "/settings",
-    },
-  ];
 
   let routes: Route[] = [];
   if (user?.role === "admin") {
@@ -200,46 +32,10 @@ const Sidebar = () => {
       </div>
 
       <ScrollArea className="flex-1 space-y-4 p-4">
-        <div className="px-3 py-2">
-          <div className="space-y-1">
-            {routes.map((route) => (
-              <NavLink
-                key={route.title}
-                to={route.href}
-                className={({ isActive }) =>
-                  `flex items-center p-2 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors ${
-                    isActive
-                      ? "bg-gray-200 text-gray-900"
-                      : "text-gray-700"
-                  }`
-                }
-              >
-                <route.icon className="mr-2 h-4 w-4" />
-                {route.title}
-              </NavLink>
-            ))}
-          </div>
-        </div>
+        <SidebarNav routes={routes} />
       </ScrollArea>
 
-      <div className="p-4 space-y-4 border-t">
-        <div className="flex items-center space-x-2">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>{user?.full_name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">{user?.full_name}</p>
-            <p className="text-xs text-gray-500">{user?.email}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full p-2 text-sm font-medium rounded-md hover:bg-gray-200 text-gray-700 transition-colors"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </button>
-      </div>
+      <UserProfile onLogout={handleLogout} />
     </div>
   );
 };
