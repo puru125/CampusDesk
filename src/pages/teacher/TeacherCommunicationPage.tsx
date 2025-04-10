@@ -1,382 +1,417 @@
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Bell, Send, Search, Users, MessageSquare, ChevronDown, MenuSquare, 
-  Edit, Trash2, Loader2, Calendar
-} from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Bell, MessageCircle, Send, Users, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+  type: string;
+}
+
+interface Message {
+  id: string;
+  sender: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  content: string;
+  timestamp: string;
+  isRead: boolean;
+}
 
 const TeacherCommunicationPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("notifications");
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [announcementTitle, setAnnouncementTitle] = useState("");
-  const [announcementContent, setAnnouncementContent] = useState("");
-  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  
+
   useEffect(() => {
-    fetchTeacherData();
-    fetchAnnouncements();
+    if (user) {
+      fetchTeacherId();
+    }
   }, [user]);
-  
-  const fetchTeacherData = async () => {
+
+  useEffect(() => {
+    if (teacherId) {
+      fetchNotifications();
+      fetchMessages();
+    }
+  }, [teacherId]);
+
+  const fetchTeacherId = async () => {
     try {
-      if (!user) return;
-      
-      // Get teacher profile
-      const { data: teacherProfile, error: teacherError } = await extendedSupabase
+      const { data, error } = await extendedSupabase
         .from('teachers')
-        .select('*')
-        .eq('user_id', user.id)
+        .select('id')
+        .eq('user_id', user?.id)
         .single();
-          
-      if (teacherError) throw teacherError;
-      
-      setTeacherId(teacherProfile.id);
-      
-      // Get teacher's classes from timetable
-      const { data: timetableEntries, error: timetableError } = await extendedSupabase
-        .from('timetable_entries')
-        .select(`
-          subjects(id, name, code),
-          classes(id, name, room, capacity)
-        `)
-        .eq('teacher_id', teacherProfile.id);
-          
-      if (timetableError) throw timetableError;
-      
-      // Format classes data - filter out duplicates based on class ID
-      const formattedClasses = timetableEntries?.filter(te => te.classes).map(te => ({
-        id: te.classes?.id || 'unknown',
-        name: te.classes?.name || 'Unknown Class',
-        room: te.classes?.room || '',
-        subject: te.subjects?.name || 'Unknown Subject',
-        code: te.subjects?.code || ''
-      })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
-      
-      setClasses(formattedClasses);
-      setLoading(false);
-      
-    } catch (error) {
-      console.error("Error fetching teacher data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch class data",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
-  
-  const fetchAnnouncements = async () => {
-    try {
-      if (!user) return;
-      
-      // Get teacher profile if not already set
-      if (!teacherId) {
-        const { data: teacherProfile, error: teacherError } = await extendedSupabase
-          .from('teachers')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-            
-        if (teacherError) throw teacherError;
-        
-        setTeacherId(teacherProfile.id);
-      }
-      
-      // Fetch announcements created by this teacher
-      const { data: announcementsData, error: announcementsError } = await extendedSupabase
-        .from('announcements')
-        .select('*')
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false });
-            
-      if (announcementsError) throw announcementsError;
-      
-      setAnnouncements(announcementsData || []);
-      
-    } catch (error) {
-      console.error("Error fetching announcements:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch announcements",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  const handleSubmitAnnouncement = async () => {
-    try {
-      setSendingAnnouncement(true);
-      
-      if (!announcementTitle.trim() || !announcementContent.trim()) {
-        toast({
-          title: "Missing Information",
-          description: "Please provide both title and content for the announcement",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Determine target audience
-      let targetRole = "student"; // Default to students
-      
-      // Insert announcement into database
-      const { data: newAnnouncement, error: announcementError } = await extendedSupabase
-        .from('announcements')
-        .insert({
-          title: announcementTitle,
-          content: announcementContent,
-          target_role: targetRole,
-          created_by: user?.id
-        })
-        .select()
-        .single();
-      
-      if (announcementError) throw announcementError;
-      
-      // Add to local state
-      setAnnouncements([newAnnouncement, ...announcements]);
-      
-      // Clear form
-      setAnnouncementTitle("");
-      setAnnouncementContent("");
-      setSelectedClass("");
-      
-      toast({
-        title: "Announcement Sent",
-        description: "Your announcement has been sent successfully",
-      });
-    } catch (error) {
-      console.error("Error sending announcement:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send announcement",
-        variant: "destructive",
-      });
-    } finally {
-      setSendingAnnouncement(false);
-    }
-  };
-  
-  const handleDeleteAnnouncement = async (id: string) => {
-    try {
-      // Delete from database
-      const { error } = await extendedSupabase
-        .from('announcements')
-        .delete()
-        .eq('id', id);
-        
+
       if (error) throw error;
       
-      // Remove from local state
-      setAnnouncements(announcements.filter(a => a.id !== id));
-      
-      toast({
-        title: "Announcement Deleted",
-        description: "Announcement has been deleted successfully",
-      });
+      if (data) {
+        setTeacherId(data.id);
+      }
     } catch (error) {
-      console.error("Error deleting announcement:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete announcement",
-        variant: "destructive",
-      });
+      console.error("Error fetching teacher ID:", error);
     }
   };
-  
-  // Filter announcements by search term
-  const filteredAnnouncements = announcements.filter(announcement => 
-    announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    announcement.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      
+      // Using mock data for now, but in a real app, you would fetch from the database
+      const mockNotifications: Notification[] = [
+        {
+          id: "1",
+          title: "New Semester Schedule",
+          message: "The new semester schedule has been published. Please review your assigned classes.",
+          created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+          is_read: false,
+          type: "announcement"
+        },
+        {
+          id: "2",
+          title: "Faculty Meeting",
+          message: "There will be a faculty meeting on Friday at 3:00 PM in Room 201.",
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          is_read: true,
+          type: "event"
+        },
+        {
+          id: "3",
+          title: "Grade Submission Reminder",
+          message: "Please submit all pending grades by the end of this week.",
+          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          is_read: false,
+          type: "reminder"
+        }
+      ];
+      
+      setNotifications(mockNotifications);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      toast({
+        title: "Error",
+        description: "Could not fetch notifications",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      // Mock data for messages
+      const mockMessages: Message[] = [
+        {
+          id: "1",
+          sender: {
+            id: "s1",
+            name: "John Doe",
+            role: "student"
+          },
+          content: "Hello Professor, I have a question about the assignment due next week.",
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          isRead: false
+        },
+        {
+          id: "2",
+          sender: {
+            id: "a1",
+            name: "Dr. Sarah Wilson",
+            role: "admin"
+          },
+          content: "Please remember to submit your course materials for the upcoming semester.",
+          timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          isRead: true
+        }
+      ];
+      
+      setMessages(mockMessages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, is_read: true } 
+          : notification
+      )
+    );
+    
+    // In a real app, you would also update the database
+  };
+
+  const markMessageAsRead = (messageId: string) => {
+    setMessages(prevMessages => 
+      prevMessages.map(message => 
+        message.id === messageId 
+          ? { ...message, isRead: true } 
+          : message
+      )
+    );
+    
+    // In a real app, you would also update the database
+  };
+
+  const dismissNotification = (notificationId: string) => {
+    setNotifications(prevNotifications => 
+      prevNotifications.filter(notification => notification.id !== notificationId)
+    );
+    
+    // In a real app, you would also update the database
+  };
+
+  const getNotificationTypeColor = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "announcement":
+        return "bg-blue-100 text-blue-800";
+      case "event":
+        return "bg-green-100 text-green-800";
+      case "reminder":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getSenderInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  const getSenderColor = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-purple-100 text-purple-800";
+      case "student":
+        return "bg-blue-100 text-blue-800";
+      case "teacher":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <div>
       <PageHeader
-        title="Communication"
-        description="Send announcements and messages to students"
+        title="Communication Center"
+        description="View notifications and messages"
         icon={Bell}
       />
       
-      <Tabs defaultValue="announcements" className="mt-6">
-        <TabsList>
-          <TabsTrigger value="announcements" className="flex items-center">
-            <MenuSquare className="mr-2 h-4 w-4" />
-            Announcements
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="announcements" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Create Announcement</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  placeholder="Announcement Title"
-                  value={announcementTitle}
-                  onChange={(e) => setAnnouncementTitle(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="Announcement Content"
-                  className="min-h-[100px]"
-                  value={announcementContent}
-                  onChange={(e) => setAnnouncementContent(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Target Audience (Optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Students</SelectItem>
-                    {classes.map(cls => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name} - {cls.subject} ({cls.room})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={handleSubmitAnnouncement} 
-                disabled={sendingAnnouncement}
-                className="w-full"
-              >
-                {sendingAnnouncement ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Send Announcement
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
+      <div className="mt-6">
+        <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="notifications" className="flex items-center">
+              <Bell className="mr-2 h-4 w-4" />
+              Notifications
+              {notifications.filter(n => !n.is_read).length > 0 && (
+                <Badge className="ml-2 bg-red-500">{notifications.filter(n => !n.is_read).length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="flex items-center">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Messages
+              {messages.filter(m => !m.isRead).length > 0 && (
+                <Badge className="ml-2 bg-red-500">{messages.filter(m => !m.isRead).length}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Announcements</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Search announcements..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
+          <div className="mt-6">
+            <TabsContent value="notifications">
               {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
+                <div className="flex justify-center p-8">
+                  <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
-              ) : filteredAnnouncements.length > 0 ? (
+              ) : notifications.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <Bell className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium">No Notifications</h3>
+                    <p className="text-sm text-gray-500 mt-2">
+                      You don't have any notifications right now.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
                 <div className="space-y-4">
-                  {filteredAnnouncements.map((announcement) => (
-                    <Card key={announcement.id} className="border-l-4 border-l-institute-500">
-                      <CardHeader className="pb-2">
+                  {notifications.map((notification) => (
+                    <Card 
+                      key={notification.id} 
+                      className={`border-l-4 transition-all ${notification.is_read ? 'border-l-gray-300' : 'border-l-primary'}`}
+                    >
+                      <CardContent className="p-4">
                         <div className="flex justify-between items-start">
-                          <CardTitle className="text-base">{announcement.title}</CardTitle>
-                          <div className="flex space-x-2">
+                          <div>
+                            <div className="flex items-center mb-1">
+                              <h3 className={`text-base ${notification.is_read ? 'font-normal' : 'font-semibold'}`}>
+                                {notification.title}
+                              </h3>
+                              {!notification.is_read && (
+                                <Badge className="ml-2 bg-blue-500">New</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">{notification.message}</p>
+                            <div className="flex items-center mt-2">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${getNotificationTypeColor(notification.type)}`}>
+                                {notification.type.charAt(0).toUpperCase() + notification.type.slice(1)}
+                              </span>
+                              <span className="text-xs text-gray-500 ml-2">
+                                {format(new Date(notification.created_at), "MMM d, h:mm a")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex">
+                            {!notification.is_read && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="mr-2"
+                                onClick={() => markNotificationAsRead(notification.id)}
+                              >
+                                Mark as Read
+                              </Button>
+                            )}
                             <Button 
+                              size="sm" 
                               variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-red-500"
-                              onClick={() => handleDeleteAnnouncement(announcement.id)}
+                              onClick={() => dismissNotification(notification.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <X className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="py-2">
-                        <p className="text-sm">{announcement.content}</p>
                       </CardContent>
-                      <CardFooter className="pt-0 pb-2 flex justify-between items-center">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span>{format(new Date(announcement.created_at), "PPP 'at' h:mm a")}</span>
-                        </div>
-                        <div className="flex items-center text-xs">
-                          <Users className="h-3 w-3 mr-1" />
-                          <span>Target: {announcement.target_role === 'student' ? 'Students' : 'All'}</span>
-                        </div>
-                      </CardFooter>
                     </Card>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Bell className="h-12 w-12 mx-auto text-gray-400" />
-                  <h3 className="mt-2 text-lg font-medium">No Announcements</h3>
-                  <p className="mt-1 text-gray-500">
-                    You haven't created any announcements yet.
-                  </p>
-                </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="messages" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Direct Messages</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 mx-auto text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium">Messaging Coming Soon</h3>
-                <p className="mt-1 text-gray-500">
-                  Direct messaging functionality will be available in the next update.
-                </p>
+            </TabsContent>
+            
+            <TabsContent value="messages">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-1">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Contacts</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <Avatar>
+                          <AvatarFallback className="bg-blue-100 text-blue-800">
+                            JD
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="ml-3">
+                          <h4 className="font-medium">John Doe</h4>
+                          <p className="text-xs text-gray-500">Student</p>
+                        </div>
+                        <Badge className="ml-auto bg-blue-500">1</Badge>
+                      </div>
+                      
+                      <div className="flex items-center p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
+                        <Avatar>
+                          <AvatarFallback className="bg-purple-100 text-purple-800">
+                            SW
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="ml-3">
+                          <h4 className="font-medium">Dr. Sarah Wilson</h4>
+                          <p className="text-xs text-gray-500">Admin</p>
+                        </div>
+                      </div>
+                      
+                      <Button className="w-full" variant="outline">
+                        <Users className="mr-2 h-4 w-4" />
+                        View All Contacts
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Messages</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {messages.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium">No Messages</h3>
+                        <p className="text-sm text-gray-500 mt-2">
+                          You don't have any messages right now.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {messages.map((message) => (
+                          <div 
+                            key={message.id} 
+                            className={`p-4 rounded-lg border ${message.isRead ? 'bg-white' : 'bg-blue-50'}`}
+                            onClick={() => markMessageAsRead(message.id)}
+                          >
+                            <div className="flex items-start">
+                              <Avatar>
+                                <AvatarFallback className={getSenderColor(message.sender.role)}>
+                                  {getSenderInitials(message.sender.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="ml-3 flex-1">
+                                <div className="flex justify-between items-center mb-1">
+                                  <h4 className="font-medium">{message.sender.name}</h4>
+                                  <span className="text-xs text-gray-500">
+                                    {format(new Date(message.timestamp), "MMM d, h:mm a")}
+                                  </span>
+                                </div>
+                                <p className="text-sm">{message.content}</p>
+                                <div className="flex justify-end mt-2">
+                                  <Button size="sm">
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Reply
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
     </div>
   );
 };

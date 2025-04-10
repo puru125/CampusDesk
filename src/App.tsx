@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -5,11 +6,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Shell from "@/components/layout/Shell";
+import LandingPage from "@/pages/LandingPage";
 
 // Pages
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
-import Index from "@/pages/Index";
 
 // Dashboard
 import Dashboard from "@/pages/dashboard/Dashboard";
@@ -100,10 +101,14 @@ function App() {
         <Toaster />
         <Router>
           <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/login-success/student" element={<StudentLoginSuccessPage />} />
             <Route path="/login-success/teacher" element={<TeacherLoginSuccessPage />} />
-            <Route path="/*" element={
+            
+            {/* Protected routes */}
+            <Route path="/dashboard/*" element={
               <ProtectedRoute>
                 <Shell>
                   <Routes>
@@ -167,20 +172,13 @@ function App() {
                     <Route path="student/doubts" element={<StudentDoubtsPage />} />
                     <Route path="student/doubts/ask" element={<AskDoubtPage />} />
                     <Route path="student/timetable" element={<StudentTimetablePage />} />
-                    
-                    {/* Aliases for easier navigation */}
-                    <Route path="assignments/new" element={<CreateAssignmentPage />} />
-                    <Route path="my-classes" element={<TeacherClassesPage />} />
-                    <Route path="attendance" element={<AttendancePage />} />
-                    <Route path="assignments" element={<TeacherAssignmentsPage />} />
-                    <Route path="my-courses" element={<StudentCoursesPage />} />
-                    <Route path="profile" element={<StudentProfilePage />} />
-                    <Route path="fees/payment/new" element={<MakePaymentPage />} />
-                    <Route path="doubts" element={<TeacherDoubtsPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>
             } />
+            
+            {/* Redirect from old paths to new dashboard paths */}
+            <Route path="/*" element={<ProtectedRoute><Shell><Dashboard /></Shell></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>
