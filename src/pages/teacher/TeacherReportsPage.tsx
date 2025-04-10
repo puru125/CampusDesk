@@ -85,7 +85,7 @@ const TeacherReportsPage = () => {
         description="Track student performance and generate reports"
         icon={BarChartIcon}
       >
-        <Button onClick={() => {}}>
+        <Button variant="institute">
           <Download className="mr-2 h-4 w-4" />
           Export Reports
         </Button>

@@ -17,6 +17,7 @@ import {
   UserCircle,
   IdCard,
   CheckCircle,
+  ChartBar,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -104,6 +105,11 @@ export const teacherRoutes: Route[] = [
     title: "Assignments",
     icon: FileText,
     href: "/assignments",
+  },
+  {
+    title: "Reports & Analytics",
+    icon: ChartBar,
+    href: "/teacher/reports",
   },
   {
     title: "Announcements",

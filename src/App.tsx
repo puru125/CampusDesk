@@ -1,192 +1,435 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
+import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import { supabase } from "./integrations/supabase/client";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
+import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import TeacherDashboard from "./pages/dashboard/TeacherDashboard";
+import StudentDashboard from "./pages/dashboard/StudentDashboard";
+import StudentsPage from "./pages/admin/StudentsPage";
+import TeachersPage from "./pages/admin/TeachersPage";
+import CoursesPage from "./pages/admin/CoursesPage";
+import TimetablePage from "./pages/admin/TimetablePage";
+import FeesPage from "./pages/admin/FeesPage";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
+import StudentFeedbackPage from "./pages/admin/StudentFeedbackPage";
+import ApprovalsPage from "./pages/admin/ApprovalsPage";
+import MyClassesPage from "./pages/teacher/MyClassesPage";
+import AttendancePage from "./pages/teacher/AttendancePage";
+import TeacherDoubtsPage from "./pages/teacher/TeacherDoubtsPage";
+import AssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
+import TeacherCommunicationPage from "./pages/teacher/TeacherCommunicationPage";
+import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
+import TeacherIDCardPage from "./pages/teacher/TeacherIDCardPage";
+import StudentCoursesPage from "./pages/student/StudentCoursesPage";
+import StudentTimetablePage from "./pages/student/StudentTimetablePage";
+import StudentAttendancePage from "./pages/student/StudentAttendancePage";
+import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
+import StudentFeedbackFormPage from "./pages/student/StudentFeedbackFormPage";
+import StudentDoubtsPage from "./pages/student/StudentDoubtsPage";
+import StudentNotificationsPage from "./pages/student/StudentNotificationsPage";
+import Shell from "./components/Shell";
+import { Roles } from "./types";
+import TeacherReportsPage from "./pages/teacher/TeacherReportsPage";
 
-import { AuthProvider } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Shell from "@/components/layout/Shell";
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles: Roles[];
+}
 
-// Pages
-import Login from "@/pages/Login";
-import NotFound from "@/pages/NotFound";
-import Index from "@/pages/Index";
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  allowedRoles,
+}) => {
+  const { user, loading } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
 
-// Dashboard
-import Dashboard from "@/pages/dashboard/Dashboard";
-import StudentLoginSuccessPage from "@/pages/dashboard/StudentLoginSuccessPage";
-import TeacherLoginSuccessPage from "@/pages/dashboard/TeacherLoginSuccessPage";
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
 
-// Students
-import StudentsPage from "@/pages/students/StudentsPage";
-import AddStudentPage from "@/pages/students/AddStudentPage";
+      try {
+        let tableName = "";
+        if (allowedRoles.includes("admin")) tableName = "admins";
+        else if (allowedRoles.includes("teacher")) tableName = "teachers";
+        else if (allowedRoles.includes("student")) tableName = "students";
 
-// Teachers
-import TeachersPage from "@/pages/teachers/TeachersPage";
-import AddTeacherPage from "@/pages/teachers/AddTeacherPage";
+        if (tableName) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
 
-// Courses
-import CoursesPage from "@/pages/courses/CoursesPage";
-import AddCoursePage from "@/pages/courses/AddCoursePage";
-import CourseDetailsPage from "@/pages/courses/CourseDetailsPage";
-import CourseEditPage from "@/pages/courses/CourseEditPage";
+          if (error) {
+            console.error("Error fetching profile:", error);
+          } else {
+            setProfile(data);
+          }
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching profile:", error);
+      }
+    };
 
-// Classrooms
-import ClassroomsPage from "@/pages/classrooms/ClassroomsPage";
-import AddClassroomPage from "@/pages/classrooms/AddClassroomPage";
-import EditClassroomPage from "@/pages/classrooms/EditClassroomPage";
+    fetchProfile();
+  }, [user, allowedRoles]);
 
-// Timetable
-import TimetablePage from "@/pages/timetable/TimetablePage";
-import AddTimetableEntryPage from "@/pages/timetable/AddTimetableEntryPage";
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-// Exams
-import ExamsPage from "@/pages/exams/ExamsPage";
-import AddExamPage from "@/pages/exams/AddExamPage";
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
 
-// Fees
-import FeesPage from "@/pages/fees/FeesPage";
-import AddFeeStructurePage from "@/pages/fees/AddFeeStructurePage";
-import MakePaymentPage from "@/pages/fees/MakePaymentPage";
+  if (profile === null) {
+    return <div>Loading profile...</div>;
+  }
 
-// Settings/Approvals
-import SettingsPage from "@/pages/settings/SettingsPage";
-import EnrollmentApprovalPage from "@/pages/settings/EnrollmentApprovalPage";
+  if (
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(profile?.role as Roles)
+  ) {
+    return <div>Unauthorized</div>;
+  }
 
-// Admin
-import AdminProfilePage from "@/pages/admin/AdminProfilePage";
-import ValidationRulesPage from "@/pages/admin/ValidationRulesPage";
-import AdminFeedbackPage from "@/pages/admin/AdminFeedbackPage";
+  return <>{children}</>;
+};
 
-// Announcements
-import AnnouncementsPage from "@/pages/announcements/AnnouncementsPage";
-
-// Teacher Module
-import TeacherProfilePage from "@/pages/teacher/TeacherProfilePage";
-import TeacherClassesPage from "@/pages/teacher/TeacherClassesPage";
-import TeacherStudentsPage from "@/pages/teacher/TeacherStudentsPage";
-import TeacherAddStudentPage from "@/pages/teacher/AddStudentPage";
-import TeacherAssignmentsPage from "@/pages/teacher/TeacherAssignmentsPage";
-import CreateAssignmentPage from "@/pages/teacher/CreateAssignmentPage";
-import AssignmentDetailsPage from "@/pages/teacher/AssignmentDetailsPage";
-import TeacherCommunicationPage from "@/pages/teacher/TeacherCommunicationPage";
-import TeacherReportsPage from "@/pages/teacher/TeacherReportsPage";
-import AttendancePage from "@/pages/teacher/AttendancePage";
-import TeacherDoubtsPage from "@/pages/teacher/TeacherDoubtsPage";
-import AttendanceRecordPage from "@/pages/teacher/AttendanceRecordPage";
-import ExamReportsPage from "@/pages/teacher/ExamReportsPage";
-import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
-import TeacherIDCardPage from "@/pages/teacher/TeacherIDCardPage";
-
-// Student Module
-import StudentCoursesPage from "@/pages/student/StudentCoursesPage";
-import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
-import StudentAssignmentsPage from "@/pages/student/StudentAssignmentsPage";
-import StudentExamsPage from "@/pages/student/StudentExamsPage";
-import StudentFeedbackPage from "@/pages/student/StudentFeedbackPage";
-import StudentNotificationsPage from "@/pages/student/StudentNotificationsPage";
-import StudentProfilePage from "@/pages/student/StudentProfilePage";
-import FeedbackSuccessPage from "@/components/student/FeedbackSuccessPage";
-import StudentDoubtsPage from "@/pages/student/StudentDoubtsPage";
-import AskDoubtPage from "@/pages/student/AskDoubtPage";
-
-import StudentTimetablePage from "@/pages/student/StudentTimetablePage";
-
-const queryClient = new QueryClient();
-
-function App() {
+const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Toaster />
-        <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/login-success/student" element={<StudentLoginSuccessPage />} />
-            <Route path="/login-success/teacher" element={<TeacherLoginSuccessPage />} />
-            <Route path="/*" element={
-              <ProtectedRoute>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/update-password"
+            element={<UpdatePasswordPage />}
+          />
+
+          {/* Admin Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <Routes>
-                    <Route index element={<Dashboard />} />
-                    
-                    {/* Admin Routes - not accessible by teachers */}
-                    <Route path="students/new" element={<AddStudentPage />} />
-                    <Route path="teachers/new" element={<AddTeacherPage />} />
-                    <Route path="courses/new" element={<AddCoursePage />} />
-                    <Route path="courses/:courseId/edit" element={<CourseEditPage />} />
-                    <Route path="classrooms/new" element={<AddClassroomPage />} />
-                    <Route path="classrooms/:classroomId/edit" element={<EditClassroomPage />} />
-                    <Route path="timetable/new" element={<AddTimetableEntryPage />} />
-                    <Route path="exams/new" element={<AddExamPage />} />
-                    <Route path="fees/new" element={<AddFeeStructurePage />} />
-                    <Route path="admin/profile" element={<AdminProfilePage />} />
-                    <Route path="admin/validation-rules" element={<ValidationRulesPage />} />
-                    <Route path="admin/feedback" element={<AdminFeedbackPage />} />
-                    
-                    {/* Shared Routes - accessible by both admin and teacher */}
-                    <Route path="students" element={<StudentsPage />} />
-                    <Route path="teachers" element={<TeachersPage />} />
-                    <Route path="courses" element={<CoursesPage />} />
-                    <Route path="courses/:courseId" element={<CourseDetailsPage />} />
-                    <Route path="classrooms" element={<ClassroomsPage />} />
-                    <Route path="timetable" element={<TimetablePage />} />
-                    <Route path="exams" element={<ExamsPage />} />
-                    <Route path="fees" element={<FeesPage />} />
-                    <Route path="fees/make-payment" element={<MakePaymentPage />} />
-                    <Route path="announcements" element={<AnnouncementsPage />} />
-                    
-                    {/* Admin/Teacher settings */}
-                    <Route path="approvals" element={<EnrollmentApprovalPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    
-                    {/* Teacher Module Routes */}
-                    <Route path="teacher/profile" element={<TeacherProfilePage />} />
-                    <Route path="teacher/id-card" element={<TeacherIDCardPage />} />
-                    <Route path="teacher/classes" element={<TeacherClassesPage />} />
-                    <Route path="teacher/students" element={<TeacherStudentsPage />} />
-                    <Route path="teacher/students/add" element={<TeacherAddStudentPage />} />
-                    <Route path="teacher/students/:studentId/id-card" element={<StudentIDCardPage />} />
-                    <Route path="teacher/assignments" element={<TeacherAssignmentsPage />} />
-                    <Route path="teacher/assignments/new" element={<CreateAssignmentPage />} />
-                    <Route path="teacher/assignments/:assignmentId" element={<AssignmentDetailsPage />} />
-                    <Route path="teacher/communication" element={<TeacherCommunicationPage />} />
-                    <Route path="teacher/reports" element={<TeacherReportsPage />} />
-                    <Route path="teacher/doubts" element={<TeacherDoubtsPage />} />
-                    <Route path="teacher/attendance-records" element={<AttendanceRecordPage />} />
-                    <Route path="teacher/exam-reports" element={<ExamReportsPage />} />
-                    
-                    {/* Student Module Routes */}
-                    <Route path="student/profile" element={<StudentProfilePage />} />
-                    <Route path="student/courses" element={<StudentCoursesPage />} />
-                    <Route path="student/attendance" element={<StudentAttendancePage />} />
-                    <Route path="student/assignments" element={<StudentAssignmentsPage />} />
-                    <Route path="student/exams" element={<StudentExamsPage />} />
-                    <Route path="student/feedback" element={<StudentFeedbackPage />} />
-                    <Route path="student/feedback/success" element={<FeedbackSuccessPage />} />
-                    <Route path="student/notifications" element={<StudentNotificationsPage />} />
-                    <Route path="student/doubts" element={<StudentDoubtsPage />} />
-                    <Route path="student/doubts/ask" element={<AskDoubtPage />} />
-                    <Route path="student/timetable" element={<StudentTimetablePage />} />
-                    
-                    {/* Aliases for easier navigation */}
-                    <Route path="assignments/new" element={<CreateAssignmentPage />} />
-                    <Route path="my-classes" element={<TeacherClassesPage />} />
-                    <Route path="attendance" element={<AttendancePage />} />
-                    <Route path="assignments" element={<TeacherAssignmentsPage />} />
-                    <Route path="my-courses" element={<StudentCoursesPage />} />
-                    <Route path="profile" element={<StudentProfilePage />} />
-                    <Route path="fees/payment/new" element={<MakePaymentPage />} />
-                    <Route path="doubts" element={<TeacherDoubtsPage />} />
-                  </Routes>
+                  <AdminDashboard />
                 </Shell>
               </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+            }
+          />
+          <Route
+            path="/students"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <StudentsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teachers"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <TeachersPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <CoursesPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetable"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <TimetablePage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fees"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <FeesPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <AnnouncementsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/feedback"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <StudentFeedbackPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/approvals"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Shell>
+                  <ApprovalsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Teacher Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TeacherDashboard />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-classes"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <MyClassesPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/timetable"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TimetablePage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/attendance"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <AttendancePage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/doubts"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TeacherDoubtsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assignments"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <AssignmentsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/reports",
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TeacherReportsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <AnnouncementsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/communication"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TeacherCommunicationPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/profile"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TeacherProfilePage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/id-card"
+            element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <Shell>
+                  <TeacherIDCardPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Student Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentDashboard />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/courses"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentCoursesPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/timetable"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentTimetablePage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/attendance"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentAttendancePage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/assignments"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentAssignmentsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/feedback"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentFeedbackFormPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/doubts"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentDoubtsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fees"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <FeesPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/announcements"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <AnnouncementsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/notifications"
+            element={
+              <ProtectedRoute allowedRoles={["student"]}>
+                <Shell>
+                  <StudentNotificationsPage />
+                </Shell>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+      <ToastContainer position="bottom-right" autoClose={3000} />
+    </>
   );
-}
+};
 
 export default App;
