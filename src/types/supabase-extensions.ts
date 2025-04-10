@@ -362,14 +362,10 @@ export type ExamReportsTable = {
   ];
 };
 
-// Define the extended database schema
+// Define the extended database schema using proper intersection types
 export interface ExtendedDatabase extends Database {
   public: {
-    Tables: {
-      // Include all existing tables from Database.public.Tables
-      ...Database["public"]["Tables"];
-      
-      // Add our new tables
+    Tables: Database["public"]["Tables"] & {
       student_doubts: StudentDoubtsTable;
       doubt_answers: DoubtAnswersTable;
       assignments: AssignmentsTable;
@@ -378,8 +374,6 @@ export interface ExtendedDatabase extends Database {
       attendance_records: AttendanceRecordsTable;
       exam_reports: ExamReportsTable;
     };
-    
-    // Preserve the original views, functions, enums, and composite types
     Views: Database["public"]["Views"];
     Functions: Database["public"]["Functions"];
     Enums: Database["public"]["Enums"];
