@@ -1372,6 +1372,52 @@ export type Database = {
         }
         Relationships: []
       }
+      student_timetable_view: {
+        Row: {
+          class_id: string | null
+          class_name: string | null
+          day_of_week: number | null
+          end_time: string | null
+          id: string | null
+          room: string | null
+          start_time: string | null
+          subject_code: string | null
+          subject_id: string | null
+          subject_name: string | null
+          teacher_id: string | null
+          teacher_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timetable_entries_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_entries_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_entries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_entries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students_view: {
         Row: {
           address: string | null

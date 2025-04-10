@@ -32,7 +32,7 @@ const AdminFeedbackPage = () => {
         .from("student_feedback")
         .select(`
           *,
-          student:students_view(full_name)
+          students_view!student_feedback_student_id_fkey(full_name)
         `)
         .order("created_at", { ascending: false });
 
@@ -41,7 +41,7 @@ const AdminFeedbackPage = () => {
       // Format the response to match our Feedback interface
       return (data || []).map(item => ({
         ...item,
-        student_name: item.student?.full_name || "Unknown Student"
+        student_name: item.students_view?.full_name || "Unknown Student"
       })) as Feedback[];
     },
   });
