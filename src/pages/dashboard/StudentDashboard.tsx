@@ -1,399 +1,339 @@
 
-import { useState, useEffect } from "react";
-import { BookOpen, Calendar, FileText, CreditCard, Clock, School } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import StatCard from "@/components/dashboard/StatCard";
-import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
-import PageHeader from "@/components/ui/page-header";
+import { BookOpen, Calendar, Clock, CreditCard, Bell, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { format } from "date-fns";
+import { CalendarIcon } from "@radix-ui/react-icons";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
+import StudentNotificationsList from "@/components/student/StudentNotificationsList";
 
 const StudentDashboard = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [studentData, setStudentData] = useState<any>(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    courses: 0,
-    attendance: "0%",
-    assignments: "0/0",
-    feesDue: "₹0"
-  });
-  const [todayClasses, setTodayClasses] = useState<any[]>([]);
-  const [pendingAssignments, setPendingAssignments] = useState<any[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
-
+  const [upcomingExams, setUpcomingExams] = useState([]);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [hasUnpaidFees, setHasUnpaidFees] = useState(false);
+  const [studentProfile, setStudentProfile] = useState(null);
+  
+  // Placeholder for demo - would be replaced with actual data fetch
   useEffect(() => {
-    const fetchStudentData = async () => {
-      try {
-        if (!user) return;
-
-        // Get student profile
-        const { data: studentProfile, error: studentError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (studentError) throw studentError;
+    // Simulate data loading
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    
+    // Check for unpaid fees
+    if (user) {
+      checkFeeStatus();
+      fetchStudentProfile();
+    }
+  }, [user]);
+  
+  const checkFeeStatus = async () => {
+    try {
+      const { data: student, error } = await extendedSupabase
+        .from('students')
+        .select('fee_status, total_fees_due, total_fees_paid')
+        .eq('user_id', user?.id)
+        .single();
         
-        setStudentData(studentProfile);
-        
-        // Get enrolled courses
-        const { data: enrollments, error: enrollmentsError } = await supabase
-          .from('student_course_enrollments')
-          .select(`
-            id, 
-            course_id,
-            courses(
-              id, 
-              name,
-              subjects(
-                id,
-                name
-              )
-            )
-          `)
-          .eq('student_id', studentProfile.id)
-          .eq('status', 'approved');
-        
-        if (enrollmentsError) throw enrollmentsError;
-        
-        // Get course IDs and subject IDs
-        const courseIds = enrollments?.map(e => e.course_id) || [];
-        
-        // Flatten the subjects array from all courses
-        const allSubjects = enrollments?.flatMap(e => 
-          e.courses?.subjects?.map(s => ({...s, course_name: e.courses.name})) || []
-        ) || [];
-        
-        const subjectIds = allSubjects.map(s => s.id);
-        
-        // Get timetable entries for today's classes
-        const today = new Date();
-        const currentDay = today.getDay() === 0 ? 7 : today.getDay(); // Convert Sunday (0) to 7 to match our day_of_week format
-        
-        const { data: timetableEntries, error: timetableError } = await supabase
-          .from('timetable_entries')
-          .select(`
-            *,
-            subjects(id, name),
-            classes(id, name, room, capacity),
-            teachers:teacher_id(
-              id,
-              users:user_id(full_name)
-            )
-          `)
-          .in('subject_id', subjectIds)
-          .eq('day_of_week', currentDay)
-          .order('start_time', { ascending: true });
-          
-        if (timetableError) throw timetableError;
-        
-        // Get current time to determine class status
-        const currentTime = today.getHours() * 100 + today.getMinutes();
-        
-        // Format today's classes
-        const formattedClasses = timetableEntries?.map(entry => {
-          // Parse start and end times (assuming format like "10:00 AM")
-          const startParts = entry.start_time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-          const endParts = entry.end_time.match(/(\d+):(\d+)\s*(AM|PM)/i);
-          
-          let startHour = parseInt(startParts?.[1] || "0");
-          let endHour = parseInt(endParts?.[1] || "0");
-          
-          if (startParts?.[3]?.toUpperCase() === "PM" && startHour < 12) startHour += 12;
-          if (endParts?.[3]?.toUpperCase() === "PM" && endHour < 12) endHour += 12;
-          
-          const startMinutes = parseInt(startParts?.[2] || "0");
-          const endMinutes = parseInt(endParts?.[2] || "0");
-          
-          const startTimeValue = startHour * 100 + startMinutes;
-          const endTimeValue = endHour * 100 + endMinutes;
-          
-          let status = "upcoming";
-          if (currentTime >= startTimeValue && currentTime < endTimeValue) {
-            status = "current";
-          } else if (currentTime >= endTimeValue) {
-            status = "completed";
-          }
-          
-          return {
-            id: entry.id,
-            subject: entry.subjects?.name || 'Unknown Subject',
-            time: `${entry.start_time} - ${entry.end_time}`,
-            room: entry.classes?.room || 'Unknown Room',
-            teacher: entry.teachers?.users?.full_name || 'Unknown Teacher',
-            status
-          };
-        }) || [];
-        
-        setTodayClasses(formattedClasses);
-        
-        // Get student fees information
-        const feesDue = studentProfile.total_fees_due - studentProfile.total_fees_paid;
-        
-        // Calculate stats
-        setStats({
-          courses: courseIds.length,
-          attendance: "92%", // Mock data, would need actual attendance records
-          assignments: "7/8", // Mock data, would need actual assignment records
-          feesDue: `₹${feesDue.toLocaleString()}`
-        });
-        
-        // Mock data for pending assignments
-        setPendingAssignments([
-          { 
-            id: "1", 
-            title: "Database Normalization", 
-            subject: "Database Systems",
-            dueDate: format(new Date(Date.now() + 7 * 86400000), 'MMM d, yyyy'),
-            progress: 0
-          },
-          { 
-            id: "2", 
-            title: "Responsive Design Project", 
-            subject: "Web Development",
-            dueDate: format(new Date(Date.now() + 10 * 86400000), 'MMM d, yyyy'),
-            progress: 65
-          },
-        ]);
-        
-        // Fetch recent activities/announcements
-        const { data: announcements, error: announcementsError } = await supabase
-          .from('announcements')
-          .select(`
-            id,
-            title,
-            content,
-            created_at,
-            created_by,
-            users:created_by(full_name)
-          `)
-          .in('target_role', ['student', 'all'])
-          .is('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(3);
-          
-        if (announcementsError) throw announcementsError;
-        
-        // Format activities from announcements
-        const formattedActivities = announcements?.map(announcement => ({
-          id: announcement.id,
-          title: announcement.title,
-          description: announcement.content,
-          time: format(new Date(announcement.created_at), 'h:mm a'),
-          date: isToday(new Date(announcement.created_at)) ? 'Today' : format(new Date(announcement.created_at), 'MMM d, yyyy'),
-          user: announcement.users?.full_name || "Admin"
-        })) || [];
-        
-        setRecentActivities(formattedActivities);
-        
-      } catch (error) {
-        console.error("Error fetching student data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch dashboard data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+      if (error) throw error;
+      
+      if (student) {
+        setHasUnpaidFees(
+          student.fee_status === 'pending' || 
+          student.fee_status === 'partial' ||
+          (student.total_fees_due > student.total_fees_paid)
+        );
       }
-    };
-
-    fetchStudentData();
-  }, [user, toast]);
-
-  // Helper function to check if a date is today
-  const isToday = (someDate: Date) => {
-    const today = new Date();
-    return someDate.getDate() === today.getDate() &&
-      someDate.getMonth() === today.getMonth() &&
-      someDate.getFullYear() === today.getFullYear();
+    } catch (error) {
+      console.error("Error checking fee status:", error);
+    }
   };
   
-  // If no activities are found, use mock data
-  if (recentActivities.length === 0) {
-    setRecentActivities([
-      {
-        id: "1",
-        title: "New Assignment",
-        description: "Database Normalization assignment posted by Prof. Sharma",
-        time: "11:30 AM",
-        date: "Today",
-        user: "Teacher",
-      },
-      {
-        id: "2",
-        title: "Exam Scheduled",
-        description: "Mid-term exam for Data Structures scheduled on April 20",
-        time: "Yesterday",
-        date: format(new Date(Date.now() - 86400000), 'MMM d, yyyy'),
-        user: "Admin",
-      }
-    ]);
-  }
-
-  // Stats cards data
-  const statCards = [
-    { title: "My Courses", value: stats.courses, icon: BookOpen },
-    { title: "Attendance", value: stats.attendance, icon: Calendar, trend: "up" as const, changePercentage: 2, trendText: "from last month" },
-    { title: "Assignments", value: stats.assignments, icon: FileText, trendText: "Completed" },
-    { title: "Fees Due", value: stats.feesDue, icon: CreditCard, trendText: studentData?.fee_status === "paid" ? "All Paid" : "Due Soon" },
-  ];
-  
-  return (
-    <div>
-      <PageHeader
-        title={`Welcome, ${user?.full_name || 'Student'}`}
-        description="Track your courses, assignments, and schedule"
-      >
-        <Button onClick={() => navigate("/courses/enroll")}>Enroll in Course</Button>
-      </PageHeader>
+  const fetchStudentProfile = async () => {
+    try {
+      const { data, error } = await extendedSupabase
+        .from('students_view')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+        
+      if (error) throw error;
       
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {[...Array(4)].map((_, index) => (
-            <Card key={index} className="h-28 animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-full bg-gray-200 rounded-md"></div>
+      setStudentProfile(data);
+    } catch (error) {
+      console.error("Error fetching student profile:", error);
+    }
+  };
+  
+  const goToFeesPage = () => {
+    navigate('/fees');
+  };
+  
+  const goToCoursesPage = () => {
+    navigate('/student/courses');
+  };
+  
+  const goToExamsPage = () => {
+    navigate('/student/exams');
+  };
+  
+  const goToAttendancePage = () => {
+    navigate('/student/attendance');
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Main content - 2/3 width on medium screens and up */}
+        <div className="md:w-2/3 space-y-6">
+          {/* Welcome and quick stats */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="col-span-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">
+                  Welcome back, {user?.full_name?.split(' ')[0]}
+                </CardTitle>
+                <CardDescription>
+                  Here's an overview of your academic status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {hasUnpaidFees && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-start">
+                    <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">Fee Payment Pending</p>
+                      <p className="text-xs text-yellow-700">
+                        You have pending fee payments. Please settle your dues to avoid late fees.
+                      </p>
+                      <Button size="sm" variant="outline" className="mt-2" onClick={goToFeesPage}>
+                        <CreditCard className="h-4 w-4 mr-1" />
+                        View & Pay Fees
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="px-2 py-1">
+                      {studentProfile?.enrollment_number || 'Loading...'}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-500">
+                      Status: <span className="font-medium capitalize text-gray-700">
+                        {studentProfile?.enrollment_status || 'Active'}
+                      </span>
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-500">
+                      Enrolled: <span className="font-medium text-gray-700">
+                        {studentProfile?.enrollment_date 
+                          ? new Date(studentProfile.enrollment_date).toLocaleDateString() 
+                          : 'N/A'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {statCards.map((stat, index) => (
-            <StatCard
-              key={index}
-              title={stat.title}
-              value={stat.value}
-              icon={stat.icon}
-              trend={stat.trend}
-              changePercentage={stat.changePercentage}
-              trendText={stat.trendText}
-            />
-          ))}
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Today's Classes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, index) => (
-                  <div key={index} className="border rounded-md p-4 bg-gray-50 animate-pulse h-20"></div>
-                ))}
-              </div>
-            ) : todayClasses.length > 0 ? (
-              <div className="space-y-4">
-                {todayClasses.map((cls) => (
-                  <div 
-                    key={cls.id} 
-                    className={`border rounded-md p-4 transition-colors ${
-                      cls.status === 'completed' 
-                        ? 'bg-gray-50 border-gray-200' 
-                        : cls.status === 'current' 
-                        ? 'bg-institute-50 border-institute-200' 
-                        : 'bg-white border-gray-200'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
+          
+            <Card className="group hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">My Courses</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <BookOpen className="h-8 w-8 text-blue-500" />
+                    <div className="ml-3">
+                      <div className="text-2xl font-bold">3</div>
+                      <p className="text-xs text-gray-500">Enrolled courses</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={goToCoursesPage}>View</Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="group hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Upcoming Exams</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Calendar className="h-8 w-8 text-purple-500" />
+                    <div className="ml-3">
+                      <div className="text-2xl font-bold">2</div>
+                      <p className="text-xs text-gray-500">Scheduled exams</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={goToExamsPage}>View</Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="group hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Attendance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Clock className="h-8 w-8 text-green-500" />
+                    <div className="ml-3">
+                      <div className="text-2xl font-bold">92%</div>
+                      <p className="text-xs text-gray-500">Overall attendance</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={goToAttendancePage}>View</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Upcoming exams section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming Exams</CardTitle>
+              <CardDescription>Your scheduled examinations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="p-3 border rounded-md animate-pulse bg-gray-50 h-20"></div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="p-3 border rounded-md bg-white">
+                    <div className="flex justify-between">
                       <div>
+                        <h4 className="font-medium">Data Structures & Algorithms</h4>
+                        <p className="text-sm text-gray-500">Mid-semester exam</p>
+                      </div>
+                      <div className="text-right">
                         <div className="flex items-center">
-                          <h3 className="font-medium">{cls.subject}</h3>
-                          {cls.status === 'current' && (
-                            <span className="ml-2 px-2 py-0.5 text-xs bg-institute-100 text-institute-700 rounded-full">
-                              In Progress
-                            </span>
-                          )}
-                          {cls.status === 'completed' && (
-                            <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full">
-                              Completed
-                            </span>
-                          )}
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          <span className="text-sm">Oct 15, 2023</span>
                         </div>
-                        <div className="flex items-center mt-2 text-sm text-gray-500 space-x-3">
-                          <div className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>{cls.time}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <School className="h-3 w-3 mr-1" />
-                            <span>{cls.room}</span>
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          Teacher: {cls.teacher}
-                        </div>
+                        <Badge variant="outline" className="mt-1">10:00 AM - 12:00 PM</Badge>
                       </div>
                     </div>
                   </div>
-                ))}
+                  
+                  <div className="p-3 border rounded-md bg-white">
+                    <div className="flex justify-between">
+                      <div>
+                        <h4 className="font-medium">Operating Systems</h4>
+                        <p className="text-sm text-gray-500">Quiz 2</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center">
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          <span className="text-sm">Oct 18, 2023</span>
+                        </div>
+                        <Badge variant="outline" className="mt-1">2:00 PM - 3:00 PM</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4">
+                <Button variant="outline" size="sm" className="w-full" onClick={goToExamsPage}>
+                  View All Exams
+                </Button>
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No classes scheduled for today
-              </div>
-            )}
-            <Button variant="outline" className="w-full mt-4" onClick={() => navigate("/timetable")}>
-              View Full Timetable
-            </Button>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          {/* Recent activity section */}
+          <RecentActivityCard />
+        </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Pending Assignments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-4">
-                {[...Array(2)].map((_, index) => (
-                  <div key={index} className="border rounded-md p-4 bg-gray-50 animate-pulse h-20"></div>
-                ))}
+        {/* Sidebar content - 1/3 width on medium screens and up */}
+        <div className="md:w-1/3">
+          {/* Student profile card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>My Profile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center mb-4">
+                <Avatar className="h-24 w-24 mb-2">
+                  <AvatarFallback className="text-lg bg-blue-100 text-blue-800">
+                    {user?.full_name?.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <h3 className="font-medium text-lg">{user?.full_name}</h3>
+                <p className="text-sm text-gray-500">{user?.email}</p>
               </div>
-            ) : pendingAssignments.length > 0 ? (
-              <div className="space-y-4">
-                {pendingAssignments.map((assignment) => (
-                  <div key={assignment.id} className="border rounded-md p-4 bg-white">
-                    <h3 className="font-medium">{assignment.title}</h3>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {assignment.subject} • Due: {assignment.dueDate}
-                    </div>
-                    <div className="mt-2">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>Progress</span>
-                        <span>{assignment.progress}%</span>
-                      </div>
-                      <Progress value={assignment.progress} className="h-2" />
-                    </div>
-                  </div>
-                ))}
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Enrollment No.</span>
+                  <span className="font-medium">{studentProfile?.enrollment_number || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Program</span>
+                  <span className="font-medium">Bachelor of Computer Science</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Batch</span>
+                  <span className="font-medium">2022-2026</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Contact</span>
+                  <span className="font-medium">{studentProfile?.contact_number || 'N/A'}</span>
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No pending assignments
+              
+              <div className="mt-4 pt-4 border-t">
+                <Button variant="outline" size="sm" className="w-full">
+                  Edit Profile
+                </Button>
               </div>
-            )}
-            <Button variant="outline" className="w-full mt-4" onClick={() => navigate("/assignments")}>
-              View All Assignments
-            </Button>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          {/* Notifications card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Notifications</CardTitle>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="text-xs"
+                  onClick={() => navigate('/student/notifications')}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <StudentNotificationsList limit={3} showViewAll={false} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      
-      <RecentActivityCard activities={recentActivities} />
     </div>
   );
 };
