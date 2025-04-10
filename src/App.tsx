@@ -82,6 +82,7 @@ import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
 import StudentExamsPage from "@/pages/student/StudentExamsPage";
 import StudentFeedbackPage from "@/pages/student/StudentFeedbackPage";
 import StudentNotificationsPage from "@/pages/student/StudentNotificationsPage";
+import StudentProfilePage from "@/pages/student/StudentProfilePage";
 import FeedbackSuccessPage from "@/components/student/FeedbackSuccessPage";
 
 const queryClient = new QueryClient();
@@ -147,6 +148,7 @@ function App() {
                     <Route path="teacher/exam-reports" element={<ExamReportsPage />} />
                     
                     {/* Student Module Routes */}
+                    <Route path="student/profile" element={<StudentProfilePage />} />
                     <Route path="student/courses" element={<StudentCoursesPage />} />
                     <Route path="student/attendance" element={<StudentAttendancePage />} />
                     <Route path="student/exams" element={<StudentExamsPage />} />
@@ -160,6 +162,8 @@ function App() {
                     <Route path="attendance" element={<AttendancePage />} />
                     <Route path="assignments" element={<TeacherAssignmentsPage />} />
                     <Route path="my-courses" element={<StudentCoursesPage />} />
+                    <Route path="profile" element={<StudentProfilePage />} />
+                    <Route path="fees/payment/new" element={<MakePaymentPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>

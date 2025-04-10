@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,7 +72,7 @@ const getStatusBadgeVariant = (status: string): "default" | "destructive" | "suc
     case 'rejected':
       return "destructive";
     case 'pending':
-      return "secondary"; // Instead of "warning"
+      return "secondary"; 
     default:
       return "outline";
   }
@@ -232,13 +231,7 @@ const StudentCoursesPage = () => {
   };
 
   const handleEnrollment = async () => {
-    if (
-      !selectedCourseId ||
-      !academicYear ||
-      !semester ||
-      !enrollmentDate ||
-      !studentId
-    ) {
+    if (!selectedCourseId || !academicYear || !semester || !enrollmentDate || !studentId) {
       toast({
         title: "Error",
         description: "Please fill in all the enrollment details.",
@@ -255,6 +248,7 @@ const StudentCoursesPage = () => {
           course_id: selectedCourseId,
           academic_year: academicYear,
           semester: semester,
+          enrollment_date: format(enrollmentDate, "yyyy-MM-dd"),
           status: "pending",
         });
 
