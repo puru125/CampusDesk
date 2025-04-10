@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +17,8 @@ interface EnrolledCourse extends Course {
   enrollment_status: string;
   academic_year: string;
   semester: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 const StudentCoursesPage = () => {
@@ -70,7 +71,9 @@ const StudentCoursesPage = () => {
               description,
               credits,
               duration,
-              is_active
+              is_active,
+              created_at,
+              updated_at
             )
           `)
           .eq('student_id', studentData.id);
@@ -83,7 +86,9 @@ const StudentCoursesPage = () => {
           enrollment_id: enrollment.id,
           enrollment_status: enrollment.status,
           academic_year: enrollment.academic_year,
-          semester: enrollment.semester
+          semester: enrollment.semester,
+          created_at: enrollment.created_at,
+          updated_at: enrollment.updated_at
         }));
 
         setEnrolledCourses(enrolledCoursesFormatted);

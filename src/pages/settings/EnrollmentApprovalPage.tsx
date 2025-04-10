@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,10 +28,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/ui/page-header";
 
 const EnrollmentApprovalPage = () => {
@@ -40,10 +39,11 @@ const EnrollmentApprovalPage = () => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [remarks, setRemarks] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [action, setAction] = useState<"approve" | "reject">("approve");
+  const [action, setAction] = useState<"approved" | "rejected">("approved");
 
   useEffect(() => {
     if (user && user.role === 'admin') {
@@ -95,18 +95,27 @@ const EnrollmentApprovalPage = () => {
     }
   };
 
-  const handleDialogOpen = (item: any, action: "approve" | "reject") => {
+  const handleDialogOpen = (item: any, actionType: "approved" | "rejected") => {
     setSelectedItem(item);
-    setAction(action);
+    setAction(actionType);
     setRemarks("");
     setDialogOpen(true);
   };
 
   const handleAction = async () => {
     if (!selectedItem || !user) return;
+    
+    setProcessingAction(selectedItem.id);
 
     try {
       if (activeTab === "enrollments") {
+        console.log("Processing enrollment request with params:", {
+          p_admin_id: user.id,
+          p_enrollment_id: selectedItem.id,
+          p_status: action,
+          p_admin_remarks: remarks
+        });
+        
         const { error } = await supabase.rpc("process_enrollment_request", {
           p_admin_id: user.id,
           p_enrollment_id: selectedItem.id,
@@ -114,11 +123,14 @@ const EnrollmentApprovalPage = () => {
           p_admin_remarks: remarks,
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error processing enrollment:", error);
+          throw error;
+        }
 
         toast({
-          title: `Enrollment ${action === "approve" ? "Approved" : "Rejected"}`,
-          description: `Successfully ${action === "approve" ? "approved" : "rejected"} enrollment request`,
+          title: `Enrollment ${action === "approved" ? "Approved" : "Rejected"}`,
+          description: `Successfully ${action === "approved" ? "approved" : "rejected"} enrollment request`,
         });
 
         // Refresh the enrollments list
@@ -127,8 +139,8 @@ const EnrollmentApprovalPage = () => {
         // Handle feedback approval/rejection
         // This would be implemented in a real application
         toast({
-          title: `Feedback ${action === "approve" ? "Approved" : "Rejected"}`,
-          description: `Successfully ${action === "approve" ? "approved" : "rejected"} feedback`,
+          title: `Feedback ${action === "approved" ? "Approved" : "Rejected"}`,
+          description: `Successfully ${action === "approved" ? "approved" : "rejected"} feedback`,
         });
 
         // Refresh the feedbacks list
@@ -142,6 +154,7 @@ const EnrollmentApprovalPage = () => {
       });
     } finally {
       setDialogOpen(false);
+      setProcessingAction(null);
     }
   };
 
@@ -175,18 +188,28 @@ const EnrollmentApprovalPage = () => {
               size="sm"
               variant="outline"
               className="text-green-600 border-green-600 hover:bg-green-100"
-              onClick={() => handleDialogOpen(enrollment, "approve")}
+              onClick={() => handleDialogOpen(enrollment, "approved")}
+              disabled={processingAction === enrollment.id}
             >
-              <CheckCircle className="h-4 w-4 mr-1" />
+              {processingAction === enrollment.id ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-1" />
+              )}
               Approve
             </Button>
             <Button
               size="sm"
               variant="outline"
               className="text-red-600 border-red-600 hover:bg-red-100"
-              onClick={() => handleDialogOpen(enrollment, "reject")}
+              onClick={() => handleDialogOpen(enrollment, "rejected")}
+              disabled={processingAction === enrollment.id}
             >
-              <XCircle className="h-4 w-4 mr-1" />
+              {processingAction === enrollment.id ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4 mr-1" />
+              )}
               Reject
             </Button>
           </TableCell>
@@ -291,11 +314,11 @@ const EnrollmentApprovalPage = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {action === "approve" ? "Approve" : "Reject"}{" "}
+              {action === "approved" ? "Approve" : "Reject"}{" "}
               {activeTab === "enrollments" ? "Enrollment" : "Feedback"}
             </DialogTitle>
             <DialogDescription>
-              {action === "approve"
+              {action === "approved"
                 ? "This will approve the request and notify the student."
                 : "This will reject the request and notify the student."}
             </DialogDescription>
@@ -333,9 +356,16 @@ const EnrollmentApprovalPage = () => {
             </Button>
             <Button
               onClick={handleAction}
-              variant={action === "approve" ? "default" : "destructive"}
+              variant={action === "approved" ? "default" : "destructive"}
+              disabled={processingAction !== null}
             >
-              {action === "approve" ? "Approve" : "Reject"}
+              {processingAction !== null ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : action === "approved" ? (
+                "Approve"
+              ) : (
+                "Reject"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,39 +1,43 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Calendar, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { format, parseISO, isValid } from "date-fns";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AttendanceRecord {
   id: string;
   date: string;
   status: string;
   remarks: string | null;
-  subject_name: string;
-  teacher_name: string;
-}
-
-interface Subject {
-  id: string;
-  name: string;
+  subject_id: string;
+  subjects: {
+    name: string;
+    code: string;
+  };
 }
 
 interface AttendanceSummary {
-  subjectId: string;
-  subjectName: string;
-  totalClasses: number;
-  present: number;
-  absent: number;
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  total_classes: number;
+  present_count: number;
+  absent_count: number;
   percentage: number;
 }
 
@@ -42,13 +46,11 @@ const StudentAttendancePage = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [attendanceSummary, setAttendanceSummary] = useState<AttendanceSummary[]>([]);
   const [overallAttendance, setOverallAttendance] = useState({
-    totalClasses: 0,
+    total: 0,
     present: 0,
-    percentage: 0
+    percentage: 0,
   });
 
   useEffect(() => {
@@ -66,17 +68,17 @@ const StudentAttendancePage = () => {
         if (studentError) throw studentError;
 
         // Fetch attendance records
-        const { data: records, error: recordsError } = await extendedSupabase
+        const { data: recordsData, error: recordsError } = await extendedSupabase
           .from('attendance_records')
           .select(`
             id,
             date,
             status,
             remarks,
-            subjects:subject_id(id, name),
-            teachers:teacher_id(
-              id, 
-              users:user_id(full_name)
+            subject_id,
+            subjects (
+              name,
+              code
             )
           `)
           .eq('student_id', studentData.id)
@@ -84,80 +86,51 @@ const StudentAttendancePage = () => {
 
         if (recordsError) throw recordsError;
 
-        if (records && records.length > 0) {
-          // Process attendance records
-          const formattedRecords = records.map(record => ({
-            id: record.id,
-            date: record.date,
-            status: record.status,
-            remarks: record.remarks,
-            subject_name: record.subjects ? record.subjects.name : 'Unknown Subject',
-            teacher_name: record.teachers && record.teachers.users 
-              ? record.teachers.users.full_name 
-              : 'Unknown Teacher'
-          }));
+        setAttendanceRecords(recordsData || []);
 
-          setAttendanceRecords(formattedRecords);
+        // Calculate attendance summary by subject
+        const subjectMap = new Map<string, AttendanceSummary>();
+        let totalClasses = 0;
+        let totalPresent = 0;
 
-          // Get unique subjects
-          const uniqueSubjects: Subject[] = [];
-          const subjectMap = new Map();
+        recordsData?.forEach(record => {
+          const subjectId = record.subject_id;
           
-          records.forEach(record => {
-            if (record.subjects && !subjectMap.has(record.subjects.id)) {
-              subjectMap.set(record.subjects.id, true);
-              uniqueSubjects.push({
-                id: record.subjects.id,
-                name: record.subjects.name
-              });
-            }
-          });
+          if (!subjectMap.has(subjectId)) {
+            subjectMap.set(subjectId, {
+              subject_id: subjectId,
+              subject_name: record.subjects.name,
+              subject_code: record.subjects.code,
+              total_classes: 0,
+              present_count: 0,
+              absent_count: 0,
+              percentage: 0,
+            });
+          }
           
-          setSubjects(uniqueSubjects);
+          const summary = subjectMap.get(subjectId)!;
+          summary.total_classes += 1;
+          
+          if (record.status.toLowerCase() === 'present') {
+            summary.present_count += 1;
+            totalPresent += 1;
+          } else {
+            summary.absent_count += 1;
+          }
+          
+          summary.percentage = (summary.present_count / summary.total_classes) * 100;
+          totalClasses += 1;
+        });
 
-          // Calculate attendance summary by subject
-          const summaryMap = new Map<string, AttendanceSummary>();
-          
-          records.forEach(record => {
-            if (!record.subjects) return;
-            
-            const subjectId = record.subjects.id;
-            const existing = summaryMap.get(subjectId) || {
-              subjectId,
-              subjectName: record.subjects.name,
-              totalClasses: 0,
-              present: 0,
-              absent: 0,
-              percentage: 0
-            };
-            
-            existing.totalClasses += 1;
-            
-            if (record.status === 'present') {
-              existing.present += 1;
-            } else if (record.status === 'absent') {
-              existing.absent += 1;
-            }
-            
-            existing.percentage = Math.round((existing.present / existing.totalClasses) * 100);
-            
-            summaryMap.set(subjectId, existing);
-          });
-          
-          const summaryArray = Array.from(summaryMap.values());
-          setAttendanceSummary(summaryArray);
-
-          // Calculate overall attendance
-          const totalClasses = records.length;
-          const presentCount = records.filter(r => r.status === 'present').length;
-          const percentage = Math.round((presentCount / totalClasses) * 100);
-          
-          setOverallAttendance({
-            totalClasses,
-            present: presentCount,
-            percentage
-          });
-        }
+        const summaryArray = Array.from(subjectMap.values());
+        setAttendanceSummary(summaryArray);
+        
+        // Calculate overall attendance
+        setOverallAttendance({
+          total: totalClasses,
+          present: totalPresent,
+          percentage: totalClasses > 0 ? (totalPresent / totalClasses) * 100 : 0,
+        });
       } catch (error) {
         console.error("Error fetching attendance data:", error);
         toast({
@@ -173,231 +146,176 @@ const StudentAttendancePage = () => {
     fetchAttendanceData();
   }, [user, toast]);
 
-  const getAttendanceStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'present':
-        return <Badge className="bg-green-100 text-green-800">Present</Badge>;
-      case 'absent':
-        return <Badge className="bg-red-100 text-red-800">Absent</Badge>;
-      case 'late':
-        return <Badge className="bg-yellow-100 text-yellow-800">Late</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+  const formatDate = (dateString: string) => {
+    try {
+      const date = parseISO(dateString);
+      return isValid(date) ? format(date, 'MMM d, yyyy') : dateString;
+    } catch (e) {
+      return dateString;
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'present':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'absent':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return null;
+  const getStatusBadge = (status: string) => {
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'present') {
+      return <Badge className="bg-green-100 text-green-800">Present</Badge>;
+    } else if (statusLower === 'absent') {
+      return <Badge className="bg-red-100 text-red-800">Absent</Badge>;
+    } else if (statusLower === 'late') {
+      return <Badge className="bg-yellow-100 text-yellow-800">Late</Badge>;
+    } else {
+      return <Badge>{status}</Badge>;
     }
   };
 
   const getAttendanceColor = (percentage: number) => {
-    if (percentage >= 75) return "text-green-600";
-    if (percentage >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (percentage >= 75) {
+      return "bg-green-500";
+    } else if (percentage >= 60) {
+      return "bg-yellow-500";
+    } else {
+      return "bg-red-500";
+    }
   };
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 75) return "bg-green-600";
-    if (percentage >= 60) return "bg-yellow-600";
-    return "bg-red-600";
-  };
-
-  const filteredRecords = selectedSubject === "all" 
-    ? attendanceRecords
-    : attendanceRecords.filter(record => {
-        const subjectInfo = subjects.find(s => s.id === selectedSubject);
-        return record.subject_name === subjectInfo?.name;
-      });
 
   return (
     <div>
       <PageHeader
-        title="My Attendance"
-        description="Track your class attendance and view attendance statistics"
+        title="Attendance"
+        description="Track your class attendance and view attendance records"
         icon={Calendar}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Overall Attendance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold mb-2 flex items-center">
-              <span className={getAttendanceColor(overallAttendance.percentage)}>
-                {overallAttendance.percentage}%
-              </span>
-            </div>
-            <Progress 
-              value={overallAttendance.percentage} 
-              className="h-2 mb-2"
-              indicatorClassName={getProgressColor(overallAttendance.percentage)}
-            />
-            <p className="text-sm text-gray-500">
-              Present: {overallAttendance.present} / {overallAttendance.totalClasses} classes
-            </p>
-          </CardContent>
-        </Card>
-        
-        {attendanceSummary.slice(0, 2).map(summary => (
-          <Card key={summary.subjectId}>
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="space-y-6 mt-6">
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">{summary.subjectName}</CardTitle>
+              <CardTitle>Overall Attendance</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold mb-2">
-                <span className={getAttendanceColor(summary.percentage)}>
-                  {summary.percentage}%
-                </span>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-500">Attendance Rate</p>
+                    <p className="text-2xl font-bold">{overallAttendance.percentage.toFixed(1)}%</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Classes Attended</p>
+                    <p className="text-lg">
+                      {overallAttendance.present} / {overallAttendance.total}
+                    </p>
+                  </div>
+                </div>
+                
+                <Progress value={overallAttendance.percentage} className="h-2">
+                  <div 
+                    className={`h-full ${getAttendanceColor(overallAttendance.percentage)}`} 
+                    style={{ width: `${overallAttendance.percentage}%` }} 
+                  />
+                </Progress>
+                
+                {overallAttendance.percentage < 75 && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Attendance Warning</AlertTitle>
+                    <AlertDescription>
+                      Your attendance is below the required 75%. Please improve your attendance to avoid academic penalties.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
-              <Progress 
-                value={summary.percentage} 
-                className="h-2 mb-2"
-                indicatorClassName={getProgressColor(summary.percentage)}
-              />
-              <p className="text-sm text-gray-500">
-                Present: {summary.present} / {summary.totalClasses} classes
-              </p>
             </CardContent>
           </Card>
-        ))}
-      </div>
-      
-      <Tabs defaultValue="records" className="mt-6">
-        <TabsList>
-          <TabsTrigger value="records">Attendance Records</TabsTrigger>
-          <TabsTrigger value="summary">Subject Summary</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="records" className="mt-4 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">Attendance History</h3>
-            
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by subject" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Subjects</SelectItem>
-                {subjects.map(subject => (
-                  <SelectItem key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           
-          {loading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredRecords.length > 0 ? (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Teacher</TableHead>
-                      <TableHead>Remarks</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRecords.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {format(new Date(record.date), 'MMM d, yyyy')}
-                        </TableCell>
-                        <TableCell>{record.subject_name}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(record.status)}
-                            <span>{getAttendanceStatusBadge(record.status)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{record.teacher_name}</TableCell>
-                        <TableCell>{record.remarks || "-"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>No Records Found</AlertTitle>
-              <AlertDescription>
-                No attendance records found for the selected criteria.
-              </AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="summary" className="mt-4">
-          {loading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : attendanceSummary.length > 0 ? (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Total Classes</TableHead>
-                      <TableHead>Present</TableHead>
-                      <TableHead>Absent</TableHead>
-                      <TableHead>Attendance %</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {attendanceSummary.map((summary) => (
-                      <TableRow key={summary.subjectId}>
-                        <TableCell className="font-medium">{summary.subjectName}</TableCell>
-                        <TableCell>{summary.totalClasses}</TableCell>
-                        <TableCell>{summary.present}</TableCell>
-                        <TableCell>{summary.absent}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <span className={getAttendanceColor(summary.percentage)}>
-                              {summary.percentage}%
+          <Tabs defaultValue="summary">
+            <TabsList>
+              <TabsTrigger value="summary">Subject Summary</TabsTrigger>
+              <TabsTrigger value="records">Attendance Records</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="summary" className="space-y-4 mt-4">
+              {attendanceSummary.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {attendanceSummary.map((summary) => (
+                    <Card key={summary.subject_id}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">{summary.subject_name}</CardTitle>
+                        <p className="text-sm text-gray-500">{summary.subject_code}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Attendance: {summary.percentage.toFixed(1)}%</span>
+                            <span>
+                              {summary.present_count} / {summary.total_classes} classes
                             </span>
-                            <Progress 
-                              value={summary.percentage} 
-                              className="h-2 w-24"
-                              indicatorClassName={getProgressColor(summary.percentage)}
-                            />
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>No Summary Available</AlertTitle>
-              <AlertDescription>
-                No attendance data available to generate summary.
-              </AlertDescription>
-            </Alert>
-          )}
-        </TabsContent>
-      </Tabs>
+                          <Progress value={summary.percentage} className="h-2">
+                            <div 
+                              className={`h-full ${getAttendanceColor(summary.percentage)}`} 
+                              style={{ width: `${summary.percentage}%` }} 
+                            />
+                          </Progress>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No Data</AlertTitle>
+                  <AlertDescription>
+                    No attendance records found for any subjects.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="records" className="mt-4">
+              <Card>
+                <CardContent className="p-0">
+                  {attendanceRecords.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Remarks</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {attendanceRecords.map((record) => (
+                          <TableRow key={record.id}>
+                            <TableCell>{formatDate(record.date)}</TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{record.subjects.name}</p>
+                                <p className="text-sm text-gray-500">{record.subjects.code}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(record.status)}</TableCell>
+                            <TableCell>{record.remarks || "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="text-gray-500">No attendance records found</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
     </div>
   );
 };
