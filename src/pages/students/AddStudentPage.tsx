@@ -1,8 +1,8 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Card,
@@ -34,46 +35,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
-
-const studentSchema = z.object({
-  fullName: z
-    .string()
-    .min(3, { message: "Full name must be at least 3 characters" })
-    .max(100, { message: "Full name must be less than 100 characters" }),
-  email: z
-    .string()
-    .email({ message: "Please enter a valid email address" })
-    .max(100, { message: "Email must be less than 100 characters" }),
-  dateOfBirth: z.date({
-    required_error: "Date of birth is required",
-  }),
-  contactNumber: z
-    .string()
-    .min(10, { message: "Contact number must be at least 10 digits" })
-    .max(15, { message: "Contact number must be less than 15 digits" })
-    .optional()
-    .or(z.literal("")),
-  address: z
-    .string()
-    .min(5, { message: "Address must be at least 5 characters" })
-    .max(200, { message: "Address must be less than 200 characters" })
-    .optional()
-    .or(z.literal("")),
-  guardianName: z
-    .string()
-    .min(3, { message: "Guardian name must be at least 3 characters" })
-    .max(100, { message: "Guardian name must be less than 100 characters" })
-    .optional()
-    .or(z.literal("")),
-  guardianContact: z
-    .string()
-    .min(10, { message: "Guardian contact must be at least 10 digits" })
-    .max(15, { message: "Guardian contact must be less than 15 digits" })
-    .optional()
-    .or(z.literal("")),
-});
-
-type StudentFormValues = z.infer<typeof studentSchema>;
+import { studentSchema, StudentFormValues } from "@/lib/validation-rules";
 
 const AddStudentPage = () => {
   const navigate = useNavigate();
@@ -186,6 +148,9 @@ const AddStudentPage = () => {
                         <Input placeholder="John Doe" {...field} />
                       </FormControl>
                       <FormMessage />
+                      <FormDescription>
+                        Enter full name as it appears in official documents.
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
@@ -258,6 +223,9 @@ const AddStudentPage = () => {
                         <Input placeholder="9876543210" {...field} />
                       </FormControl>
                       <FormMessage />
+                      <FormDescription>
+                        Enter a valid phone number with country code if applicable.
+                      </FormDescription>
                     </FormItem>
                   )}
                 />

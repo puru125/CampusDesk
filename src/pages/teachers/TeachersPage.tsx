@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Teacher, TeacherView } from "@/types";
+import { TeacherView } from "@/types";
 import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,19 +15,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserPlus, Search, Calendar, Mail, Phone, BookOpen, Info } from "lucide-react";
+import { UserPlus, Search, Calendar, Mail, Phone, BookOpen, Info, Filter } from "lucide-react";
 import { format } from "date-fns";
+import YearSessionFilter from "@/components/filters/YearSessionFilter";
+import { YearSessionValues } from "@/lib/validation-rules";
 
 const TeachersPage = () => {
   const [teachers, setTeachers] = useState<TeacherView[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [yearFilter, setYearFilter] = useState<YearSessionValues>({
+    year: new Date().getFullYear().toString()
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchTeachers();
-  }, []);
+  }, [yearFilter]);
 
   const fetchTeachers = async () => {
     try {
@@ -51,7 +56,12 @@ const TeachersPage = () => {
             email,
             full_name
           )
-        `);
+        `)
+        .like(
+          // Filter by year if joining_date is available
+          'joining_date', 
+          yearFilter.year ? `${yearFilter.year}-%` : '%'
+        );
       
       if (error) {
         throw error;
@@ -110,6 +120,10 @@ const TeachersPage = () => {
       field && field.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
+  
+  const handleFilterChange = (filter: YearSessionValues) => {
+    setYearFilter(filter);
+  };
 
   return (
     <>
@@ -124,7 +138,7 @@ const TeachersPage = () => {
       </PageHeader>
 
       <div className="mb-6">
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
@@ -132,6 +146,13 @@ const TeachersPage = () => {
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex gap-2 items-center">
+            <YearSessionFilter 
+              onFilterChange={handleFilterChange}
+              sessions={["All Sessions"]}
             />
           </div>
         </div>
@@ -148,7 +169,9 @@ const TeachersPage = () => {
               <Info className="h-12 w-12 mx-auto text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No teachers found</h3>
               <p className="mt-1 text-gray-500">
-                {searchTerm ? "Try adjusting your search terms" : "Add your first teacher to get started"}
+                {searchTerm || yearFilter.year ? 
+                  "Try adjusting your search terms or filters" : 
+                  "Add your first teacher to get started"}
               </p>
               {!searchTerm && (
                 <Button className="mt-4" onClick={() => navigate("/teachers/new")}>

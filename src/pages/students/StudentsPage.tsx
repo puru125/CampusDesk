@@ -15,19 +15,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { UserPlus, Search, Calendar, Mail, Phone, Home, Info } from "lucide-react";
+import { UserPlus, Search, Calendar, Mail, Phone, Home, Info, Filter } from "lucide-react";
 import { format } from "date-fns";
+import YearSessionFilter from "@/components/filters/YearSessionFilter";
+import { YearSessionValues } from "@/lib/validation-rules";
 
 const StudentsPage = () => {
   const [students, setStudents] = useState<StudentView[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [yearFilter, setYearFilter] = useState<YearSessionValues>({
+    year: new Date().getFullYear().toString()
+  });
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [yearFilter]);
 
   const fetchStudents = async () => {
     try {
@@ -57,7 +62,16 @@ const StudentsPage = () => {
             email,
             full_name
           )
-        `);
+        `)
+        .eq(
+          // Filter by year if enrollment_date is available
+          'enrollment_date', 
+          yearFilter.year ? 
+            `${yearFilter.year}-${yearFilter.session ? 
+              (yearFilter.session.includes('1') ? '01-01' : '07-01') : 
+              '%'}` : 
+            '%'
+        );
       
       if (error) {
         throw error;
@@ -152,6 +166,10 @@ const StudentsPage = () => {
         return "bg-gray-100 text-gray-800";
     }
   };
+  
+  const handleFilterChange = (filter: YearSessionValues) => {
+    setYearFilter(filter);
+  };
 
   return (
     <>
@@ -166,7 +184,7 @@ const StudentsPage = () => {
       </PageHeader>
 
       <div className="mb-6">
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
@@ -174,6 +192,13 @@ const StudentsPage = () => {
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex gap-2 items-center">
+            <YearSessionFilter 
+              onFilterChange={handleFilterChange}
+              sessions={["Semester 1", "Semester 2"]}
             />
           </div>
         </div>
@@ -190,7 +215,9 @@ const StudentsPage = () => {
               <Info className="h-12 w-12 mx-auto text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No students found</h3>
               <p className="mt-1 text-gray-500">
-                {searchTerm ? "Try adjusting your search terms" : "Add your first student to get started"}
+                {searchTerm || Object.keys(yearFilter).length > 0 ? 
+                  "Try adjusting your search terms or filters" : 
+                  "Add your first student to get started"}
               </p>
               {!searchTerm && (
                 <Button className="mt-4" onClick={() => navigate("/students/new")}>

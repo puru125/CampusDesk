@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +14,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Card,
@@ -34,40 +34,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-
-const teacherSchema = z.object({
-  fullName: z
-    .string()
-    .min(3, { message: "Full name must be at least 3 characters" })
-    .max(100, { message: "Full name must be less than 100 characters" }),
-  email: z
-    .string()
-    .email({ message: "Please enter a valid email address" })
-    .max(100, { message: "Email must be less than 100 characters" }),
-  department: z
-    .string()
-    .min(2, { message: "Department must be at least 2 characters" })
-    .max(100, { message: "Department must be less than 100 characters" }),
-  specialization: z
-    .string()
-    .min(2, { message: "Specialization must be at least 2 characters" })
-    .max(100, { message: "Specialization must be less than 100 characters" }),
-  qualification: z
-    .string()
-    .min(2, { message: "Qualification must be at least 2 characters" })
-    .max(100, { message: "Qualification must be less than 100 characters" }),
-  joiningDate: z.date({
-    required_error: "Joining date is required",
-  }),
-  contactNumber: z
-    .string()
-    .min(10, { message: "Contact number must be at least 10 digits" })
-    .max(15, { message: "Contact number must be less than 15 digits" })
-    .optional()
-    .or(z.literal("")),
-});
-
-type TeacherFormValues = z.infer<typeof teacherSchema>;
+import { teacherSchema, TeacherFormValues } from "@/lib/validation-rules";
 
 const AddTeacherPage = () => {
   const navigate = useNavigate();
@@ -178,6 +145,9 @@ const AddTeacherPage = () => {
                         <Input placeholder="Dr. Jane Smith" {...field} />
                       </FormControl>
                       <FormMessage />
+                      <FormDescription>
+                        Enter full name with title if applicable.
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
@@ -252,6 +222,9 @@ const AddTeacherPage = () => {
                         <Input placeholder="9876543210" {...field} />
                       </FormControl>
                       <FormMessage />
+                      <FormDescription>
+                        Enter a valid phone number with country code if applicable.
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
