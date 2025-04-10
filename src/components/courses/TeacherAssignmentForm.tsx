@@ -54,17 +54,46 @@ const TeacherAssignmentForm = ({ courseId, subjects, onSuccess }: TeacherAssignm
     queryFn: async () => {
       const subjectIds = subjects.map(subject => subject.id);
       
+      // Modified query to correctly fetch teacher information from teachers_view
       const { data, error } = await supabase
         .from("teacher_subjects")
         .select(`
-          *,
-          teacher:teacher_id(id, full_name, specialization, department),
+          id,
+          teacher_id,
+          subject_id,
+          created_at,
+          updated_at,
           subject:subject_id(id, name, code)
         `)
         .in("subject_id", subjectIds);
 
       if (error) throw error;
-      return data as TeacherSubjectAssignment[];
+      
+      // Now fetch the teacher information separately for each assignment
+      const assignmentsWithTeachers = await Promise.all(
+        data.map(async (assignment) => {
+          const { data: teacherData, error: teacherError } = await supabase
+            .from("teachers_view")
+            .select("*")
+            .eq("id", assignment.teacher_id)
+            .single();
+            
+          if (teacherError) {
+            console.error("Error fetching teacher:", teacherError);
+            return {
+              ...assignment,
+              teacher: undefined,
+            };
+          }
+          
+          return {
+            ...assignment,
+            teacher: teacherData,
+          };
+        })
+      );
+      
+      return assignmentsWithTeachers as TeacherSubjectAssignment[];
     },
     enabled: subjects && subjects.length > 0,
   });
