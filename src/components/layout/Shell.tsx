@@ -42,6 +42,25 @@ const Shell = ({ children, className }: ShellProps) => {
       .toUpperCase();
   };
 
+  const handleNotificationsClick = () => {
+    if (!user) return;
+    
+    // Direct users to their role-specific notifications page
+    switch (user.role) {
+      case "student":
+        navigate("/student/notifications");
+        break;
+      case "teacher":
+        navigate("/teacher/communication");
+        break;
+      case "admin":
+        navigate("/announcements");
+        break;
+      default:
+        navigate("/announcements");
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -53,7 +72,12 @@ const Shell = ({ children, className }: ShellProps) => {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+              onClick={handleNotificationsClick}
+            >
               <Bell size={20} />
               <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
             </Button>
