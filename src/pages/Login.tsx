@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { School, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -32,6 +33,7 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("admin");
+  const { toast } = useToast();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -48,6 +50,10 @@ const Login = () => {
       const success = await login(data.email, data.password);
       
       if (success) {
+        toast({
+          title: "Login successful",
+          description: "Welcome to the Institute Management System",
+        });
         navigate("/");
       } else {
         setError("Invalid email or password. Please try again.");

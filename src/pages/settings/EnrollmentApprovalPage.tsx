@@ -73,7 +73,24 @@ const EnrollmentApprovalPage = () => {
       setIsLoading(true);
       // This is a placeholder for actual feedback data
       // In a real app, you would fetch from a feedback table
-      setPendingFeedback([]);
+      const { data, error } = await supabase
+        .from('student_notifications')
+        .select(`
+          id,
+          title,
+          message,
+          created_at,
+          students:student_id(
+            users:user_id(full_name),
+            enrollment_number
+          )
+        `)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
+        
+      if (error) throw error;
+      setPendingFeedback(data || []);
     } catch (error) {
       console.error("Error fetching pending feedback:", error);
       toast({
@@ -153,6 +170,32 @@ const EnrollmentApprovalPage = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to reject enrollment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResolveFeedback = async (feedbackId) => {
+    try {
+      const { error } = await supabase
+        .from('student_notifications')
+        .update({ is_read: true })
+        .eq('id', feedbackId);
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Feedback Resolved",
+        description: "The feedback has been marked as resolved",
+      });
+      
+      // Refresh the list
+      fetchPendingFeedback();
+    } catch (error) {
+      console.error("Error resolving feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to resolve feedback",
         variant: "destructive",
       });
     }
@@ -304,7 +347,41 @@ const EnrollmentApprovalPage = () => {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Feedback items would be mapped here */}
+                    {pendingFeedback.map((feedback) => (
+                      <Card key={feedback.id} className="overflow-hidden">
+                        <div className="p-6">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="font-semibold text-lg">{feedback.title}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                From: {feedback.students?.users?.full_name || "Unknown"} 
+                                {feedback.students?.enrollment_number ? ` (${feedback.students.enrollment_number})` : ""}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Received: {new Date(feedback.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              New
+                            </Badge>
+                          </div>
+                          
+                          <div className="mb-4 p-3 bg-gray-50 rounded-md">
+                            <p className="text-sm">{feedback.message}</p>
+                          </div>
+                          
+                          <div className="flex justify-end">
+                            <Button 
+                              onClick={() => handleResolveFeedback(feedback.id)}
+                              className="flex items-center gap-1"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Mark as Resolved
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
                 )}
               </CardContent>

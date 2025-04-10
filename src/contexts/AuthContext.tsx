@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, AuthState, UserRole } from "@/types";
@@ -8,7 +9,7 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   resetPassword: (newPassword: string) => Promise<boolean>;
   updateProfile: (profileData: any) => Promise<boolean>;
-  isFirstLogin: boolean; // Added this property
+  isFirstLogin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,6 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             isAuthenticated: true,
             isLoading: false,
           });
+          
+          // Update last login time silently in the background
+          await supabase
+            .from("users")
+            .update({ last_login: new Date().toISOString() })
+            .eq("id", user.id);
+            
         } else {
           setAuthState({
             user: null,
@@ -94,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        console.error("Authentication error:", error);
         throw error;
       }
 
@@ -115,12 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           isAuthenticated: true,
           isLoading: false,
         });
-
-        // Update last login time
-        await supabase
-          .from("users")
-          .update({ last_login: new Date().toISOString() })
-          .eq("id", user.id);
 
         return true;
       } else {
@@ -204,9 +207,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
 
-      // Update local user data if needed
-      // This depends on what fields are being updated
-      
       return true;
     } catch (error) {
       console.error("Profile update error:", error);
@@ -222,7 +222,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         resetPassword,
         updateProfile,
-        isFirstLogin, // Add isFirstLogin to the context value
+        isFirstLogin,
       }}
     >
       {children}
