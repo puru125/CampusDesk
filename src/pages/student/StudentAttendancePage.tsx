@@ -5,10 +5,7 @@ import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, AlertCircle, Loader2 } from "lucide-react";
-import { format, parseISO, isValid } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Table,
@@ -19,6 +16,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Calendar, Loader2, AlertCircle } from "lucide-react";
+import { format, parseISO, isValid } from "date-fns";
+
+interface Subject {
+  id: string;
+  name: string;
+  code: string;
+}
 
 interface AttendanceRecord {
   id: string;
@@ -26,7 +31,7 @@ interface AttendanceRecord {
   status: string;
   remarks: string | null;
   subject_id: string;
-  subjects: {
+  subject?: {
     name: string;
     code: string;
   };
@@ -60,7 +65,6 @@ const StudentAttendancePage = () => {
       try {
         if (!user) return;
 
-        // Show loading toast
         toast({
           title: "Loading attendance data",
           description: "Please wait while we fetch your attendance records...",
@@ -75,7 +79,7 @@ const StudentAttendancePage = () => {
 
         if (studentError) throw studentError;
 
-        // Fetch attendance records
+        // Fetch attendance records with subject details using a join
         const { data: recordsData, error: recordsError } = await extendedSupabase
           .from('attendance_records')
           .select(`
@@ -84,67 +88,77 @@ const StudentAttendancePage = () => {
             status,
             remarks,
             subject_id,
-            subjects (
-              name,
-              code
-            )
+            subjects:subject_id(name, code)
           `)
-          .eq('student_id', studentData.id)
-          .order('date', { ascending: false });
+          .eq('student_id', studentData.id);
 
         if (recordsError) throw recordsError;
 
-        setAttendanceRecords(recordsData || []);
+        // Process the data if we have it
+        if (recordsData) {
+          // Transform data to the expected AttendanceRecord format
+          const formattedRecords: AttendanceRecord[] = recordsData.map((record: any) => ({
+            id: record.id,
+            date: record.date,
+            status: record.status,
+            remarks: record.remarks,
+            subject_id: record.subject_id,
+            subject: record.subjects
+          }));
 
-        // Show success toast for data loaded
-        toast({
-          title: "Data loaded successfully",
-          description: `Loaded ${recordsData?.length || 0} attendance records`,
-        });
+          setAttendanceRecords(formattedRecords);
 
-        // Calculate attendance summary by subject
-        const subjectMap = new Map<string, AttendanceSummary>();
-        let totalClasses = 0;
-        let totalPresent = 0;
+          // Calculate attendance summary by subject
+          const subjectMap = new Map<string, AttendanceSummary>();
+          let totalClasses = 0;
+          let totalPresent = 0;
 
-        recordsData?.forEach(record => {
-          const subjectId = record.subject_id;
-          
-          if (!subjectMap.has(subjectId)) {
-            subjectMap.set(subjectId, {
-              subject_id: subjectId,
-              subject_name: record.subjects.name,
-              subject_code: record.subjects.code,
-              total_classes: 0,
-              present_count: 0,
-              absent_count: 0,
-              percentage: 0,
-            });
-          }
-          
-          const summary = subjectMap.get(subjectId)!;
-          summary.total_classes += 1;
-          
-          if (record.status.toLowerCase() === 'present') {
-            summary.present_count += 1;
-            totalPresent += 1;
-          } else {
-            summary.absent_count += 1;
-          }
-          
-          summary.percentage = (summary.present_count / summary.total_classes) * 100;
-          totalClasses += 1;
-        });
+          formattedRecords.forEach(record => {
+            if (!record.subject) return; // Skip if subject data is missing
+            
+            const subjectId = record.subject_id;
+            
+            if (!subjectMap.has(subjectId)) {
+              subjectMap.set(subjectId, {
+                subject_id: subjectId,
+                subject_name: record.subject.name,
+                subject_code: record.subject.code,
+                total_classes: 0,
+                present_count: 0,
+                absent_count: 0,
+                percentage: 0,
+              });
+            }
+            
+            const summary = subjectMap.get(subjectId)!;
+            summary.total_classes += 1;
+            
+            if (record.status.toLowerCase() === 'present') {
+              summary.present_count += 1;
+              totalPresent += 1;
+            } else {
+              summary.absent_count += 1;
+            }
+            
+            summary.percentage = (summary.present_count / summary.total_classes) * 100;
+            totalClasses += 1;
+          });
 
-        const summaryArray = Array.from(subjectMap.values());
-        setAttendanceSummary(summaryArray);
-        
-        // Calculate overall attendance
-        setOverallAttendance({
-          total: totalClasses,
-          present: totalPresent,
-          percentage: totalClasses > 0 ? (totalPresent / totalClasses) * 100 : 0,
-        });
+          const summaryArray = Array.from(subjectMap.values());
+          setAttendanceSummary(summaryArray);
+          
+          // Calculate overall attendance
+          setOverallAttendance({
+            total: totalClasses,
+            present: totalPresent,
+            percentage: totalClasses > 0 ? (totalPresent / totalClasses) * 100 : 0,
+          });
+
+          toast({
+            title: "Data loaded",
+            description: "Your attendance records have been loaded successfully",
+          });
+        }
       } catch (error) {
         console.error("Error fetching attendance data:", error);
         toast({
@@ -163,10 +177,9 @@ const StudentAttendancePage = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     
-    // Show toast when switching tabs
     toast({
-      title: `Viewing ${value === 'summary' ? 'Subject Summary' : 'Attendance Records'}`,
-      description: `Switched to ${value === 'summary' ? 'summary view' : 'detailed records view'}`,
+      title: `Viewing ${value === 'summary' ? 'Summary' : 'Records'}`,
+      description: `Switched to ${value === 'summary' ? 'summary view' : 'detailed records'}`,
     });
   };
 
@@ -192,16 +205,6 @@ const StudentAttendancePage = () => {
     }
   };
 
-  const getAttendanceColor = (percentage: number) => {
-    if (percentage >= 75) {
-      return "bg-green-500";
-    } else if (percentage >= 60) {
-      return "bg-yellow-500";
-    } else {
-      return "bg-red-500";
-    }
-  };
-
   return (
     <div>
       <PageHeader
@@ -224,26 +227,35 @@ const StudentAttendancePage = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm text-gray-500">Attendance Rate</p>
-                    <p className="text-2xl font-bold">{overallAttendance.percentage.toFixed(1)}%</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Classes Attended</p>
-                    <p className="text-lg">
-                      {overallAttendance.present} / {overallAttendance.total}
+                    <span className="text-2xl font-bold">
+                      {overallAttendance.percentage.toFixed(1)}%
+                    </span>
+                    <p className="text-sm text-muted-foreground">
+                      {overallAttendance.present} of {overallAttendance.total} classes attended
                     </p>
                   </div>
+                  {overallAttendance.percentage < 75 && (
+                    <Badge variant="destructive" className="ml-auto">
+                      Below required attendance
+                    </Badge>
+                  )}
                 </div>
                 
-                <Progress value={overallAttendance.percentage} className="h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div 
-                    className={`h-full ${getAttendanceColor(overallAttendance.percentage)}`} 
-                    style={{ width: `${overallAttendance.percentage}%` }} 
-                  />
-                </Progress>
+                    className={`h-2.5 rounded-full ${
+                      overallAttendance.percentage >= 75 
+                        ? "bg-green-500" 
+                        : overallAttendance.percentage >= 60 
+                        ? "bg-yellow-500" 
+                        : "bg-red-500"
+                    }`}
+                    style={{ width: `${Math.min(overallAttendance.percentage, 100)}%` }}
+                  ></div>
+                </div>
                 
                 {overallAttendance.percentage < 75 && (
-                  <Alert variant="destructive" className="mt-4">
+                  <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Attendance Warning</AlertTitle>
                     <AlertDescription>
@@ -255,7 +267,7 @@ const StudentAttendancePage = () => {
             </CardContent>
           </Card>
           
-          <Tabs defaultValue="summary" onValueChange={handleTabChange}>
+          <Tabs defaultValue="summary" value={activeTab} onValueChange={handleTabChange}>
             <TabsList>
               <TabsTrigger value="summary">Subject Summary</TabsTrigger>
               <TabsTrigger value="records">Attendance Records</TabsTrigger>
@@ -272,18 +284,26 @@ const StudentAttendancePage = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Attendance: {summary.percentage.toFixed(1)}%</span>
-                            <span>
-                              {summary.present_count} / {summary.total_classes} classes
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">
+                              {summary.percentage.toFixed(1)}%
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              {summary.present_count} of {summary.total_classes} classes
                             </span>
                           </div>
-                          <Progress value={summary.percentage} className="h-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
-                              className={`h-full ${getAttendanceColor(summary.percentage)}`} 
-                              style={{ width: `${summary.percentage}%` }} 
-                            />
-                          </Progress>
+                              className={`h-2 rounded-full ${
+                                summary.percentage >= 75 
+                                  ? "bg-green-500" 
+                                  : summary.percentage >= 60 
+                                  ? "bg-yellow-500" 
+                                  : "bg-red-500"
+                              }`}
+                              style={{ width: `${Math.min(summary.percentage, 100)}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -318,10 +338,14 @@ const StudentAttendancePage = () => {
                           <TableRow key={record.id}>
                             <TableCell>{formatDate(record.date)}</TableCell>
                             <TableCell>
-                              <div>
-                                <p className="font-medium">{record.subjects.name}</p>
-                                <p className="text-sm text-gray-500">{record.subjects.code}</p>
-                              </div>
+                              {record.subject ? (
+                                <div>
+                                  <p className="font-medium">{record.subject.name}</p>
+                                  <p className="text-sm text-gray-500">{record.subject.code}</p>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">Unknown</span>
+                              )}
                             </TableCell>
                             <TableCell>{getStatusBadge(record.status)}</TableCell>
                             <TableCell>{record.remarks || "-"}</TableCell>

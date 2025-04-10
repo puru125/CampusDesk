@@ -50,7 +50,7 @@ export const teacherSchema = z.object({
     .min(2, "Qualification is required")
     .nonempty("Qualification is required"),
   contactNumber: z.string()
-    .min(10, "Contact number must be exactly 10 digits")
+    .min(10, "Contact number must be at least 10 digits")
     .max(10, "Contact number must be exactly 10 digits")
     .regex(/^\d+$/, "Contact number must contain only digits")
     .nonempty("Contact number is required"),
@@ -162,4 +162,4 @@ export interface YearSessionValues {
 }
 
 // Toast variant type to ensure we use valid values
-export type ToastVariant = "default" | "destructive";
+export type ToastVariant = "default" | "destructive" | "warning";

@@ -7,8 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle2, XCircle, Search, Calendar, Clock, Download, Save, Loader2, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
 import {
   Select,
   SelectContent,
@@ -17,8 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Download, Search, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const AttendancePage = () => {
   const { user } = useAuth();
@@ -438,11 +438,11 @@ const AttendancePage = () => {
       </div>
       
       {!selectedClass || !selectedSubject || !selectedDate ? (
-        <Alert className="mt-6" variant="warning">
+        <Alert variant="destructive" className="mt-6">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Required Fields</AlertTitle>
           <AlertDescription>
-            Please select a class, subject, and date to mark attendance.
+            Please select a class, subject, and date to record attendance.
           </AlertDescription>
         </Alert>
       ) : (
