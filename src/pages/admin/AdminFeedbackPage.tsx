@@ -53,15 +53,20 @@ const AdminFeedbackPage = () => {
           } as Feedback;
         }
         
+        // Using non-null assertion operator since we've checked item is not null above
+        const studentName = item.students_view && 'full_name' in item.students_view 
+          ? item.students_view.full_name 
+          : "Unknown Student";
+          
         return {
-          id: item.id,
-          created_at: item.created_at,
-          student_id: item.student_id,
-          title: item.title,
-          message: item.message,
-          rating: item.rating,
-          is_read: item.is_read,
-          student_name: item.students_view?.full_name || "Unknown Student"
+          id: item.id || '',
+          created_at: item.created_at || '',
+          student_id: item.student_id || '',
+          title: item.title || '',
+          message: item.message || '',
+          rating: item.rating || 0,
+          is_read: item.is_read || false,
+          student_name: studentName
         } as Feedback;
       });
     },
