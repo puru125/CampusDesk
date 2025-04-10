@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { BookPlus, Save } from "lucide-react";
+import { BookPlus, Save, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +24,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Select,
@@ -32,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PageHeader from "@/components/ui/page-header";
 import { courseSchema, CourseFormValues } from "@/lib/validation-rules";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,7 @@ const AddCoursePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
@@ -62,7 +64,7 @@ const AddCoursePage = () => {
         code: values.code,
         credits: values.credits,
         description: values.description,
-        department_id: values.departmentId || null,
+        department_id: values.departmentId && values.departmentId !== "" ? values.departmentId : null,
         is_active: true,
         duration: values.duration,
       });
@@ -77,8 +79,9 @@ const AddCoursePage = () => {
       });
       navigate("/courses");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error adding course:", error);
+      setError(error.message || "Failed to add course. Please try again.");
       toast({
         title: "Error",
         description: "Failed to add course. Please try again.",
@@ -90,6 +93,7 @@ const AddCoursePage = () => {
 
   const onSubmit = (values: CourseFormValues) => {
     setIsSubmitting(true);
+    setError(null);
     addCourseMutation.mutate(values);
   };
 
@@ -105,7 +109,15 @@ const AddCoursePage = () => {
         </Button>
       </PageHeader>
 
-      <Card>
+      {error && (
+        <Alert variant="destructive" className="max-w-4xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle>Course Information</CardTitle>
           <CardDescription>
@@ -121,7 +133,7 @@ const AddCoursePage = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Course Name</FormLabel>
+                      <FormLabel>Course Name<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. Computer Science" {...field} />
                       </FormControl>
@@ -138,7 +150,7 @@ const AddCoursePage = () => {
                   name="code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Course Code</FormLabel>
+                      <FormLabel>Course Code<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. CS101" {...field} />
                       </FormControl>
@@ -155,7 +167,7 @@ const AddCoursePage = () => {
                   name="credits"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Credits</FormLabel>
+                      <FormLabel>Credits<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -187,7 +199,7 @@ const AddCoursePage = () => {
                       <FormLabel>Department</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -195,11 +207,12 @@ const AddCoursePage = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="dept1">Computer Science</SelectItem>
-                          <SelectItem value="dept2">Engineering</SelectItem>
-                          <SelectItem value="dept3">Mathematics</SelectItem>
-                          <SelectItem value="dept4">Physics</SelectItem>
-                          <SelectItem value="dept5">Chemistry</SelectItem>
+                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="1">Computer Science</SelectItem>
+                          <SelectItem value="2">Engineering</SelectItem>
+                          <SelectItem value="3">Mathematics</SelectItem>
+                          <SelectItem value="4">Physics</SelectItem>
+                          <SelectItem value="5">Chemistry</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormDescription>
@@ -215,7 +228,7 @@ const AddCoursePage = () => {
                   name="duration"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Duration</FormLabel>
+                      <FormLabel>Duration<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. 4 years" {...field} />
                       </FormControl>
@@ -249,7 +262,7 @@ const AddCoursePage = () => {
                 )}
               />
 
-              <div className="flex justify-end space-x-4">
+              <CardFooter className="flex justify-end space-x-4 px-0">
                 <Button
                   type="button"
                   variant="outline"
@@ -261,7 +274,7 @@ const AddCoursePage = () => {
                   <Save className="mr-2 h-4 w-4" />
                   {isSubmitting ? "Saving..." : "Save Course"}
                 </Button>
-              </div>
+              </CardFooter>
             </form>
           </Form>
         </CardContent>

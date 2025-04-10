@@ -6,11 +6,11 @@ export const courseSchema = z.object({
   name: z.string()
     .min(3, "Course name is required and must be at least 3 characters")
     .regex(/^[a-zA-Z\s]+$/, "Course name must not contain special characters or numbers"),
-  code: z.string().min(2, "Course code is required"),
+  code: z.string().min(2, "Course code is required").nonempty("Course code is required"),
   description: z.string().optional(),
   credits: z.number().min(1, "Credits must be at least 1"),
   departmentId: z.string().optional(),
-  duration: z.string().min(1, "Duration is required"),
+  duration: z.string().min(1, "Duration is required").nonempty("Duration is required"),
 });
 
 export type CourseFormValues = z.infer<typeof courseSchema>;
@@ -20,7 +20,7 @@ export const subjectSchema = z.object({
   name: z.string()
     .min(3, "Subject name is required and must be at least 3 characters")
     .regex(/^[a-zA-Z\s]+$/, "Subject name must not contain special characters or numbers"),
-  code: z.string().min(2, "Subject code is required"),
+  code: z.string().min(2, "Subject code is required").nonempty("Subject code is required"),
   description: z.string().optional(),
   credits: z.number().min(1, "Credits must be at least 1"),
   courseId: z.string().min(1, "Course is required"),
@@ -32,15 +32,26 @@ export type SubjectFormValues = z.infer<typeof subjectSchema>;
 export const teacherSchema = z.object({
   fullName: z.string()
     .min(3, "Full name is required and must be at least 3 characters")
-    .regex(/^[a-zA-Z\s]+$/, "Name must not contain special characters or numbers"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  department: z.string().min(2, "Department is required"),
-  specialization: z.string().min(2, "Specialization is required"),
-  qualification: z.string().min(2, "Qualification is required"),
+    .regex(/^[a-zA-Z\s]+$/, "Name must not contain special characters or numbers")
+    .nonempty("Full name is required"),
+  email: z.string()
+    .email("Please enter a valid email address")
+    .nonempty("Email is required"),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .nonempty("Password is required"),
+  department: z.string()
+    .min(2, "Department is required")
+    .nonempty("Department is required"),
+  specialization: z.string()
+    .min(2, "Specialization is required")
+    .nonempty("Specialization is required"),
+  qualification: z.string()
+    .min(2, "Qualification is required")
+    .nonempty("Qualification is required"),
   contactNumber: z.string()
-    .min(10, "Contact number must be at least 10 digits")
-    .max(10, "Contact number cannot exceed 10 digits")
+    .min(10, "Contact number must be exactly 10 digits")
+    .max(10, "Contact number must be exactly 10 digits")
     .regex(/^\d+$/, "Contact number must contain only digits")
     .nonempty("Contact number is required"),
   joiningDate: z.date({
@@ -55,19 +66,26 @@ export type TeacherFormValues = z.infer<typeof teacherSchema>;
 export const studentSchema = z.object({
   fullName: z.string()
     .min(3, "Full name is required and must be at least 3 characters")
-    .regex(/^[a-zA-Z\s]+$/, "Name must not contain special characters or numbers"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+    .regex(/^[a-zA-Z\s]+$/, "Name must not contain special characters or numbers")
+    .nonempty("Full name is required"),
+  email: z.string()
+    .email("Please enter a valid email address")
+    .nonempty("Email is required"),
+  password: z.string()
+    .min(6, "Password must be at least 6 characters")
+    .nonempty("Password is required"),
   dateOfBirth: z.date({
     required_error: "Date of birth is required",
     invalid_type_error: "Date of birth must be a valid date",
   }),
   contactNumber: z.string()
-    .min(10, "Contact number must be at least 10 digits")
-    .max(10, "Contact number cannot exceed 10 digits")
+    .min(10, "Contact number must be exactly 10 digits")
+    .max(10, "Contact number must be exactly 10 digits")
     .regex(/^\d+$/, "Contact number must contain only digits")
     .nonempty("Contact number is required"),
-  address: z.string().min(5, "Address is required").nonempty("Address is required"),
+  address: z.string()
+    .min(5, "Address is required")
+    .nonempty("Address is required"),
   guardianName: z.string().optional(),
   guardianContact: z.string().optional(),
 });
@@ -128,3 +146,4 @@ export interface YearSessionValues {
   year?: string;
   session?: string;
 }
+

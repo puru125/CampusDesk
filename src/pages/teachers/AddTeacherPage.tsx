@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowLeft, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import { teacherSchema, TeacherFormValues } from "@/lib/validation-rules";
 
 const AddTeacherPage = () => {
@@ -70,9 +69,9 @@ const AddTeacherPage = () => {
         .from('users')
         .select('id')
         .eq('email', data.email)
-        .single();
+        .maybeSingle();
       
-      if (emailCheckError && emailCheckError.code !== 'PGRST116') {
+      if (emailCheckError) {
         throw emailCheckError;
       }
       
@@ -283,7 +282,16 @@ const AddTeacherPage = () => {
                     <FormItem>
                       <FormLabel>Contact Number<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="9876543210" {...field} />
+                        <Input 
+                          placeholder="9876543210"
+                          maxLength={10}
+                          {...field}
+                          onChange={(e) => {
+                            // Only allow digits
+                            const value = e.target.value.replace(/\D/g, '');
+                            field.onChange(value);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                       <FormDescription>

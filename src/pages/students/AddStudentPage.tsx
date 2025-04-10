@@ -70,9 +70,9 @@ const AddStudentPage = () => {
         .from('users')
         .select('id')
         .eq('email', data.email)
-        .single();
+        .maybeSingle();
       
-      if (emailCheckError && emailCheckError.code !== 'PGRST116') {
+      if (emailCheckError) {
         throw emailCheckError;
       }
       
@@ -286,7 +286,16 @@ const AddStudentPage = () => {
                     <FormItem>
                       <FormLabel>Contact Number<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="9876543210" {...field} />
+                        <Input 
+                          placeholder="9876543210" 
+                          maxLength={10}
+                          {...field}
+                          onChange={(e) => {
+                            // Only allow digits
+                            const value = e.target.value.replace(/\D/g, '');
+                            field.onChange(value);
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                       <FormDescription>
@@ -317,7 +326,20 @@ const AddStudentPage = () => {
                     <FormItem>
                       <FormLabel>Guardian Contact</FormLabel>
                       <FormControl>
-                        <Input placeholder="Guardian's contact number" {...field} />
+                        <Input 
+                          placeholder="Guardian's contact number" 
+                          maxLength={10}
+                          {...field} 
+                          onChange={(e) => {
+                            // Only allow digits if entered
+                            if (e.target.value) {
+                              const value = e.target.value.replace(/\D/g, '');
+                              field.onChange(value);
+                            } else {
+                              field.onChange("");
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
