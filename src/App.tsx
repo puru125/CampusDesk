@@ -184,19 +184,6 @@ function App() {
                         </ProtectedRoute>
                       } 
                     />
-                    
-                    {/* Add routes for teacher and admin notifications */}
-                    <Route path="/teacher/notifications" element={
-                      <ProtectedRoute requiredRole="teacher">
-                        <TeacherNotificationsPage />
-                      </ProtectedRoute>
-                    } />
-
-                    <Route path="/admin/notifications" element={
-                      <ProtectedRoute requiredRole="admin">
-                        <AdminNotificationsPage />
-                      </ProtectedRoute>
-                    } />
                   </Routes>
                 </Shell>
               </ProtectedRoute>

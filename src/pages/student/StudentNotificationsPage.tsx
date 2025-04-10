@@ -1,7 +1,7 @@
 
 import PageHeader from "@/components/ui/page-header";
 import { Bell } from "lucide-react";
-import NotificationsList from "@/components/notifications/NotificationsList";
+import StudentNotificationsList from "@/components/student/StudentNotificationsList";
 
 const StudentNotificationsPage = () => {
   return (
@@ -13,7 +13,7 @@ const StudentNotificationsPage = () => {
       />
       
       <div className="mt-6">
-        <NotificationsList showViewAll={false} />
+        <StudentNotificationsList showViewAll={false} />
       </div>
     </div>
   );
