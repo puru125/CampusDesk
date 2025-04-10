@@ -21,10 +21,10 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
   const navigate = useNavigate();
 
   return (
-    <Card className="h-full hover:shadow-md transition-all duration-300">
+    <Card className="h-full">
       <CardHeader className="pb-4 border-b">
         <CardTitle className="text-lg flex items-center">
-          <Bell className="mr-2 h-5 w-5 text-institute-600 dark:text-institute-400" />
+          <Bell className="mr-2 h-5 w-5 text-institute-600" />
           Recent Activity
         </CardTitle>
       </CardHeader>
@@ -34,16 +34,16 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
             {activities.map((activity) => (
               <div
                 key={activity.id}
-                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200"
+                className="p-4 hover:bg-gray-50 transition-colors duration-200"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-gray-800 dark:text-gray-200">{activity.title}</h3>
-                  <span className="text-xs px-2 py-0.5 bg-institute-100 text-institute-600 dark:bg-institute-900/50 dark:text-institute-400 rounded-full">
+                  <h3 className="font-medium text-gray-800">{activity.title}</h3>
+                  <span className="text-xs px-2 py-0.5 bg-institute-100 text-institute-600 rounded-full">
                     {activity.user}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{activity.description}</p>
-                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-3">
+                <p className="text-sm text-gray-600 mb-3">{activity.description}</p>
+                <div className="flex items-center text-xs text-gray-500 space-x-3">
                   <div className="flex items-center">
                     <Clock className="h-3 w-3 mr-1 text-gray-400" />
                     <span>{activity.time}</span>
@@ -57,14 +57,14 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 text-gray-500">
             No recent activity
           </div>
         )}
         <div className="p-4">
           <Button
             variant="outline"
-            className="w-full hover:bg-institute-50 hover:text-institute-600 dark:hover:bg-institute-900/20 dark:hover:text-institute-400"
+            className="w-full hover:bg-institute-50 hover:text-institute-600"
             onClick={() => navigate("/notifications")}
           >
             View All Activity
