@@ -35,6 +35,19 @@ const StudentFeedbackPage = () => {
         throw new Error("User not authenticated");
       }
 
+      // Validate the form fields
+      if (!subject.trim()) {
+        throw new Error("Please enter a subject for your feedback");
+      }
+      
+      if (!feedbackText.trim()) {
+        throw new Error("Please enter your feedback message");
+      }
+      
+      if (rating < 1 || rating > 10) {
+        throw new Error("Rating must be between 1 and 10");
+      }
+
       // Get student ID
       const { data: studentData, error: studentError } = await extendedSupabase
         .from('students')
@@ -74,7 +87,7 @@ const StudentFeedbackPage = () => {
       setSubmissionError(error.message || "Failed to submit feedback. Please try again.");
       toast({
         title: "Error",
-        description: "Failed to submit feedback",
+        description: error.message || "Failed to submit feedback",
         variant: "destructive",
       });
     } finally {

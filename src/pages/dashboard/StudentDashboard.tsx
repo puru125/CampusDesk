@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -11,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import StudentNotificationsList from "@/components/student/StudentNotificationsList";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample activities data
 const sampleActivities = [
@@ -34,6 +34,7 @@ const sampleActivities = [
 
 const StudentDashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [upcomingExams, setUpcomingExams] = useState([]);
@@ -74,6 +75,11 @@ const StudentDashboard = () => {
       }
     } catch (error) {
       console.error("Error checking fee status:", error);
+      toast({
+        title: "Error",
+        description: "Could not retrieve fee status information",
+        variant: "destructive",
+      });
     }
   };
   
@@ -88,8 +94,38 @@ const StudentDashboard = () => {
       if (error) throw error;
       
       setStudentProfile(data);
+      
+      // Check if enrollment is approved but status still shows pending
+      if (data && data.enrollment_status === 'pending') {
+        // Check if there are any approved enrollments for this student
+        const { data: enrollments, error: enrollmentsError } = await extendedSupabase
+          .from('student_course_enrollments')
+          .select('status')
+          .eq('student_id', data.id)
+          .eq('status', 'approved')
+          .limit(1);
+          
+        if (!enrollmentsError && enrollments && enrollments.length > 0) {
+          // Update the student status to active
+          await extendedSupabase
+            .from('students')
+            .update({ enrollment_status: 'active' })
+            .eq('id', data.id);
+            
+          // Update local state
+          setStudentProfile({
+            ...data,
+            enrollment_status: 'active'
+          });
+        }
+      }
     } catch (error) {
       console.error("Error fetching student profile:", error);
+      toast({
+        title: "Error",
+        description: "Could not retrieve student profile information",
+        variant: "destructive",
+      });
     }
   };
   

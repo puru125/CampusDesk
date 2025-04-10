@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,22 +50,28 @@ const AnnouncementsPage = () => {
   
   useEffect(() => {
     fetchAnnouncements();
-  }, []);
+  }, [user]);
   
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from("announcements_view")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*");
+        
+      if (user?.role !== 'admin') {
+        query = query.or(`target_role.eq.all,target_role.eq.${user?.role}`);
+      }
+      
+      query = query.order("created_at", { ascending: false });
+      
+      const { data, error } = await query;
       
       if (error) {
         throw error;
       }
       
-      // Cast data to Announcement array
       setAnnouncements(data as unknown as Announcement[]);
     } catch (error) {
       console.error("Error fetching announcements:", error);
@@ -112,12 +117,10 @@ const AnnouncementsPage = () => {
         description: "Announcement created successfully",
       });
       
-      // Reset form
       setTitle("");
       setContent("");
       setTargetRole("all");
       
-      // Refresh the announcements list
       fetchAnnouncements();
     } catch (error) {
       console.error("Error creating announcement:", error);
@@ -159,13 +162,11 @@ const AnnouncementsPage = () => {
         description: "Announcement updated successfully",
       });
       
-      // Reset form
       setTitle("");
       setContent("");
       setTargetRole("all");
       setEditingId(null);
       
-      // Refresh the announcements list
       fetchAnnouncements();
     } catch (error) {
       console.error("Error updating announcement:", error);
@@ -197,7 +198,6 @@ const AnnouncementsPage = () => {
         description: "Announcement deleted successfully",
       });
       
-      // Refresh the announcements list
       fetchAnnouncements();
     } catch (error) {
       console.error("Error deleting announcement:", error);
@@ -220,76 +220,78 @@ const AnnouncementsPage = () => {
     <div className="space-y-6">
       <PageHeader
         title="Announcements"
-        description="Create and manage announcements for students and teachers"
+        description="View announcements from the institute administration"
       />
       
-      <div className="flex justify-end">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Announcement
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>{editingId ? "Edit Announcement" : "Create New Announcement"}</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Announcement title"
-                />
+      {user?.role === 'admin' && (
+        <div className="flex justify-end">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Announcement
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>{editingId ? "Edit Announcement" : "Create New Announcement"}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Announcement title"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="target">Target Audience</Label>
+                  <Select
+                    value={targetRole}
+                    onValueChange={(value) => setTargetRole(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Everyone</SelectItem>
+                      <SelectItem value="student">Students Only</SelectItem>
+                      <SelectItem value="teacher">Teachers Only</SelectItem>
+                      <SelectItem value="admin">Admins Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="content">Content</Label>
+                  <Textarea
+                    id="content"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Announcement content"
+                    rows={5}
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="target">Target Audience</Label>
-                <Select
-                  value={targetRole}
-                  onValueChange={(value) => setTargetRole(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select target audience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Everyone</SelectItem>
-                    <SelectItem value="student">Students Only</SelectItem>
-                    <SelectItem value="teacher">Teachers Only</SelectItem>
-                    <SelectItem value="admin">Admins Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Announcement content"
-                  rows={5}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <DialogClose asChild>
-                <Button onClick={editingId ? handleUpdate : handleSubmit}>
-                  {editingId ? "Update" : "Create"}
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <DialogClose asChild>
+                  <Button onClick={editingId ? handleUpdate : handleSubmit}>
+                    {editingId ? "Update" : "Create"}
+                  </Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
       
       <Card>
         <CardHeader>
-          <CardTitle>All Announcements</CardTitle>
+          <CardTitle>Announcements</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -300,106 +302,54 @@ const AnnouncementsPage = () => {
             <div className="text-center py-8 text-muted-foreground">
               <Megaphone className="mx-auto h-12 w-12 mb-4 opacity-50" />
               <p>No announcements found</p>
-              <p className="text-sm">Create a new announcement to get started</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Target</TableHead>
-                    <TableHead>Created By</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {announcements.map((announcement) => (
-                    <TableRow key={announcement.id}>
-                      <TableCell className="font-medium">{announcement.title}</TableCell>
-                      <TableCell>
-                        {announcement.target_role === "all" ? "Everyone" : 
-                         announcement.target_role === "student" ? "Students" :
-                         announcement.target_role === "teacher" ? "Teachers" : "Admins"}
-                      </TableCell>
-                      <TableCell>{announcement.created_by_name || "System"}</TableCell>
-                      <TableCell>{format(new Date(announcement.created_at), "PPP")}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleEdit(announcement)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                              <DialogTitle>Edit Announcement</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <Label htmlFor="title">Title</Label>
-                                <Input
-                                  id="title"
-                                  value={title}
-                                  onChange={(e) => setTitle(e.target.value)}
-                                  placeholder="Announcement title"
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <Label htmlFor="target">Target Audience</Label>
-                                <Select
-                                  value={targetRole}
-                                  onValueChange={(value) => setTargetRole(value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select target audience" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="all">Everyone</SelectItem>
-                                    <SelectItem value="student">Students Only</SelectItem>
-                                    <SelectItem value="teacher">Teachers Only</SelectItem>
-                                    <SelectItem value="admin">Admins Only</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="grid gap-2">
-                                <Label htmlFor="content">Content</Label>
-                                <Textarea
-                                  id="content"
-                                  value={content}
-                                  onChange={(e) => setContent(e.target.value)}
-                                  placeholder="Announcement content"
-                                  rows={5}
-                                />
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
-                              </DialogClose>
-                              <DialogClose asChild>
-                                <Button onClick={handleUpdate}>Update</Button>
-                              </DialogClose>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDelete(announcement.id)}
-                        >
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-4">
+              {announcements.map((announcement) => (
+                <Card key={announcement.id} className="border-l-4 border-l-institute-500 mb-4">
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                        <p className="text-sm text-gray-500">
+                          {format(new Date(announcement.created_at), "MMMM d, yyyy")}
+                        </p>
+                      </div>
+                      {user?.role === 'admin' && (
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEdit(announcement)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDelete(announcement.id)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="whitespace-pre-wrap">{announcement.content}</p>
+                    <div className="flex justify-between mt-4 text-sm text-gray-500">
+                      {announcement.created_by_name && (
+                        <span>Posted by: {announcement.created_by_name}</span>
+                      )}
+                      <span>
+                        For: {announcement.target_role === "all" ? "Everyone" : 
+                            announcement.target_role === "student" ? "Students" :
+                            announcement.target_role === "teacher" ? "Teachers" : "Admins"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </CardContent>

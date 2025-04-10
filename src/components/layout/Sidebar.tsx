@@ -14,6 +14,7 @@ import {
   FileText,
   CreditCard,
   LogOut,
+  Megaphone,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -67,7 +68,7 @@ const Sidebar = () => {
     },
     {
       title: "Announcements",
-      icon: Bell,
+      icon: Megaphone,
       href: "/announcements",
     },
     {
@@ -114,6 +115,16 @@ const Sidebar = () => {
       href: "/assignments",
     },
     {
+      title: "Announcements",
+      icon: Megaphone,
+      href: "/announcements",
+    },
+    {
+      title: "Communication",
+      icon: Bell,
+      href: "/teacher/communication",
+    },
+    {
       title: "Settings",
       icon: Settings,
       href: "/settings",
@@ -155,6 +166,11 @@ const Sidebar = () => {
       title: "Fees",
       icon: CreditCard,
       href: "/fees",
+    },
+    {
+      title: "Announcements",
+      icon: Megaphone,
+      href: "/announcements",
     },
     {
       title: "Notifications",
