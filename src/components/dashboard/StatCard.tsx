@@ -41,11 +41,11 @@ const StatCard = ({
       <CardContent>
         <p className="text-3xl font-bold">{value}</p>
         {trendText && (
-          <CardDescription className="flex items-center mt-2">
+          <CardDescription className="flex items-center mt-1">
             {trendText}
             {displayTrendValue && (
               <span
-                className={`ml-1 font-medium ${
+                className={`ml-1 ${
                   displayTrendDirection === "up"
                     ? "text-green-500"
                     : displayTrendDirection === "down"

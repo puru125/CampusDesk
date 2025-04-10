@@ -65,7 +65,7 @@ const Sidebar = ({ children }: SidebarProps) => {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="border-b bg-white dark:bg-gray-800 p-4 h-[60px] flex items-center justify-between shadow-sm">
+      <div className="border-b p-4 h-[60px] flex items-center justify-between">
         <LogoLink />
         <div className="flex items-center gap-2">
           <NotificationCounter />
@@ -73,27 +73,23 @@ const Sidebar = ({ children }: SidebarProps) => {
         </div>
       </div>
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-64 border-r bg-white dark:bg-gray-800 shadow-sm hidden md:block">
-          <div className="py-6 px-4">
+        <aside className="w-64 border-r hidden md:block">
+          <div className="py-4 px-3">
             <Accordion type="multiple" defaultValue={["menu"]} className="w-full">
-              <AccordionItem value="menu" className="border-none">
-                <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                  <div className="flex items-center text-gray-700 dark:text-gray-200">
-                    <LayoutDashboard className="mr-2 h-4 w-4 text-institute-600" />
-                    <span className="font-medium">Dashboard</span>
-                  </div>
+              <AccordionItem value="menu">
+                <AccordionTrigger className="group">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Dashboard
                 </AccordionTrigger>
-                <AccordionContent className="pt-1 pb-0">
+                <AccordionContent>
                   <nav className="grid gap-1">
                     <NavLink
                       to="/"
-                      className={({ isActive }) => `
-                        flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                        ${isActive ? 
-                          "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                          "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        }
-                      `}
+                      className={`flex items-center text-sm ${
+                        isActive("/")
+                          ? "font-medium text-institute-600"
+                          : "text-gray-500 hover:text-gray-700"
+                      } py-2 px-3 rounded-md`}
                     >
                       <Home className="mr-2 h-4 w-4" />
                       Home
@@ -104,37 +100,31 @@ const Sidebar = ({ children }: SidebarProps) => {
 
               {user?.role === "admin" && (
                 <>
-                  <AccordionItem value="students" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Users className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Students</span>
-                      </div>
+                  <AccordionItem value="students">
+                    <AccordionTrigger className="group">
+                      <Users className="mr-2 h-4 w-4" />
+                      Students
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/students"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/students")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Users className="mr-2 h-4 w-4" />
                           All Students
                         </NavLink>
                         <NavLink
                           to="/students/new"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/students/new")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <UserPlus className="mr-2 h-4 w-4" />
                           Add New
@@ -143,37 +133,31 @@ const Sidebar = ({ children }: SidebarProps) => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="teachers" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Users className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Teachers</span>
-                      </div>
+                  <AccordionItem value="teachers">
+                    <AccordionTrigger className="group">
+                      <Users className="mr-2 h-4 w-4" />
+                      Teachers
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/teachers"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/teachers")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Users className="mr-2 h-4 w-4" />
                           All Teachers
                         </NavLink>
                         <NavLink
                           to="/teachers/new"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/teachers/new")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <UserPlus className="mr-2 h-4 w-4" />
                           Add New
@@ -182,37 +166,31 @@ const Sidebar = ({ children }: SidebarProps) => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="courses" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Book className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Courses</span>
-                      </div>
+                  <AccordionItem value="courses">
+                    <AccordionTrigger className="group">
+                      <Book className="mr-2 h-4 w-4" />
+                      Courses
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/courses"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/courses")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Book className="mr-2 h-4 w-4" />
                           All Courses
                         </NavLink>
                         <NavLink
                           to="/courses/new"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/courses/new")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Plus className="mr-2 h-4 w-4" />
                           Add New
@@ -221,24 +199,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="announcements" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Megaphone className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Announcements</span>
-                      </div>
+                  <AccordionItem value="announcements">
+                    <AccordionTrigger className="group">
+                      <Megaphone className="mr-2 h-4 w-4" />
+                      Announcements
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/announcements"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/announcements")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Megaphone className="mr-2 h-4 w-4" />
                           All Announcements
@@ -247,24 +221,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="fees" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <DollarSign className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Fees</span>
-                      </div>
+                  <AccordionItem value="fees">
+                    <AccordionTrigger className="group">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Fees
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/fees"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/fees")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <DollarSign className="mr-2 h-4 w-4" />
                           Fee Management
@@ -273,24 +243,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="settings" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Settings className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Settings</span>
-                      </div>
+                  <AccordionItem value="settings">
+                    <AccordionTrigger className="group">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/settings/roles"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/settings/roles")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <UserRoundCog className="mr-2 h-4 w-4" />
                           User Roles
@@ -303,24 +269,20 @@ const Sidebar = ({ children }: SidebarProps) => {
 
               {user?.role === "teacher" && (
                 <>
-                  <AccordionItem value="communication" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <MessageSquare className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Communication</span>
-                      </div>
+                  <AccordionItem value="communication">
+                    <AccordionTrigger className="group">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Communication
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/teacher/communication"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/teacher/communication")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <MessageSquare className="mr-2 h-4 w-4" />
                           Communication
@@ -332,24 +294,20 @@ const Sidebar = ({ children }: SidebarProps) => {
               )}
 
               {(user?.role === "student" || user?.role === "teacher") && (
-                <AccordionItem value="timetable" className="border-none">
-                  <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                    <div className="flex items-center text-gray-700 dark:text-gray-200">
-                      <Calendar className="mr-2 h-4 w-4 text-institute-600" />
-                      <span className="font-medium">Timetable</span>
-                    </div>
+                <AccordionItem value="timetable">
+                  <AccordionTrigger className="group">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Timetable
                   </AccordionTrigger>
-                  <AccordionContent className="pt-1 pb-0">
+                  <AccordionContent>
                     <nav className="grid gap-1">
                       <NavLink
                         to="/timetable"
-                        className={({ isActive }) => `
-                          flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                          ${isActive ? 
-                            "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                            "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          }
-                        `}
+                        className={`flex items-center text-sm ${
+                          isActive("/timetable")
+                            ? "font-medium text-institute-600"
+                            : "text-gray-500 hover:text-gray-700"
+                        } py-2 px-3 rounded-md`}
                       >
                         <Calendar className="mr-2 h-4 w-4" />
                         My Timetable
@@ -361,24 +319,20 @@ const Sidebar = ({ children }: SidebarProps) => {
 
               {user?.role === "student" && (
                 <>
-                  <AccordionItem value="courses" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Book className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Courses</span>
-                      </div>
+                  <AccordionItem value="courses">
+                    <AccordionTrigger className="group">
+                      <Book className="mr-2 h-4 w-4" />
+                      Courses
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/student/courses"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/student/courses")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Book className="mr-2 h-4 w-4" />
                           My Courses
@@ -387,24 +341,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                     </AccordionContent>
                   </AccordionItem>
 
-                  <AccordionItem value="fees" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <DollarSign className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Fees</span>
-                      </div>
+                  <AccordionItem value="fees">
+                    <AccordionTrigger className="group">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Fees
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/fees"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
+                          className={`flex items-center text-sm ${
+                            isActive("/fees")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <DollarSign className="mr-2 h-4 w-4" />
                           Fee Payment
@@ -415,33 +365,31 @@ const Sidebar = ({ children }: SidebarProps) => {
                 </>
               )}
 
-              <AccordionItem value="logout" className="border-none">
-                <div 
+              <AccordionItem value="logout">
+                <AccordionTrigger
                   onClick={handleLogout}
-                  className="flex items-center py-2 px-3 rounded-md text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors cursor-pointer group my-2"
+                  className="group cursor-pointer"
                 >
-                  <LogOut className="mr-2 h-4 w-4 text-gray-500 group-hover:text-red-500" />
-                  <span className="font-medium">Logout</span>
-                </div>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </AccordionTrigger>
               </AccordionItem>
             </Accordion>
           </div>
         </aside>
 
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet>
           <SheetTrigger asChild>
             <Button
               type="button"
               variant="outline"
-              size="icon"
-              className="md:hidden absolute top-[13px] left-2 z-10"
-              onClick={() => setOpen(true)}
+              className="md:hidden absolute top-2 left-2"
             >
               <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0 bg-white dark:bg-gray-800">
-            <SheetHeader className="text-left px-4 pt-4 pb-2 border-b">
+          <SheetContent side="left" className="w-64 p-0">
+            <SheetHeader className="text-left px-4 pt-4 pb-2">
               <SheetTitle>Menu</SheetTitle>
               <SheetDescription>
                 Navigate through the institute management system.
@@ -449,25 +397,20 @@ const Sidebar = ({ children }: SidebarProps) => {
             </SheetHeader>
             <div className="py-4 px-3">
               <Accordion type="multiple" defaultValue={["menu"]} className="w-full">
-                <AccordionItem value="menu" className="border-none">
-                  <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                    <div className="flex items-center text-gray-700 dark:text-gray-200">
-                      <LayoutDashboard className="mr-2 h-4 w-4 text-institute-600" />
-                      <span className="font-medium">Dashboard</span>
-                    </div>
+                <AccordionItem value="menu">
+                  <AccordionTrigger className="group">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Dashboard
                   </AccordionTrigger>
-                  <AccordionContent className="pt-1 pb-0">
+                  <AccordionContent>
                     <nav className="grid gap-1">
                       <NavLink
                         to="/"
-                        className={({ isActive }) => `
-                          flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                          ${isActive ? 
-                            "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                            "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          }
-                        `}
-                        onClick={() => setOpen(false)}
+                        className={`flex items-center text-sm ${
+                          isActive("/")
+                            ? "font-medium text-institute-600"
+                            : "text-gray-500 hover:text-gray-700"
+                        } py-2 px-3 rounded-md`}
                       >
                         <Home className="mr-2 h-4 w-4" />
                         Home
@@ -478,39 +421,31 @@ const Sidebar = ({ children }: SidebarProps) => {
 
                 {user?.role === "admin" && (
                   <>
-                    <AccordionItem value="students" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <Users className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Students</span>
-                        </div>
+                    <AccordionItem value="students">
+                      <AccordionTrigger className="group">
+                        <Users className="mr-2 h-4 w-4" />
+                        Students
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/students"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/students")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <Users className="mr-2 h-4 w-4" />
                             All Students
                           </NavLink>
                           <NavLink
                             to="/students/new"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/students/new")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <UserPlus className="mr-2 h-4 w-4" />
                             Add New
@@ -519,39 +454,31 @@ const Sidebar = ({ children }: SidebarProps) => {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="teachers" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <Users className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Teachers</span>
-                        </div>
+                    <AccordionItem value="teachers">
+                      <AccordionTrigger className="group">
+                        <Users className="mr-2 h-4 w-4" />
+                        Teachers
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/teachers"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/teachers")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <Users className="mr-2 h-4 w-4" />
                             All Teachers
                           </NavLink>
                           <NavLink
                             to="/teachers/new"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/teachers/new")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <UserPlus className="mr-2 h-4 w-4" />
                             Add New
@@ -560,39 +487,31 @@ const Sidebar = ({ children }: SidebarProps) => {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="courses" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <Book className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Courses</span>
-                        </div>
+                    <AccordionItem value="courses">
+                      <AccordionTrigger className="group">
+                        <Book className="mr-2 h-4 w-4" />
+                        Courses
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/courses"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/courses")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <Book className="mr-2 h-4 w-4" />
                             All Courses
                           </NavLink>
                           <NavLink
                             to="/courses/new"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/courses/new")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <Plus className="mr-2 h-4 w-4" />
                             Add New
@@ -601,25 +520,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="announcements" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <Megaphone className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Announcements</span>
-                        </div>
+                    <AccordionItem value="announcements">
+                      <AccordionTrigger className="group">
+                        <Megaphone className="mr-2 h-4 w-4" />
+                        Announcements
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/announcements"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/announcements")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <Megaphone className="mr-2 h-4 w-4" />
                             All Announcements
@@ -628,25 +542,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="fees" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <DollarSign className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Fees</span>
-                        </div>
+                    <AccordionItem value="fees">
+                      <AccordionTrigger className="group">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Fees
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/fees"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/fees")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <DollarSign className="mr-2 h-4 w-4" />
                             Fee Management
@@ -655,25 +564,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="settings" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <Settings className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Settings</span>
-                        </div>
+                    <AccordionItem value="settings">
+                      <AccordionTrigger className="group">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/settings/roles"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/settings/roles")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <UserRoundCog className="mr-2 h-4 w-4" />
                             User Roles
@@ -686,25 +590,20 @@ const Sidebar = ({ children }: SidebarProps) => {
 
                 {user?.role === "teacher" && (
                   <>
-                    <AccordionItem value="communication" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <MessageSquare className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Communication</span>
-                        </div>
+                    <AccordionItem value="communication">
+                      <AccordionTrigger className="group">
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Communication
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/teacher/communication"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/teacher/communication")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Communication
@@ -716,25 +615,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                 )}
 
                 {(user?.role === "student" || user?.role === "teacher") && (
-                  <AccordionItem value="timetable" className="border-none">
-                    <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                      <div className="flex items-center text-gray-700 dark:text-gray-200">
-                        <Calendar className="mr-2 h-4 w-4 text-institute-600" />
-                        <span className="font-medium">Timetable</span>
-                      </div>
+                  <AccordionItem value="timetable">
+                    <AccordionTrigger className="group">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Timetable
                     </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-0">
+                    <AccordionContent>
                       <nav className="grid gap-1">
                         <NavLink
                           to="/timetable"
-                          className={({ isActive }) => `
-                            flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                            ${isActive ? 
-                              "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                              "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                          `}
-                          onClick={() => setOpen(false)}
+                          className={`flex items-center text-sm ${
+                            isActive("/timetable")
+                              ? "font-medium text-institute-600"
+                              : "text-gray-500 hover:text-gray-700"
+                          } py-2 px-3 rounded-md`}
                         >
                           <Calendar className="mr-2 h-4 w-4" />
                           My Timetable
@@ -746,25 +640,20 @@ const Sidebar = ({ children }: SidebarProps) => {
 
                 {user?.role === "student" && (
                   <>
-                    <AccordionItem value="courses" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <Book className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Courses</span>
-                        </div>
+                    <AccordionItem value="courses">
+                      <AccordionTrigger className="group">
+                        <Book className="mr-2 h-4 w-4" />
+                        Courses
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/student/courses"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/student/courses")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <Book className="mr-2 h-4 w-4" />
                             My Courses
@@ -773,25 +662,20 @@ const Sidebar = ({ children }: SidebarProps) => {
                       </AccordionContent>
                     </AccordionItem>
 
-                    <AccordionItem value="fees" className="border-none">
-                      <AccordionTrigger className="group py-2 px-3 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-all">
-                        <div className="flex items-center text-gray-700 dark:text-gray-200">
-                          <DollarSign className="mr-2 h-4 w-4 text-institute-600" />
-                          <span className="font-medium">Fees</span>
-                        </div>
+                    <AccordionItem value="fees">
+                      <AccordionTrigger className="group">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Fees
                       </AccordionTrigger>
-                      <AccordionContent className="pt-1 pb-0">
+                      <AccordionContent>
                         <nav className="grid gap-1">
                           <NavLink
                             to="/fees"
-                            className={({ isActive }) => `
-                              flex items-center text-sm py-2 px-3 rounded-md transition-colors
-                              ${isActive ? 
-                                "bg-institute-50 text-institute-600 dark:bg-institute-900/20 dark:text-institute-400 font-medium" : 
-                                "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }
-                            `}
-                            onClick={() => setOpen(false)}
+                            className={`flex items-center text-sm ${
+                              isActive("/fees")
+                                ? "font-medium text-institute-600"
+                                : "text-gray-500 hover:text-gray-700"
+                            } py-2 px-3 rounded-md`}
                           >
                             <DollarSign className="mr-2 h-4 w-4" />
                             Fee Payment
@@ -802,21 +686,21 @@ const Sidebar = ({ children }: SidebarProps) => {
                   </>
                 )}
 
-                <AccordionItem value="logout" className="border-none">
-                  <div 
+                <AccordionItem value="logout">
+                  <AccordionTrigger
                     onClick={handleLogout}
-                    className="flex items-center py-2 px-3 rounded-md text-gray-700 dark:text-gray-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition-colors cursor-pointer group my-2"
+                    className="group cursor-pointer"
                   >
-                    <LogOut className="mr-2 h-4 w-4 text-gray-500 group-hover:text-red-500" />
-                    <span className="font-medium">Logout</span>
-                  </div>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </AccordionTrigger>
                 </AccordionItem>
               </Accordion>
             </div>
           </SheetContent>
         </Sheet>
 
-        <div className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 overflow-auto">
           <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             {children}
           </main>

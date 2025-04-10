@@ -22,34 +22,31 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
 
   return (
     <Card className="h-full">
-      <CardHeader className="pb-4 border-b">
+      <CardHeader>
         <CardTitle className="text-lg flex items-center">
           <Bell className="mr-2 h-5 w-5 text-institute-600" />
           Recent Activity
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent>
         {activities.length > 0 ? (
-          <div className="divide-y">
+          <div className="space-y-4">
             {activities.map((activity) => (
-              <div
-                key={activity.id}
-                className="p-4 hover:bg-gray-50 transition-colors duration-200"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-gray-800">{activity.title}</h3>
-                  <span className="text-xs px-2 py-0.5 bg-institute-100 text-institute-600 rounded-full">
+              <div key={activity.id} className="border-b pb-4 last:border-0">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium">{activity.title}</h3>
+                  <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">
                     {activity.user}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">{activity.description}</p>
-                <div className="flex items-center text-xs text-gray-500 space-x-3">
+                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                <div className="flex items-center mt-2 text-xs text-gray-500 space-x-3">
                   <div className="flex items-center">
-                    <Clock className="h-3 w-3 mr-1 text-gray-400" />
+                    <Clock className="h-3 w-3 mr-1" />
                     <span>{activity.time}</span>
                   </div>
                   <div className="flex items-center">
-                    <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                    <Calendar className="h-3 w-3 mr-1" />
                     <span>{activity.date}</span>
                   </div>
                 </div>
@@ -61,15 +58,13 @@ const RecentActivityCard = ({ activities }: RecentActivityCardProps) => {
             No recent activity
           </div>
         )}
-        <div className="p-4">
-          <Button
-            variant="outline"
-            className="w-full hover:bg-institute-50 hover:text-institute-600"
-            onClick={() => navigate("/notifications")}
-          >
-            View All Activity
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className="w-full mt-4"
+          onClick={() => navigate("/notifications")}
+        >
+          View All Activity
+        </Button>
       </CardContent>
     </Card>
   );

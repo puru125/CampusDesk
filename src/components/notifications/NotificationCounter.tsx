@@ -10,7 +10,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import NotificationsList from "./NotificationsList";
-import { useToast } from "@/components/ui/use-toast";
 
 interface NotificationCounterProps {
   onClick?: () => void;
@@ -18,12 +17,10 @@ interface NotificationCounterProps {
 
 const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [entityId, setEntityId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [lastNotificationTime, setLastNotificationTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -36,80 +33,35 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
       fetchUnreadCount();
       
       // Set up real-time listener for notifications
-      let channel;
+      const table = getUserNotificationsTable();
       
-      if (user?.role === 'admin') {
-        channel = supabase
-          .channel('unread-admin-notifications')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'admin_notifications'
-            },
-            (payload) => {
-              handleNotificationChange(payload);
-            }
-          )
-          .subscribe();
-      } else if (user?.role === 'teacher' && entityId) {
-        channel = supabase
-          .channel('unread-teacher-notifications')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'teacher_notifications'
-            },
-            (payload) => {
-              handleNotificationChange(payload);
-            }
-          )
-          .subscribe();
-      } else if (user?.role === 'student' && entityId) {
-        channel = supabase
-          .channel('unread-student-notifications')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'student_notifications'
-            },
-            (payload) => {
-              handleNotificationChange(payload);
-            }
-          )
-          .subscribe();
-      }
+      const channel = supabase
+        .channel('unread-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: table
+          },
+          () => {
+            fetchUnreadCount();
+          }
+        )
+        .subscribe();
         
       return () => {
-        if (channel) {
-          supabase.removeChannel(channel);
-        }
+        supabase.removeChannel(channel);
       };
     }
   }, [entityId, user?.role]);
 
-  const handleNotificationChange = (payload: any) => {
-    if (payload.eventType === 'INSERT') {
-      fetchUnreadCount();
-      const now = new Date();
-      
-      // Only show toast if this is not the initial load
-      if (lastNotificationTime && 
-          (now.getTime() - lastNotificationTime.getTime() > 1000)) {
-        toast({
-          title: "New Notification",
-          description: "You have received a new notification",
-        });
-      }
-      
-      setLastNotificationTime(now);
-    } else {
-      fetchUnreadCount();
+  const getUserNotificationsTable = () => {
+    switch (user?.role) {
+      case 'student': return 'student_notifications';
+      case 'teacher': return 'teacher_notifications';
+      case 'admin': return 'admin_notifications';
+      default: return 'student_notifications';
     }
   };
 
@@ -123,30 +75,17 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
         return;
       }
       
-      if (user.role === 'student') {
-        const { data, error } = await supabase
-          .from('students')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-  
-        if (error) throw error;
-        
-        if (data) {
-          setEntityId(data.id);
-        }
-      } else if (user.role === 'teacher') {
-        const { data, error } = await supabase
-          .from('teachers')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-  
-        if (error) throw error;
-        
-        if (data) {
-          setEntityId(data.id);
-        }
+      const table = user.role === 'student' ? 'students' : 'teachers';
+      const { data, error } = await supabase
+        .from(table)
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setEntityId(data.id);
       }
     } catch (error) {
       console.error(`Error fetching ${user?.role} ID:`, error);
@@ -221,57 +160,6 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
     }
   };
 
-  const markAllAsRead = async () => {
-    try {
-      let table = '';
-      let field = '';
-      
-      if (user?.role === 'admin') {
-        table = 'admin_notifications';
-      } else if (user?.role === 'teacher') {
-        table = 'teacher_notifications';
-        field = 'teacher_id';
-      } else if (user?.role === 'student') {
-        table = 'student_notifications';
-        field = 'student_id';
-      } else {
-        return;
-      }
-      
-      let query;
-      
-      if (user?.role === 'admin') {
-        query = supabase
-          .from('admin_notifications')
-          .update({ is_read: true });
-      } else if (user?.role === 'teacher' && entityId) {
-        query = supabase
-          .from('teacher_notifications')
-          .update({ is_read: true })
-          .eq('teacher_id', entityId);
-      } else if (user?.role === 'student' && entityId) {
-        query = supabase
-          .from('student_notifications')
-          .update({ is_read: true })
-          .eq('student_id', entityId);
-      } else {
-        return;
-      }
-      
-      const { error } = await query;
-      
-      if (error) throw error;
-      
-      setUnreadCount(0);
-      toast({
-        title: "Notifications marked as read",
-        description: "All notifications have been marked as read"
-      });
-    } catch (error) {
-      console.error("Error marking notifications as read:", error);
-    }
-  };
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -286,18 +174,11 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-4 border-b flex justify-between items-center">
-          <div>
-            <div className="font-medium">Recent Notifications</div>
-            <p className="text-sm text-gray-500">
-              {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-            </p>
-          </div>
-          {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              Mark all read
-            </Button>
-          )}
+        <div className="p-4 border-b">
+          <div className="font-medium">Recent Notifications</div>
+          <p className="text-sm text-gray-500">
+            {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+          </p>
         </div>
         <div className="max-h-96 overflow-auto">
           <NotificationsList limit={5} showViewAll={false} />
