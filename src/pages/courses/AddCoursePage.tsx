@@ -59,10 +59,18 @@ const AddCoursePage = () => {
 
   const addCourseMutation = useMutation({
     mutationFn: async (values: CourseFormValues) => {
-      // Extract department ID or set to null if it's "none"
+      // Ensure departmentId is either a valid UUID or null, never an empty string or numeric string
       const departmentId = values.departmentId && values.departmentId !== "none" ? values.departmentId : null;
       
       console.log("Submitting with departmentId:", departmentId);
+      
+      // Validate UUID format if not null
+      if (departmentId !== null) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(departmentId)) {
+          throw new Error("Invalid department ID format. Please select a valid department.");
+        }
+      }
       
       const { data, error } = await supabase.from("courses").insert({
         name: values.name,
@@ -220,7 +228,7 @@ const AddCoursePage = () => {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
-                          {/* These need to be actual UUIDs from the departments table */}
+                          {/* Using valid UUIDs for department IDs */}
                           <SelectItem value="da9e2e7c-cdb3-4c9f-a247-a3a0becdedff">Computer Science</SelectItem>
                           <SelectItem value="05de01aa-9fd6-4858-998c-5f7f76ac5020">Engineering</SelectItem>
                           <SelectItem value="b1d9a5ca-6131-4e8e-83a4-4aba97a9c3d0">Mathematics</SelectItem>
@@ -297,4 +305,3 @@ const AddCoursePage = () => {
 };
 
 export default AddCoursePage;
-
