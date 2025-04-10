@@ -9,6 +9,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { School, Users, BookOpen, Calendar, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
+interface TeacherSubject {
+  subject_id: string;
+  subjects: {
+    id: string;
+    name: string;
+    code: string;
+    description: string | null;
+    credits: number;
+    course_id: string;
+    courses: {
+      id: string;
+      name: string;
+      code: string;
+      description: string | null;
+      credits: number;
+    }
+  }
+}
+
+interface TimetableEntry {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  subjects: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+  classes: {
+    id: string;
+    name: string;
+    room: string;
+    capacity: number;
+  } | null;
+}
+
 const TeacherClassesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -195,7 +232,7 @@ const TeacherClassesPage = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {dayClasses.map((cls) => (
+                        {Array.isArray(dayClasses) && dayClasses.map((cls) => (
                           <div key={cls.id} className="border rounded-md p-4 hover:bg-gray-50 transition-colors">
                             <div className="flex justify-between items-start">
                               <div>
@@ -285,7 +322,7 @@ const TeacherClassesPage = () => {
                       <div className="mt-4">
                         <h4 className="text-sm font-medium mb-2">Teaching Subjects:</h4>
                         <ul className="space-y-1 text-sm">
-                          {course.subjects.map((subject: any) => (
+                          {Array.isArray(course.subjects) && course.subjects.map((subject: any) => (
                             <li key={subject.id} className="flex justify-between">
                               <span>{subject.name}</span>
                               <span className="text-gray-500">{subject.code || "No code"}</span>
