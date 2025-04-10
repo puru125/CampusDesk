@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,8 +71,10 @@ const TeacherClassesPage = () => {
               });
             } else {
               const existingCourse = coursesMap.get(course.id);
-              existingCourse.subjects.push(subject);
-              coursesMap.set(course.id, existingCourse);
+              if (existingCourse && Array.isArray(existingCourse.subjects)) {
+                existingCourse.subjects.push(subject);
+                coursesMap.set(course.id, existingCourse);
+              }
             }
           }
         });

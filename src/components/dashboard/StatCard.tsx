@@ -9,6 +9,8 @@ interface StatCardProps {
   trendText?: string;
   trendValue?: string;
   trendDirection?: "up" | "down" | "neutral";
+  trend?: "up" | "down" | "neutral";
+  changePercentage?: number;
 }
 
 const StatCard = ({
@@ -18,7 +20,16 @@ const StatCard = ({
   trendText,
   trendValue,
   trendDirection = "neutral",
+  trend,
+  changePercentage,
 }: StatCardProps) => {
+  // Use trend prop if provided, otherwise use trendDirection
+  const displayTrendDirection = trend || trendDirection;
+  
+  // Format the trend value with percentage if changePercentage is provided
+  const displayTrendValue = changePercentage !== undefined ? 
+    `${changePercentage}%` : trendValue;
+  
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -32,17 +43,17 @@ const StatCard = ({
         {trendText && (
           <CardDescription className="flex items-center mt-1">
             {trendText}
-            {trendValue && (
+            {displayTrendValue && (
               <span
                 className={`ml-1 ${
-                  trendDirection === "up"
+                  displayTrendDirection === "up"
                     ? "text-green-500"
-                    : trendDirection === "down"
+                    : displayTrendDirection === "down"
                     ? "text-red-500"
                     : "text-gray-500"
                 }`}
               >
-                {trendValue}
+                {displayTrendValue}
               </span>
             )}
           </CardDescription>

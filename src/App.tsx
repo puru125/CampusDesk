@@ -60,6 +60,17 @@ import ValidationRulesPage from "@/pages/admin/ValidationRulesPage";
 // Announcements
 import AnnouncementsPage from "@/pages/announcements/AnnouncementsPage";
 
+// Teacher Module
+import TeacherProfilePage from "@/pages/teacher/TeacherProfilePage";
+import TeacherClassesPage from "@/pages/teacher/TeacherClassesPage";
+import TeacherStudentsPage from "@/pages/teacher/TeacherStudentsPage";
+import TeacherAssignmentsPage from "@/pages/teacher/TeacherAssignmentsPage";
+import CreateAssignmentPage from "@/pages/teacher/CreateAssignmentPage";
+import AssignmentDetailsPage from "@/pages/teacher/AssignmentDetailsPage";
+import TeacherCommunicationPage from "@/pages/teacher/TeacherCommunicationPage";
+import TeacherReportsPage from "@/pages/teacher/TeacherReportsPage";
+import AttendancePage from "@/pages/teacher/AttendancePage";
+
 const queryClient = new QueryClient();
 
 function App() {

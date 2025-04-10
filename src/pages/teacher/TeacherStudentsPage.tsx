@@ -7,170 +7,61 @@ import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Search, BookOpen, Download, Filter } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Search, BookOpen, UserCheck, Download, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
 const TeacherStudentsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [teacherData, setTeacherData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedClass, setSelectedClass] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
   
   useEffect(() => {
-    const fetchTeacherStudents = async () => {
-      try {
-        if (!user) return;
-        
-        // Get teacher profile
-        const { data: teacherProfile, error: teacherError } = await supabase
-          .from('teachers')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (teacherError) throw teacherError;
-        
-        setTeacherData(teacherProfile);
-        
-        // Get assigned courses through subjects
-        const { data: teacherSubjects, error: subjectsError } = await supabase
-          .from('teacher_subjects')
-          .select(`
-            subject_id,
-            subjects(
-              id,
-              name,
-              course_id,
-              courses(id, name, code)
-            )
-          `)
-          .eq('teacher_id', teacherProfile.id);
-          
-        if (subjectsError) throw subjectsError;
-        
-        // Extract unique courses
-        const coursesMap = new Map();
-        teacherSubjects?.forEach(ts => {
-          const course = ts.subjects?.courses;
-          if (course) {
-            coursesMap.set(course.id, course);
-          }
-        });
-        
-        const coursesData = Array.from(coursesMap.values());
-        setCourses(coursesData);
-        
-        // Get course IDs
-        const courseIds = coursesData.map(course => course.id);
-        
-        if (courseIds.length === 0) {
-          setStudents([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Get students enrolled in these courses
-        const { data: enrollmentsData, error: enrollmentsError } = await supabase
-          .from('student_course_enrollments')
-          .select(`
-            id,
-            status,
-            course_id,
-            student_id,
-            academic_year,
-            semester,
-            students(
-              id,
-              enrollment_number,
-              user_id,
-              users:user_id(
-                id,
-                email,
-                full_name
-              )
-            ),
-            courses(
-              id,
-              name,
-              code
-            )
-          `)
-          .in('course_id', courseIds)
-          .eq('status', 'approved');
-          
-        if (enrollmentsError) throw enrollmentsError;
-        
-        // Format student data
-        const studentsData = enrollmentsData?.map(enrollment => ({
-          id: enrollment.students?.id,
-          userId: enrollment.students?.users?.id,
-          enrollmentId: enrollment.id,
-          name: enrollment.students?.users?.full_name,
-          email: enrollment.students?.users?.email,
-          enrollmentNumber: enrollment.students?.enrollment_number,
-          course: enrollment.courses?.name,
-          courseId: enrollment.courses?.id,
-          courseCode: enrollment.courses?.code,
-          academicYear: enrollment.academic_year,
-          semester: enrollment.semester,
-        })) || [];
-        
-        setStudents(studentsData);
-      } catch (error) {
-        console.error("Error fetching student data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch student data",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Mock data for students and classes
+    const mockStudents = [
+      { id: "1", name: "Rajesh Kumar", roll: "CS2301", course: "BTech CSE", attendance: "92%", grade: "A" },
+      { id: "2", name: "Priya Sharma", roll: "CS2302", course: "BTech CSE", attendance: "88%", grade: "A-" },
+      { id: "3", name: "Amit Singh", roll: "CS2303", course: "BTech CSE", attendance: "76%", grade: "B" },
+      { id: "4", name: "Neha Patel", roll: "CS2304", course: "BTech CSE", attendance: "95%", grade: "A+" },
+      { id: "5", name: "Vijay Mehta", roll: "CS2305", course: "BTech CSE", attendance: "82%", grade: "B+" },
+    ];
     
-    fetchTeacherStudents();
-  }, [user, toast]);
-
-  // Filter students based on search term and selected course
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = searchTerm === "" || 
-      (student.name && student.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (student.email && student.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (student.enrollmentNumber && student.enrollmentNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-    const matchesCourse = selectedCourse === "" || student.courseId === selectedCourse;
+    const mockClasses = [
+      { id: "1", name: "Database Systems", code: "CS301" },
+      { id: "2", name: "Web Development", code: "CS302" },
+      { id: "3", name: "Data Structures", code: "CS201" },
+    ];
     
-    return matchesSearch && matchesCourse;
-  });
+    setStudents(mockStudents);
+    setClasses(mockClasses);
+    setLoading(false);
+  }, []);
+  
+  // Filter students based on search term
+  const filteredStudents = students.filter(student => 
+    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.roll.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
   return (
     <div>
       <PageHeader
         title="My Students"
-        description="View and manage students in your courses"
+        description="View and manage students in your classes"
         icon={Users}
-      />
+      >
+        <Button onClick={() => {}}>
+          <Download className="mr-2 h-4 w-4" />
+          Export List
+        </Button>
+      </PageHeader>
       
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mt-6 mb-6">
-        <div className="relative w-full md:w-auto md:flex-1">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-6">
+        <div className="relative w-full md:w-80">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
           <Input
             placeholder="Search students..."
@@ -180,37 +71,28 @@ const TeacherStudentsPage = () => {
           />
         </div>
         
-        <div className="flex gap-4 w-full md:w-auto">
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <div className="flex items-center">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="All Courses" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Courses</SelectItem>
-              {courses.map(course => (
-                <SelectItem key={course.id} value={course.id}>
-                  {course.name} {course.code && `(${course.code})`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" className="flex items-center">
-            <Download className="mr-2 h-4 w-4" />
-            Export
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center" onClick={() => setSelectedClass("")}>
+            <BookOpen className="mr-2 h-4 w-4" />
+            All Classes
           </Button>
+          
+          {classes.map(cls => (
+            <Button
+              key={cls.id}
+              variant={selectedClass === cls.id ? "default" : "outline"}
+              className="hidden md:flex items-center"
+              onClick={() => setSelectedClass(cls.id === selectedClass ? "" : cls.id)}
+            >
+              {cls.name}
+            </Button>
+          ))}
         </div>
       </div>
       
-      <Card>
+      <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <BookOpen className="mr-2 h-5 w-5 text-institute-600" />
-            Student List
-          </CardTitle>
+          <CardTitle className="text-lg">Student List</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -218,50 +100,40 @@ const TeacherStudentsPage = () => {
               <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
             </div>
           ) : filteredStudents.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Enrollment Number</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Academic Year</TableHead>
-                  <TableHead>Semester</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={`${student.id}-${student.courseId}`}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{student.name}</div>
-                        <div className="text-xs text-gray-500">{student.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{student.enrollmentNumber}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div>{student.course}</div>
-                        <div className="text-xs text-gray-500">{student.courseCode}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{student.academicYear}</TableCell>
-                    <TableCell>{student.semester}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">View Details</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="px-4 py-3 text-left font-medium">Name</th>
+                    <th className="px-4 py-3 text-left font-medium">Roll No.</th>
+                    <th className="px-4 py-3 text-left font-medium">Course</th>
+                    <th className="px-4 py-3 text-left font-medium">Attendance</th>
+                    <th className="px-4 py-3 text-left font-medium">Grade</th>
+                    <th className="px-4 py-3 text-left font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map(student => (
+                    <tr key={student.id} className="border-b">
+                      <td className="px-4 py-3">{student.name}</td>
+                      <td className="px-4 py-3">{student.roll}</td>
+                      <td className="px-4 py-3">{student.course}</td>
+                      <td className="px-4 py-3">{student.attendance}</td>
+                      <td className="px-4 py-3">{student.grade}</td>
+                      <td className="px-4 py-3">
+                        <Button variant="ghost" size="sm">View</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="text-center py-12">
               <Users className="h-12 w-12 mx-auto text-gray-400" />
               <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
               <p className="mt-1 text-gray-500">
-                {courses.length === 0
-                  ? "You don't have any courses assigned yet."
-                  : "No students match your current search or filter criteria."}
+                No students match your search criteria.
               </p>
             </div>
           )}
