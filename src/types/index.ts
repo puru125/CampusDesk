@@ -223,3 +223,14 @@ export interface AssignedClassroom {
   classroom_room?: string;
   classroom_capacity?: number;
 }
+
+// Interface for teacher-subject assignments
+export interface TeacherSubjectAssignment {
+  id: string;
+  teacher_id: string;
+  subject_id: string;
+  created_at: string;
+  updated_at: string;
+  teacher?: TeacherView;
+  subject?: Subject;
+}
