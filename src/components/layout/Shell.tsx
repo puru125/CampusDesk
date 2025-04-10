@@ -61,6 +61,11 @@ const Shell = ({ children, className }: ShellProps) => {
     }
   };
 
+  const handleAssignmentsClick = () => {
+    if (!user || user.role !== "student") return;
+    navigate("/student/assignments");
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -77,6 +82,7 @@ const Shell = ({ children, className }: ShellProps) => {
               size="icon" 
               className="relative"
               onClick={handleNotificationsClick}
+              aria-label="Notifications"
             >
               <Bell size={20} />
               <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
@@ -98,6 +104,11 @@ const Shell = ({ children, className }: ShellProps) => {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
+                {user?.role === "student" && (
+                  <DropdownMenuItem onClick={handleAssignmentsClick}>
+                    <span>Assignments</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>

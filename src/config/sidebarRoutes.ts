@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Calendar,
@@ -146,6 +147,11 @@ export const studentRoutes: Route[] = [
     title: "Attendance",
     icon: ListChecks,
     href: "/student/attendance",
+  },
+  {
+    title: "Assignments",
+    icon: FileText,
+    href: "/student/assignments",
   },
   {
     title: "Submit Feedback",
