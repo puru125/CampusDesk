@@ -54,7 +54,7 @@ const TeacherAssignmentForm = ({ courseId, subjects, onSuccess }: TeacherAssignm
     queryFn: async () => {
       const subjectIds = subjects.map(subject => subject.id);
       
-      // Modified query to correctly fetch teacher information from teachers_view
+      // Modified query to fetch all needed subject fields
       const { data, error } = await supabase
         .from("teacher_subjects")
         .select(`
@@ -63,7 +63,7 @@ const TeacherAssignmentForm = ({ courseId, subjects, onSuccess }: TeacherAssignm
           subject_id,
           created_at,
           updated_at,
-          subject:subject_id(id, name, code)
+          subject:subject_id(id, name, code, credits, course_id, created_at, updated_at)
         `)
         .in("subject_id", subjectIds);
 
