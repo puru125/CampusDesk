@@ -44,8 +44,7 @@ const StudentTimetablePage = () => {
       if (!user) return [];
       
       try {
-        // First we need to get the student's class - this depends on your data model
-        // For now, we'll get all timetable entries
+        // Query the student timetable view using the extended client that has the correct types
         const { data, error } = await extendedSupabase
           .from("student_timetable_view")
           .select("*")
@@ -57,7 +56,8 @@ const StudentTimetablePage = () => {
           return [];
         }
 
-        return data as TimetableEntry[];
+        // Explicitly cast the data to our expected type
+        return data as unknown as TimetableEntry[];
       } catch (error) {
         console.error("Error in timetable query:", error);
         return [];

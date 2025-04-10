@@ -179,10 +179,8 @@ function App() {
                     <Route 
                       path="/student/timetable" 
                       element={
-                        <ProtectedRoute roles={["student"]}>
-                          <Shell>
-                            <StudentTimetablePage />
-                          </Shell>
+                        <ProtectedRoute allowedRoles={["student"]}>
+                          <StudentTimetablePage />
                         </ProtectedRoute>
                       } 
                     />

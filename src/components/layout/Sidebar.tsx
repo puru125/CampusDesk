@@ -107,7 +107,7 @@ const Sidebar = () => {
       icon: ListChecks,
       href: "/attendance",
     },
-		{
+    {
       title: "Doubts",
       icon: HelpCircle,
       href: "/teacher/doubts",
@@ -133,7 +133,7 @@ const Sidebar = () => {
     {
       title: "Timetable",
       icon: Calendar,
-      href: "/student/timetable", // New timetable route
+      href: "/student/timetable",
     },
     {
       title: "Doubts",
