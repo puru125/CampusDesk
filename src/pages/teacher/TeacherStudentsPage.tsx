@@ -7,7 +7,7 @@ import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Users, Search, Filter, Loader2, IdCard } from "lucide-react";
+import { Users, Search, Loader2, IdCard } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -106,10 +106,11 @@ const TeacherStudentsPage = () => {
       if (classesError) throw classesError;
       
       // Format classes data - filter out duplicates based on subject ID
-      const formattedClasses = teacherClasses?.map(tc => ({
-        id: tc.subjects?.id || '',
+      const formattedClasses = teacherClasses?.filter(tc => tc.subjects && tc.classes).map(tc => ({
+        id: tc.subjects?.id || 'unknown',
         name: tc.subjects?.name || 'Unknown Subject',
-        code: tc.subjects?.code || ''
+        code: tc.subjects?.code || '',
+        room: tc.classes?.name || 'Unknown Room'
       })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
       
       setClasses(formattedClasses);
@@ -160,7 +161,7 @@ const TeacherStudentsPage = () => {
             <SelectContent>
               <SelectItem value="all">All Classes</SelectItem>
               {classes.map(cls => (
-                <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                <SelectItem key={cls.id} value={cls.id}>{cls.name} ({cls.room})</SelectItem>
               ))}
             </SelectContent>
           </Select>

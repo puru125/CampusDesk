@@ -21,11 +21,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HelpCircle, Send, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
-interface Subject {
+interface Teacher {
   id: string;
-  name: string;
-  code?: string;
-  teacher_id?: string;
+  full_name: string;
+  department?: string;
+  specialization?: string;
 }
 
 const AskDoubtPage = () => {
@@ -35,6 +35,7 @@ const AskDoubtPage = () => {
 
   const [title, setTitle] = useState("");
   const [question, setQuestion] = useState("");
+  const [teacherId, setTeacherId] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -57,48 +58,56 @@ const AskDoubtPage = () => {
     enabled: !!user,
   });
 
-  // Fetch subjects with teacher assignments
-  const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
-    queryKey: ["student-subjects"],
+  // Fetch teachers
+  const { data: teachers, isLoading: isLoadingTeachers } = useQuery({
+    queryKey: ["teachers"],
     queryFn: async () => {
-      // First get teacher_id for each subject
-      const { data: teacherSubjects, error: teacherSubjectsError } = await extendedSupabase
+      const { data, error } = await extendedSupabase
+        .from("teachers_view")
+        .select(`
+          id,
+          full_name,
+          department,
+          specialization
+        `)
+        .order("full_name");
+
+      if (error) {
+        console.error("Error fetching teachers:", error);
+        return [];
+      }
+      
+      return data as Teacher[];
+    },
+    enabled: !!studentData?.id,
+  });
+
+  // Fetch subjects when a teacher is selected
+  const { data: subjects, isLoading: isLoadingSubjects } = useQuery({
+    queryKey: ["teacher-subjects", teacherId],
+    queryFn: async () => {
+      if (!teacherId) return [];
+
+      const { data, error } = await extendedSupabase
         .from("teacher_subjects")
         .select(`
           subject_id,
-          teacher_id
-        `);
-      
-      if (teacherSubjectsError) {
-        console.error("Error fetching teacher-subject assignments:", teacherSubjectsError);
-        return [];
-      }
-      
-      // Then get all subjects
-      const { data, error } = await extendedSupabase
-        .from("subjects")
-        .select(`
-          id,
-          name,
-          code
+          subjects(id, name, code)
         `)
-        .order("name");
-
+        .eq("teacher_id", teacherId);
+      
       if (error) {
-        console.error("Error fetching subjects:", error);
+        console.error("Error fetching teacher subjects:", error);
         return [];
       }
       
-      // Combine the data to add teacher_id to each subject
-      return data.map(subject => {
-        const teacherAssignment = teacherSubjects.find(ts => ts.subject_id === subject.id);
-        return {
-          ...subject,
-          teacher_id: teacherAssignment?.teacher_id
-        };
-      }).filter(subject => subject.teacher_id) as Subject[];
+      return data.map(item => ({
+        id: item.subjects.id,
+        name: item.subjects.name,
+        code: item.subjects.code
+      }));
     },
-    enabled: !!studentData?.id,
+    enabled: !!teacherId,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,14 +120,8 @@ const AskDoubtPage = () => {
         throw new Error("User not authenticated");
       }
 
-      if (!subjectId) {
-        throw new Error("Please select a subject");
-      }
-
-      // Get teacher ID for the selected subject
-      const selectedSubject = subjects?.find(subject => subject.id === subjectId);
-      if (!selectedSubject || !selectedSubject.teacher_id) {
-        throw new Error("Subject has no assigned teacher");
+      if (!teacherId) {
+        throw new Error("Please select a teacher");
       }
 
       // Create a new doubt entry
@@ -127,8 +130,8 @@ const AskDoubtPage = () => {
         .insert([
           {
             student_id: studentData.id,
-            teacher_id: selectedSubject.teacher_id,
-            subject_id: subjectId,
+            teacher_id: teacherId,
+            subject_id: subjectId || null,
             title,
             question,
             status: "pending"
@@ -170,29 +173,63 @@ const AskDoubtPage = () => {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="subject">Subject</Label>
+                <Label htmlFor="teacher">Teacher</Label>
                 <Select
-                  value={subjectId}
-                  onValueChange={setSubjectId}
+                  value={teacherId}
+                  onValueChange={(value) => {
+                    setTeacherId(value);
+                    setSubjectId(""); // Reset subject when teacher changes
+                  }}
                 >
-                  <SelectTrigger id="subject">
-                    <SelectValue placeholder="Select a subject" />
+                  <SelectTrigger id="teacher">
+                    <SelectValue placeholder="Select a teacher" />
                   </SelectTrigger>
                   <SelectContent>
-                    {isLoadingSubjects ? (
+                    {isLoadingTeachers ? (
                       <SelectItem value="loading" disabled>
-                        Loading subjects...
+                        Loading teachers...
                       </SelectItem>
-                    ) : (
-                      subjects?.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name} ({subject.code})
+                    ) : teachers && teachers.length > 0 ? (
+                      teachers.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id}>
+                          {teacher.full_name} {teacher.specialization ? `(${teacher.specialization})` : ''}
                         </SelectItem>
                       ))
+                    ) : (
+                      <SelectItem value="no-teachers" disabled>
+                        No teachers available
+                      </SelectItem>
                     )}
                   </SelectContent>
                 </Select>
               </div>
+
+              {teacherId && subjects && subjects.length > 0 && (
+                <div>
+                  <Label htmlFor="subject">Subject (Optional)</Label>
+                  <Select
+                    value={subjectId}
+                    onValueChange={setSubjectId}
+                  >
+                    <SelectTrigger id="subject">
+                      <SelectValue placeholder="Select a subject (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingSubjects ? (
+                        <SelectItem value="loading" disabled>
+                          Loading subjects...
+                        </SelectItem>
+                      ) : (
+                        subjects.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name} {subject.code && `(${subject.code})`}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="title">Title</Label>
