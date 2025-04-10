@@ -170,7 +170,10 @@ const StudentAssignmentsPage = () => {
           .eq('status', 'active')
           .order('due_date', { ascending: true });
           
-        if (assignmentsError) throw assignmentsError;
+        if (assignmentsError) {
+          console.error("Error fetching assignments:", assignmentsError);
+          throw assignmentsError;
+        }
         
         // Get student's submissions for these assignments
         const assignmentIds = assignmentsData ? assignmentsData.map(a => a.id) : [];
@@ -240,14 +243,18 @@ const StudentAssignmentsPage = () => {
         fileName = submissionFile.name;
         filePath = `${studentId}/${activeAssignment.id}/${Date.now()}.${fileExt}`;
         
+        // Create a function that updates progress
+        const onUploadProgressHandler = (event: ProgressEvent) => {
+          const percent = (event.loaded / event.total) * 100;
+          setUploadProgress(percent);
+        };
+        
         // Upload the file to the assignments bucket
+        // Using the uploadFile method with the proper options
         const { data: uploadData, error: uploadError } = await extendedSupabase.storage
           .from('assignments')
           .upload(filePath, submissionFile, {
-            onUploadProgress: (progress) => {
-              const percent = (progress.loaded / progress.total) * 100;
-              setUploadProgress(percent);
-            }
+            cacheControl: '3600'
           });
           
         if (uploadError) {
@@ -313,7 +320,7 @@ const StudentAssignmentsPage = () => {
   // Filter assignments based on search term
   const filteredAssignments = assignments.filter(assignment => 
     assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assignment.subjects?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    (assignment.subjects?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
   
   // Group assignments
