@@ -68,37 +68,41 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute />}>
-              <Route path="/" element={<Shell />}>
-                <Route index element={<Dashboard />} />
-                <Route path="/students" element={<StudentsPage />} />
-                <Route path="/students/new" element={<AddStudentPage />} />
-                <Route path="/teachers" element={<TeachersPage />} />
-                <Route path="/teachers/new" element={<AddTeacherPage />} />
-                <Route path="/courses" element={<CoursesPage />} />
-                <Route path="/courses/new" element={<AddCoursePage />} />
-                <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
-                <Route path="/courses/:courseId/edit" element={<CourseEditPage />} />
-                
-                {/* Classroom Routes */}
-                <Route path="/classrooms" element={<ClassroomsPage />} />
-                <Route path="/classrooms/new" element={<AddClassroomPage />} />
-                <Route path="/classrooms/:classroomId/edit" element={<EditClassroomPage />} />
-                
-                <Route path="/timetable" element={<TimetablePage />} />
-                <Route path="/timetable/new" element={<AddTimetableEntryPage />} />
-                <Route path="/exams" element={<ExamsPage />} />
-                <Route path="/exams/new" element={<AddExamPage />} />
-                <Route path="/fees" element={<FeesPage />} />
-                <Route path="/fees/new" element={<AddFeeStructurePage />} />
-                <Route path="/fees/make-payment" element={<MakePaymentPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/settings/approvals" element={<EnrollmentApprovalPage />} />
-                <Route path="/admin/profile" element={<AdminProfilePage />} />
-                <Route path="/admin/validation-rules" element={<ValidationRulesPage />} />
-                <Route path="/announcements" element={<AnnouncementsPage />} />
-              </Route>
-            </Route>
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Shell>
+                  <Routes>
+                    <Route index element={<Dashboard />} />
+                    <Route path="/students" element={<StudentsPage />} />
+                    <Route path="/students/new" element={<AddStudentPage />} />
+                    <Route path="/teachers" element={<TeachersPage />} />
+                    <Route path="/teachers/new" element={<AddTeacherPage />} />
+                    <Route path="/courses" element={<CoursesPage />} />
+                    <Route path="/courses/new" element={<AddCoursePage />} />
+                    <Route path="/courses/:courseId" element={<CourseDetailsPage />} />
+                    <Route path="/courses/:courseId/edit" element={<CourseEditPage />} />
+                    
+                    {/* Classroom Routes */}
+                    <Route path="/classrooms" element={<ClassroomsPage />} />
+                    <Route path="/classrooms/new" element={<AddClassroomPage />} />
+                    <Route path="/classrooms/:classroomId/edit" element={<EditClassroomPage />} />
+                    
+                    <Route path="/timetable" element={<TimetablePage />} />
+                    <Route path="/timetable/new" element={<AddTimetableEntryPage />} />
+                    <Route path="/exams" element={<ExamsPage />} />
+                    <Route path="/exams/new" element={<AddExamPage />} />
+                    <Route path="/fees" element={<FeesPage />} />
+                    <Route path="/fees/new" element={<AddFeeStructurePage />} />
+                    <Route path="/fees/make-payment" element={<MakePaymentPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/settings/approvals" element={<EnrollmentApprovalPage />} />
+                    <Route path="/admin/profile" element={<AdminProfilePage />} />
+                    <Route path="/admin/validation-rules" element={<ValidationRulesPage />} />
+                    <Route path="/announcements" element={<AnnouncementsPage />} />
+                  </Routes>
+                </Shell>
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

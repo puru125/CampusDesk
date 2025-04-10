@@ -41,7 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Classroom } from '@/types';
+import { Classroom, Subject, CourseClassroom } from '@/types';
 
 interface ClassroomManagementProps {
   courseId: string;
@@ -85,7 +85,7 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
     }
   });
   
-  // Fetch assigned classrooms for this course
+  // Fetch assigned classrooms for this course using RPC function
   const { 
     data: assignedClassrooms, 
     isLoading: assignmentsLoading,
@@ -93,33 +93,18 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
   } = useQuery({
     queryKey: ['course-classrooms', courseId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('course_classrooms')
-        .select(`
-          id,
-          subject_id,
-          classroom_id,
-          subjects!inner(name),
-          classes!inner(name, room, capacity)
-        `)
-        .eq('course_id', courseId);
+      // We'll use a direct SQL query with RPC since we're having issues with the table
+      const { data, error } = await supabase.rpc('get_course_classroom_assignments', {
+        p_course_id: courseId
+      });
         
       if (error) {
         console.error('Error fetching classroom assignments:', error);
         throw error;
       }
-      
-      const formattedData = data.map(item => ({
-        id: item.id,
-        subject_id: item.subject_id,
-        classroom_id: item.classroom_id,
-        subject_name: item.subjects?.name,
-        classroom_name: item.classes?.name,
-        classroom_room: item.classes?.room,
-        classroom_capacity: item.classes?.capacity
-      }));
-      
-      return formattedData as AssignedClassroom[];
+
+      // The RPC function should return data in the right format
+      return data as AssignedClassroom[];
     }
   });
   
@@ -136,25 +121,21 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
       );
       
       if (existingAssignment) {
-        // Update existing assignment
-        const { data, error } = await supabase
-          .from('course_classrooms')
-          .update({ classroom_id: selectedClassroom })
-          .eq('id', existingAssignment.id)
-          .select();
+        // Update existing assignment using RPC
+        const { data, error } = await supabase.rpc('update_course_classroom_assignment', {
+          p_assignment_id: existingAssignment.id,
+          p_classroom_id: selectedClassroom
+        });
           
         if (error) throw error;
         return data;
       } else {
-        // Create new assignment
-        const { data, error } = await supabase
-          .from('course_classrooms')
-          .insert({
-            course_id: courseId,
-            subject_id: selectedSubject,
-            classroom_id: selectedClassroom
-          })
-          .select();
+        // Create new assignment using RPC
+        const { data, error } = await supabase.rpc('create_course_classroom_assignment', {
+          p_course_id: courseId,
+          p_subject_id: selectedSubject,
+          p_classroom_id: selectedClassroom
+        });
           
         if (error) throw error;
         return data;
@@ -183,10 +164,9 @@ const ClassroomManagement = ({ courseId, subjects, onSuccess }: ClassroomManagem
   // Delete classroom assignment mutation
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: string) => {
-      const { error } = await supabase
-        .from('course_classrooms')
-        .delete()
-        .eq('id', assignmentId);
+      const { error } = await supabase.rpc('delete_course_classroom_assignment', {
+        p_assignment_id: assignmentId
+      });
         
       if (error) throw error;
       return true;
