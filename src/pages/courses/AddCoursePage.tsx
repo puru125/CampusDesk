@@ -52,7 +52,7 @@ const AddCoursePage = () => {
       code: "",
       credits: 3,
       description: "",
-      departmentId: "",
+      departmentId: "none",
       duration: "",
     },
   });
@@ -64,7 +64,7 @@ const AddCoursePage = () => {
         code: values.code,
         credits: values.credits,
         description: values.description,
-        department_id: values.departmentId && values.departmentId !== "" ? values.departmentId : null,
+        department_id: values.departmentId && values.departmentId !== "none" ? values.departmentId : null,
         is_active: true,
         duration: values.duration,
       });
@@ -207,7 +207,7 @@ const AddCoursePage = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           <SelectItem value="1">Computer Science</SelectItem>
                           <SelectItem value="2">Engineering</SelectItem>
                           <SelectItem value="3">Mathematics</SelectItem>
