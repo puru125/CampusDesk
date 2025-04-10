@@ -59,10 +59,12 @@ const StudentDashboard = () => {
       Promise.all([
         fetchStudentProfile(),
         fetchUpcomingExams(),
-        fetchEnrolledCourses(),
         checkFeeStatus(),
         fetchAttendanceStats()
-      ]).then(() => {
+      ]).then((results) => {
+        if (results[0]) { // If student profile was retrieved successfully
+          fetchEnrolledCourses(results[0].id); // Pass the student ID
+        }
         setLoading(false);
       }).catch(error => {
         console.error("Error fetching dashboard data:", error);
@@ -160,9 +162,14 @@ const StudentDashboard = () => {
     }
   };
   
-  const fetchEnrolledCourses = async () => {
+  const fetchEnrolledCourses = async (studentId: string) => {
     try {
-      if (!studentProfile?.id) return [];
+      if (!studentId) {
+        console.error("Student ID is missing for fetchEnrolledCourses");
+        return [];
+      }
+      
+      console.log("Fetching enrolled courses for student ID:", studentId);
       
       const { data, error } = await extendedSupabase
         .from('student_course_enrollments')
@@ -175,10 +182,13 @@ const StudentDashboard = () => {
             code
           )
         `)
-        .eq('student_id', studentProfile.id)
-        .limit(10);
+        .eq('student_id', studentId);
         
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Enrolled courses data:", data);
       
       if (data && data.length > 0) {
         const formattedCourses: EnrolledCourse[] = data.map(enrollment => ({
@@ -188,14 +198,23 @@ const StudentDashboard = () => {
           status: enrollment.status
         }));
         
+        console.log("Formatted courses:", formattedCourses);
         setEnrolledCourses(formattedCourses);
-        return formattedCourses.length;
+        return formattedCourses;
+      } else {
+        console.log("No enrolled courses found");
+        setEnrolledCourses([]);
+        return [];
       }
-      
-      return 0;
     } catch (error) {
       console.error("Error fetching enrolled courses:", error);
-      return 0;
+      toast({
+        title: "Error",
+        description: "Could not retrieve enrolled courses information",
+        variant: "destructive",
+      });
+      setEnrolledCourses([]);
+      return [];
     }
   };
   
