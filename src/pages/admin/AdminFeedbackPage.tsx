@@ -39,10 +39,31 @@ const AdminFeedbackPage = () => {
       if (error) throw error;
       
       // Format the response to match our Feedback interface
-      return (data || []).map(item => ({
-        ...item,
-        student_name: item.students_view?.full_name || "Unknown Student"
-      })) as Feedback[];
+      return (data || []).map(item => {
+        if (!item || typeof item !== 'object') {
+          return {
+            id: '',
+            created_at: '',
+            student_id: '',
+            title: '',
+            message: '',
+            rating: 0,
+            is_read: false,
+            student_name: 'Unknown Student'
+          } as Feedback;
+        }
+        
+        return {
+          id: item.id,
+          created_at: item.created_at,
+          student_id: item.student_id,
+          title: item.title,
+          message: item.message,
+          rating: item.rating,
+          is_read: item.is_read,
+          student_name: item.students_view?.full_name || "Unknown Student"
+        } as Feedback;
+      });
     },
   });
 
