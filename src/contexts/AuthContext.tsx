@@ -100,6 +100,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Normalize email to lowercase to ensure consistent matching
       const normalizedEmail = email.toLowerCase().trim();
       
+      // First, check if user exists in the database
+      const { data: userCheck, error: userCheckError } = await supabase
+        .from("users")
+        .select("id, email")
+        .ilike("email", normalizedEmail);
+      
+      console.log("User check result:", userCheck);
+      
+      if (userCheckError) {
+        console.error("User check error:", userCheckError);
+        toast({
+          title: "Login Failed",
+          description: "Error checking user existence",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      if (!userCheck || userCheck.length === 0) {
+        console.error("User not found:", normalizedEmail);
+        toast({
+          title: "Login Failed",
+          description: "Email not found in our system",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
       // Call the RPC function to authenticate
       const { data, error } = await supabase.rpc("authenticate_user", {
         p_email: normalizedEmail,
@@ -146,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         return true;
       } else {
+        console.error("Failed login attempt. Authentication succeeded but no user data returned.");
         toast({
           title: "Login Failed",
           description: "Invalid email or password",
