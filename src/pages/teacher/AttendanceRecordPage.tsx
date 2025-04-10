@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -124,40 +123,43 @@ const AttendanceRecordPage = () => {
       try {
         setLoading(true);
         
-        // Get students in the selected class
-        const { data: classStudents, error: studentsError } = await extendedSupabase
+        // First get student IDs from teacher_students table
+        const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
           .from('teacher_students')
-          .select(`
-            student_id,
-            students(
-              id,
-              enrollment_number,
-              user_id,
-              users:user_id(
-                full_name,
-                email
-              )
-            )
-          `)
+          .select('student_id')
           .eq('teacher_id', teacherId);
           
         if (studentsError) throw studentsError;
         
-        const formattedStudents = classStudents?.map(cs => {
-          const student = cs.students;
-          return {
-            id: student.id,
-            name: student.users?.full_name || 'Unknown',
-            roll: student.enrollment_number || 'N/A',
-            present: true // Default to present
-          };
-        }) || [];
-        
-        setStudents(formattedStudents);
-        setAttendanceData(formattedStudents.map(student => ({
-          student_id: student.id,
-          status: 'present'
-        })));
+        if (teacherStudentsData && teacherStudentsData.length > 0) {
+          const studentIds = teacherStudentsData.map(ts => ts.student_id);
+          
+          // Then get detailed student information
+          const { data: studentDetails, error: detailsError } = await extendedSupabase
+            .from('students_view')
+            .select('*')
+            .in('id', studentIds);
+            
+          if (detailsError) throw detailsError;
+          
+          const formattedStudents = studentDetails?.map(student => {
+            return {
+              id: student.id,
+              name: student.full_name || 'Unknown',
+              roll: student.enrollment_number || 'N/A',
+              present: true // Default to present
+            };
+          }) || [];
+          
+          setStudents(formattedStudents);
+          setAttendanceData(formattedStudents.map(student => ({
+            student_id: student.id,
+            status: 'present'
+          })));
+        } else {
+          setStudents([]);
+          setAttendanceData([]);
+        }
         
       } catch (error) {
         console.error("Error fetching students:", error);

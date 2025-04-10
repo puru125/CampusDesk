@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -121,59 +120,62 @@ const AttendancePage = () => {
       try {
         setLoading(true);
         
-        // Get students assigned to this teacher
-        const { data: teacherStudents, error: studentsError } = await extendedSupabase
+        // First get student IDs from teacher_students table
+        const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
           .from('teacher_students')
-          .select(`
-            student_id,
-            students(
-              id,
-              enrollment_number,
-              user_id,
-              users:user_id(
-                full_name
-              )
-            )
-          `)
+          .select('student_id')
           .eq('teacher_id', teacherId);
           
         if (studentsError) throw studentsError;
         
-        // Check if attendance already exists for this date, class, and subject
-        const { data: existingAttendance, error: attendanceError } = await extendedSupabase
-          .from('attendance_records')
-          .select('*')
-          .eq('teacher_id', teacherId)
-          .eq('class_id', selectedClass)
-          .eq('subject_id', selectedSubject)
-          .eq('date', selectedDate);
-        
-        if (attendanceError) throw attendanceError;
-        
-        // Map existing attendance records by student_id for quick lookup
-        const attendanceMap = new Map();
-        existingAttendance?.forEach(record => {
-          attendanceMap.set(record.student_id, record.status === 'present');
-        });
-        
-        // Format students data with attendance status
-        const formattedAttendance = teacherStudents?.map(ts => {
-          const student = ts.students;
-          // Use existing attendance if available, otherwise default to present
-          const isPresent = attendanceMap.has(student.id) 
-            ? attendanceMap.get(student.id) 
-            : true;
+        if (teacherStudentsData && teacherStudentsData.length > 0) {
+          const studentIds = teacherStudentsData.map(ts => ts.student_id);
+          
+          // Then get detailed student information
+          const { data: studentDetails, error: detailsError } = await extendedSupabase
+            .from('students_view')
+            .select('*')
+            .in('id', studentIds);
             
-          return {
-            id: crypto.randomUUID(), // For React key prop
-            studentId: student.id,
-            studentName: student.users?.full_name || 'Unknown',
-            rollNo: student.enrollment_number || 'N/A',
-            present: isPresent
-          };
-        }) || [];
-        
-        setAttendanceData(formattedAttendance);
+          if (detailsError) throw detailsError;
+          
+          // Check if attendance already exists for this date, class, and subject
+          const { data: existingAttendance, error: attendanceError } = await extendedSupabase
+            .from('attendance_records')
+            .select('*')
+            .eq('teacher_id', teacherId)
+            .eq('class_id', selectedClass)
+            .eq('subject_id', selectedSubject)
+            .eq('date', selectedDate);
+          
+          if (attendanceError) throw attendanceError;
+          
+          // Map existing attendance records by student_id for quick lookup
+          const attendanceMap = new Map();
+          existingAttendance?.forEach(record => {
+            attendanceMap.set(record.student_id, record.status === 'present');
+          });
+          
+          // Format students data with attendance status
+          const formattedAttendance = studentDetails?.map(student => {
+            // Use existing attendance if available, otherwise default to present
+            const isPresent = attendanceMap.has(student.id) 
+              ? attendanceMap.get(student.id) 
+              : true;
+              
+            return {
+              id: crypto.randomUUID(), // For React key prop
+              studentId: student.id,
+              studentName: student.full_name || 'Unknown',
+              rollNo: student.enrollment_number || 'N/A',
+              present: isPresent
+            };
+          }) || [];
+          
+          setAttendanceData(formattedAttendance);
+        } else {
+          setAttendanceData([]);
+        }
         
       } catch (error) {
         console.error("Error fetching students:", error);
@@ -190,7 +192,6 @@ const AttendancePage = () => {
     fetchStudents();
   }, [selectedClass, selectedSubject, selectedDate, teacherId]);
   
-  // Filter students based on search term
   const filteredAttendance = attendanceData.filter(attendance => 
     attendance.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     attendance.rollNo.toLowerCase().includes(searchTerm.toLowerCase())

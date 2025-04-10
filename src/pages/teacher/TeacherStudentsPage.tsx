@@ -51,42 +51,45 @@ const TeacherStudentsPage = () => {
         
         const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
         
-        // Get students assigned to this teacher via teacher_students table
-        const { data: teacherStudents, error: studentsError } = await extendedSupabase
+        // Get teacher's assigned students directly from the database
+        const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
           .from('teacher_students')
           .select(`
-            student_id,
-            students(
-              id,
-              contact_number,
-              enrollment_number,
-              enrollment_status,
-              user_id,
-              users:user_id(
-                full_name,
-                email
-              )
-            )
+            id,
+            student_id
           `)
           .eq('teacher_id', teacherProfile.id);
 
         if (studentsError) throw studentsError;
         
-        // Format students data
-        const formattedStudents = teacherStudents?.map(ts => {
-          const student = ts.students;
-          return {
-            id: student.id,
-            name: student.users?.full_name || 'Unknown',
-            roll: student.enrollment_number || 'N/A',
-            email: student.users?.email || 'N/A',
-            attendance: "N/A", // This will be calculated later
-            grade: "N/A",      // This will be calculated later
-            contact: student.contact_number || 'N/A'
-          };
-        }) || [];
-        
-        setStudents(formattedStudents);
+        // Once we have the student IDs, get the detailed student information
+        if (teacherStudentsData && teacherStudentsData.length > 0) {
+          const studentIds = teacherStudentsData.map(ts => ts.student_id);
+          
+          const { data: studentDetails, error: detailsError } = await extendedSupabase
+            .from('students_view')
+            .select('*')
+            .in('id', studentIds);
+            
+          if (detailsError) throw detailsError;
+          
+          // Format students data
+          const formattedStudents = studentDetails?.map(student => {
+            return {
+              id: student.id,
+              name: student.full_name || 'Unknown',
+              roll: student.enrollment_number || 'N/A',
+              email: student.email || 'N/A',
+              attendance: "N/A", // This will be calculated later
+              grade: "N/A",      // This will be calculated later
+              contact: student.contact_number || 'N/A'
+            };
+          }) || [];
+          
+          setStudents(formattedStudents);
+        } else {
+          setStudents([]);
+        }
         
         // Get teacher's classes
         const { data: teacherClasses, error: classesError } = await extendedSupabase

@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { BarChart, FileText, Loader2, Save, Download } from "lucide-react";
+import { FileText, Search, Download, Edit, Eye, Loader2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -14,20 +15,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 
 const ExamReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [exams, setExams] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
   const [selectedExam, setSelectedExam] = useState("");
-  const [examDetails, setExamDetails] = useState<any>(null);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [students, setStudents] = useState<any[]>([]);
+  const [studentReports, setStudentReports] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   
   useEffect(() => {
     const fetchTeacherData = async () => {
@@ -45,50 +50,56 @@ const ExamReportsPage = () => {
         
         setTeacherId(teacherProfile.id);
         
-        // Get exams related to subjects taught by the teacher
-        const { data: teacherSubjects, error: subjectsError } = await extendedSupabase
+        // Get teacher's subjects
+        const { data: teacherSubjectsData, error: subjectsError } = await extendedSupabase
           .from('teacher_subjects')
-          .select('subject_id')
+          .select(`
+            subject_id,
+            subjects:subject_id(id, name, code)
+          `)
           .eq('teacher_id', teacherProfile.id);
           
         if (subjectsError) throw subjectsError;
         
-        const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
+        const formattedSubjects = teacherSubjectsData?.map(item => ({
+          id: item.subject_id,
+          name: item.subjects?.name || 'Unknown Subject',
+          code: item.subjects?.code || ''
+        })) || [];
         
-        if (subjectIds.length === 0) {
-          setLoading(false);
-          return;
+        setSubjects(formattedSubjects);
+        
+        if (formattedSubjects.length > 0) {
+          setSelectedSubject(formattedSubjects[0].id);
         }
         
-        const { data: examData, error: examError } = await extendedSupabase
-          .from('exams')
-          .select(`
-            id,
-            title,
-            exam_date,
-            max_marks,
-            passing_marks,
-            subject_id,
-            status,
-            subjects(name, code)
-          `)
-          .in('subject_id', subjectIds)
-          .order('exam_date', { ascending: false });
+        // Get teacher's assigned students
+        const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
+          .from('teacher_students')
+          .select('student_id')
+          .eq('teacher_id', teacherProfile.id);
           
-        if (examError) throw examError;
+        if (studentsError) throw studentsError;
         
-        setExams(examData || []);
-        
-        if (examData && examData.length > 0) {
-          setSelectedExam(examData[0].id);
-          setExamDetails(examData[0]);
+        if (teacherStudentsData && teacherStudentsData.length > 0) {
+          const studentIds = teacherStudentsData.map(ts => ts.student_id);
+          
+          // Get detailed student information
+          const { data: studentDetails, error: detailsError } = await extendedSupabase
+            .from('students_view')
+            .select('*')
+            .in('id', studentIds);
+            
+          if (detailsError) throw detailsError;
+          
+          setStudents(studentDetails || []);
         }
         
       } catch (error) {
         console.error("Error fetching teacher data:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch exam data",
+          description: "Failed to fetch teacher data",
           variant: "destructive",
         });
       } finally {
@@ -100,79 +111,34 @@ const ExamReportsPage = () => {
   }, [user, toast]);
   
   useEffect(() => {
-    if (!selectedExam) return;
-    
-    const fetchExamDetails = async () => {
+    const fetchExams = async () => {
+      if (!selectedSubject) return;
+      
       try {
         setLoading(true);
         
-        // Get exam details
-        const { data: examData, error: examError } = await extendedSupabase
+        // Get exams for the selected subject
+        const { data: examsData, error: examsError } = await extendedSupabase
           .from('exams')
-          .select(`
-            id,
-            title,
-            exam_date,
-            max_marks,
-            passing_marks,
-            subject_id,
-            status,
-            subjects(name, code)
-          `)
-          .eq('id', selectedExam)
-          .single();
+          .select('*')
+          .eq('subject_id', selectedSubject)
+          .order('exam_date', { ascending: false });
           
-        if (examError) throw examError;
+        if (examsError) throw examsError;
         
-        setExamDetails(examData);
+        setExams(examsData || []);
         
-        // Fetch students who have already submitted reports for this exam
-        const { data: existingReports } = await extendedSupabase
-          .from('exam_reports')
-          .select('student_id, marks_obtained, pass_status, teacher_comments')
-          .eq('exam_id', selectedExam);
-        
-        // Get students assigned to this teacher
-        const { data: teacherStudents, error: studentsError } = await extendedSupabase
-          .from('teacher_students')
-          .select(`
-            student_id,
-            students(
-              id,
-              enrollment_number,
-              user_id,
-              users:user_id(
-                full_name,
-                email
-              )
-            )
-          `)
-          .eq('teacher_id', teacherId);
-          
-        if (studentsError) throw studentsError;
-        
-        // Format and merge with existing reports data
-        const studentList = teacherStudents?.map(ts => {
-          const student = ts.students;
-          const existingReport = existingReports?.find(r => r.student_id === student.id);
-          
-          return {
-            id: student.id,
-            name: student.users?.full_name || 'Unknown',
-            roll: student.enrollment_number || 'N/A',
-            marks: existingReport ? existingReport.marks_obtained : '',
-            passed: existingReport ? existingReport.pass_status : false,
-            comments: existingReport ? existingReport.teacher_comments : ''
-          };
-        }) || [];
-        
-        setStudents(studentList);
+        if (examsData && examsData.length > 0) {
+          setSelectedExam(examsData[0].id);
+        } else {
+          setSelectedExam("");
+        }
         
       } catch (error) {
-        console.error("Error fetching exam details:", error);
+        console.error("Error fetching exams:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch exam details",
+          description: "Failed to fetch exam data",
           variant: "destructive",
         });
       } finally {
@@ -180,307 +146,293 @@ const ExamReportsPage = () => {
       }
     };
     
-    fetchExamDetails();
-  }, [selectedExam, teacherId, toast]);
+    fetchExams();
+  }, [selectedSubject, toast]);
   
-  const handleMarksChange = (studentId: string, marks: string) => {
-    const numericMarks = marks === '' ? '' : parseInt(marks, 10);
-    
-    setStudents(prev => 
-      prev.map(student => {
-        if (student.id === studentId) {
-          const isPassed = numericMarks !== '' && examDetails ? 
-            numericMarks >= examDetails.passing_marks : false;
-          
-          return { 
-            ...student, 
-            marks: numericMarks, 
-            passed: isPassed
-          };
-        }
-        return student;
-      })
-    );
-  };
-  
-  const handleCommentsChange = (studentId: string, comments: string) => {
-    setStudents(prev => 
-      prev.map(student => 
-        student.id === studentId 
-          ? { ...student, comments } 
-          : student
-      )
-    );
-  };
-  
-  const saveExamReports = async () => {
-    if (!teacherId || !selectedExam || !examDetails) {
-      toast({
-        title: "Error",
-        description: "Missing required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      setSubmitting(true);
-      
-      // Validate marks
-      const invalidStudents = students.filter(
-        student => student.marks !== '' && (
-          isNaN(Number(student.marks)) || 
-          Number(student.marks) < 0 || 
-          Number(student.marks) > examDetails.max_marks
-        )
-      );
-      
-      if (invalidStudents.length > 0) {
-        toast({
-          title: "Invalid marks",
-          description: `Some students have invalid marks. Marks should be between 0 and ${examDetails.max_marks}.`,
-          variant: "destructive",
-        });
-        setSubmitting(false);
+  useEffect(() => {
+    const fetchExamReports = async () => {
+      if (!selectedExam) {
+        setStudentReports([]);
         return;
       }
       
-      // Filter out students with no marks
-      const reportsToSubmit = students
-        .filter(student => student.marks !== '')
-        .map(student => ({
-          exam_id: selectedExam,
-          student_id: student.id,
-          marks_obtained: Number(student.marks),
-          pass_status: student.passed,
-          teacher_comments: student.comments || null
-        }));
-      
-      if (reportsToSubmit.length === 0) {
-        toast({
-          title: "No data to submit",
-          description: "Please enter marks for at least one student.",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-        return;
-      }
-      
-      // Check for existing reports
-      const { data: existingReports } = await extendedSupabase
-        .from('exam_reports')
-        .select('id, student_id')
-        .eq('exam_id', selectedExam);
-      
-      // Delete existing reports
-      if (existingReports && existingReports.length > 0) {
-        await extendedSupabase
-          .from('exam_reports')
-          .delete()
-          .eq('exam_id', selectedExam);
-      }
-      
-      // Insert new reports
-      const { error } = await extendedSupabase
-        .from('exam_reports')
-        .insert(reportsToSubmit);
+      try {
+        setLoading(true);
         
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Exam reports saved successfully",
-      });
-      
-    } catch (error) {
-      console.error("Error saving exam reports:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save exam reports",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+        // Get exam reports for the selected exam
+        const { data: reportsData, error: reportsError } = await extendedSupabase
+          .from('exam_reports')
+          .select('*')
+          .eq('exam_id', selectedExam);
+          
+        if (reportsError) throw reportsError;
+        
+        // Find the selected exam details
+        const selectedExamDetails = exams.find(exam => exam.id === selectedExam);
+        
+        // Generate report for each student - including ones who haven't taken the exam yet
+        const reports = students.map(student => {
+          // Find existing report for this student
+          const existingReport = reportsData?.find(report => report.student_id === student.id);
+          
+          return {
+            id: existingReport?.id || `new-${student.id}`,
+            examId: selectedExam,
+            studentId: student.id,
+            studentName: student.full_name || 'Unknown',
+            rollNo: student.enrollment_number || 'N/A',
+            marksObtained: existingReport?.marks_obtained || null,
+            maxMarks: selectedExamDetails?.max_marks || 100,
+            passingMarks: selectedExamDetails?.passing_marks || 35,
+            passStatus: existingReport?.pass_status || false,
+            teacherComments: existingReport?.teacher_comments || '',
+            hasReport: !!existingReport,
+            submissionDate: existingReport?.created_at ? format(new Date(existingReport.created_at), 'PPP') : '-'
+          };
+        });
+        
+        setStudentReports(reports);
+        
+      } catch (error) {
+        console.error("Error fetching exam reports:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch exam reports",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchExamReports();
+  }, [selectedExam, exams, students]);
   
-  const exportReports = () => {
-    if (!examDetails) return;
-    
-    // Create CSV content
-    const headers = ["Roll No.", "Student Name", "Marks", "Status", "Comments"];
-    const csvData = students
-      .filter(student => student.marks !== '')
-      .map(student => [
-        student.roll,
-        student.name,
-        student.marks,
-        student.passed ? "Pass" : "Fail",
-        student.comments || ""
-      ]);
-    
-    const csvContent = [
-      headers.join(","),
-      ...csvData.map(row => row.map(cell => `"${cell}"`).join(","))
-    ].join("\n");
-    
-    // Create file and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${examDetails.subjects.code}_${format(new Date(examDetails.exam_date), "yyyy-MM-dd")}_reports.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // Filter students based on search term
+  const filteredReports = studentReports.filter(report => 
+    report.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    report.rollNo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Get the selected exam details
+  const selectedExamDetails = exams.find(exam => exam.id === selectedExam);
   
   return (
     <div>
       <PageHeader
         title="Exam Reports"
-        description="Create and manage student exam reports"
-        icon={BarChart}
-      />
+        description="Manage student exam results and performance"
+        icon={FileText}
+      >
+        <Button variant="outline" onClick={() => {}}>
+          <Download className="mr-2 h-4 w-4" />
+          Export Reports
+        </Button>
+      </PageHeader>
       
-      <div className="flex justify-between items-center mt-6">
-        <div className="w-80">
-          <label className="block text-sm font-medium mb-2">Select Exam</label>
-          <Select value={selectedExam} onValueChange={setSelectedExam}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Select Subject</label>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
             <SelectTrigger>
-              <SelectValue placeholder="Select Exam" />
+              <SelectValue placeholder="Select Subject" />
             </SelectTrigger>
             <SelectContent>
-              {exams.map(exam => (
-                <SelectItem key={exam.id} value={exam.id}>
-                  {exam.title} ({exam.subjects.code}, {format(new Date(exam.exam_date), "dd MMM yyyy")})
+              {subjects.map(subject => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name} ({subject.code})
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         
-        {examDetails && (
-          <Button variant="outline" onClick={exportReports}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Reports
-          </Button>
-        )}
+        <div>
+          <label className="block text-sm font-medium mb-2">Select Exam</label>
+          <Select value={selectedExam} onValueChange={setSelectedExam} disabled={exams.length === 0}>
+            <SelectTrigger>
+              <SelectValue placeholder={exams.length === 0 ? "No exams available" : "Select Exam"} />
+            </SelectTrigger>
+            <SelectContent>
+              {exams.map(exam => (
+                <SelectItem key={exam.id} value={exam.id}>
+                  {exam.title} - {format(new Date(exam.exam_date), 'PP')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
-      {examDetails && (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="text-lg">Exam Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {selectedExamDetails && (
+        <Card className="mt-4 bg-slate-50">
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-500">Subject</p>
-                <p>{examDetails.subjects.name} ({examDetails.subjects.code})</p>
+                <p className="text-sm font-medium text-slate-500">Exam Date</p>
+                <p>{format(new Date(selectedExamDetails.exam_date), 'PPP')}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Date</p>
-                <p>{format(new Date(examDetails.exam_date), "dd MMMM yyyy")}</p>
+                <p className="text-sm font-medium text-slate-500">Timing</p>
+                <p>{selectedExamDetails.start_time} - {selectedExamDetails.end_time}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Marks</p>
-                <p>Max: {examDetails.max_marks}, Passing: {examDetails.passing_marks}</p>
+                <p className="text-sm font-medium text-slate-500">Total/Passing Marks</p>
+                <p>{selectedExamDetails.max_marks} / {selectedExamDetails.passing_marks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
       
+      <div className="mt-6">
+        <label className="block text-sm font-medium mb-2">Search Students</label>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Input
+            placeholder="Search by name or roll no."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+      
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle className="text-lg">Student Reports</CardTitle>
+          <CardTitle className="text-lg">Student Exam Reports</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
             </div>
-          ) : students.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-4 py-3 text-left font-medium">Roll No.</th>
-                    <th className="px-4 py-3 text-left font-medium">Student Name</th>
-                    <th className="px-4 py-3 text-left font-medium">Marks ({examDetails?.max_marks})</th>
-                    <th className="px-4 py-3 text-left font-medium">Status</th>
-                    <th className="px-4 py-3 text-left font-medium">Comments</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map(student => (
-                    <tr key={student.id} className="border-b">
-                      <td className="px-4 py-3">{student.roll}</td>
-                      <td className="px-4 py-3">{student.name}</td>
-                      <td className="px-4 py-3">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={examDetails?.max_marks}
-                          className="w-20"
-                          value={student.marks}
-                          onChange={(e) => handleMarksChange(student.id, e.target.value)}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        {student.marks === '' ? (
-                          <span className="text-gray-400">Not graded</span>
-                        ) : student.passed ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Pass</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Fail</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Textarea
-                          placeholder="Add comments"
-                          className="min-h-[60px]"
-                          value={student.comments}
-                          onChange={(e) => handleCommentsChange(student.id, e.target.value)}
-                        />
-                      </td>
+          ) : selectedExam ? (
+            filteredReports.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-4 py-3 text-left font-medium">Roll No.</th>
+                      <th className="px-4 py-3 text-left font-medium">Student Name</th>
+                      <th className="px-4 py-3 text-center font-medium">Marks</th>
+                      <th className="px-4 py-3 text-center font-medium">Result</th>
+                      <th className="px-4 py-3 text-left font-medium">Last Updated</th>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredReports.map(report => (
+                      <tr key={report.id} className="border-b">
+                        <td className="px-4 py-3">{report.rollNo}</td>
+                        <td className="px-4 py-3">{report.studentName}</td>
+                        <td className="px-4 py-3 text-center">
+                          {report.marksObtained !== null ? (
+                            <span>{report.marksObtained} / {report.maxMarks}</span>
+                          ) : (
+                            <span className="text-gray-400">Not graded</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {report.hasReport ? (
+                            report.passStatus ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                Pass
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
+                                Fail
+                              </span>
+                            )
+                          ) : (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">{report.submissionDate}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-2">
+                            {report.hasReport ? (
+                              <>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <Eye className="h-4 w-4 mr-1" />
+                                      View
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Exam Report Details</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <p className="text-sm font-medium">Student</p>
+                                          <p className="text-sm text-gray-500">{report.studentName}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium">Roll No.</p>
+                                          <p className="text-sm text-gray-500">{report.rollNo}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium">Marks Obtained</p>
+                                          <p className="text-sm text-gray-500">{report.marksObtained} / {report.maxMarks}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium">Result</p>
+                                          <p className="text-sm text-gray-500">
+                                            {report.passStatus ? 'Pass' : 'Fail'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium">Teacher Comments</p>
+                                        <p className="text-sm text-gray-500 border p-2 rounded mt-1">
+                                          {report.teacherComments || 'No comments provided.'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                              </>
+                            ) : (
+                              <Button variant="ghost" size="sm">
+                                <Edit className="h-4 w-4 mr-1" />
+                                Add Grade
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 mx-auto text-gray-400" />
+                <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
+                <p className="mt-1 text-gray-500">
+                  No students match your search criteria.
+                </p>
+              </div>
+            )
           ) : (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 mx-auto text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
+              <h3 className="mt-2 text-lg font-medium">No Exam Selected</h3>
               <p className="mt-1 text-gray-500">
-                No students are assigned to you for this exam.
+                Please select a subject and an exam to view student reports.
               </p>
             </div>
           )}
         </CardContent>
-        {students.length > 0 && (
-          <CardFooter className="flex justify-end">
-            <Button 
-              onClick={saveExamReports} 
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Reports
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        )}
       </Card>
     </div>
   );
