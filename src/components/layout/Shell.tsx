@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface ShellProps {
   children: ReactNode;
@@ -43,17 +42,6 @@ const Shell = ({ children, className }: ShellProps) => {
       .toUpperCase();
   };
 
-  const handleNotificationClick = () => {
-    if (user?.role === "student") {
-      navigate("/student/notifications");
-    } else if (user?.role === "teacher") {
-      navigate("/teacher/communication");
-    } else {
-      // For admin or other roles
-      navigate("/announcements");
-    }
-  };
-
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
@@ -65,14 +53,9 @@ const Shell = ({ children, className }: ShellProps) => {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative"
-              onClick={handleNotificationClick}
-            >
+            <Button variant="ghost" size="icon" className="relative">
               <Bell size={20} />
-              <Badge className="absolute top-0 right-0 h-2 w-2 p-0 rounded-full bg-red-500"></Badge>
+              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
