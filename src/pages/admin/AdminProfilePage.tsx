@@ -49,9 +49,12 @@ const AdminProfilePage = () => {
         setLastLogin(data.last_login);
         setCreatedAt(data.created_at);
         
-        // Fetch additional admin info if needed
+        // Fetch additional admin info - remove RPC call since it doesn't exist
         const { data: adminData, error: adminError } = await supabase
-          .rpc('get_admin_profile', { admin_id: user.id });
+          .from('admins')  // assuming there might be an admins table
+          .select('contact_number')
+          .eq('user_id', user.id)
+          .single();
           
         if (!adminError && adminData) {
           setContactNumber(adminData.contact_number || "");

@@ -50,7 +50,8 @@ const AddCoursePage = () => {
       code: "",
       credits: 3,
       description: "",
-      department: "",
+      departmentId: "",
+      duration: "",
     },
   });
 
@@ -61,8 +62,9 @@ const AddCoursePage = () => {
         code: values.code,
         credits: values.credits,
         description: values.description,
-        department_id: values.department || null,
+        department_id: values.departmentId || null,
         is_active: true,
+        duration: values.duration,
       });
 
       if (error) throw error;
@@ -179,7 +181,7 @@ const AddCoursePage = () => {
 
                 <FormField
                   control={form.control}
-                  name="department"
+                  name="departmentId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Department</FormLabel>
@@ -202,6 +204,23 @@ const AddCoursePage = () => {
                       </Select>
                       <FormDescription>
                         Department offering this course
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 4 years" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Duration of the course
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

@@ -100,3 +100,9 @@ export const paymentSchema = z.object({
 });
 
 export type PaymentFormValues = z.infer<typeof paymentSchema>;
+
+// Add YearSessionValues interface for filtering
+export interface YearSessionValues {
+  year?: string;
+  session?: string;
+}
