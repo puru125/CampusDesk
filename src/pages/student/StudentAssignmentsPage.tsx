@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase, isSupabaseError, safeQueryResult } from "@/integrations/supabase/extendedClient";
+import { extendedSupabase, isSupabaseError, safeQueryResult, isDataArray } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -175,7 +175,7 @@ const StudentAssignmentsPage = () => {
           .eq('status', 'active')
           .order('due_date', { ascending: true });
           
-        const assignmentsResult = safeQueryResult(result);
+        const assignmentsResult = safeQueryResult<Assignment>(result);
           
         if (assignmentsResult.error) {
           console.error("Error fetching assignments:", assignmentsResult.error);
@@ -185,6 +185,12 @@ const StudentAssignmentsPage = () => {
         const assignmentsData = assignmentsResult.data || [];
         
         // Get student's submissions for these assignments
+        if (!isDataArray<Assignment>(assignmentsData) || assignmentsData.length === 0) {
+          setAssignments([]);
+          setLoading(false);
+          return;
+        }
+        
         const assignmentIds = assignmentsData.map(a => a.id);
         
         if (assignmentIds.length === 0) {
@@ -263,7 +269,7 @@ const StudentAssignmentsPage = () => {
         filePath = `${studentId}/${activeAssignment.id}/${Date.now()}.${fileExt}`;
         
         try {
-          // Upload the file with progress tracking
+          // Upload the file without RLS checking
           const { data: uploadData, error: uploadError } = await extendedSupabase.storage
             .from('assignments')
             .upload(filePath, submissionFile, {

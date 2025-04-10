@@ -19,3 +19,8 @@ export const safeQueryResult = <T>(result: any): { data: T[] | null; error: any 
   }
   return result as { data: T[] | null; error: any };
 };
+
+// Type guard to ensure safe access to data properties
+export function isDataArray<T>(data: unknown): data is T[] {
+  return Array.isArray(data);
+}
