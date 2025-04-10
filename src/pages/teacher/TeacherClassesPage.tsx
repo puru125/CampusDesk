@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,25 +60,27 @@ const TeacherClassesPage = () => {
         
         // Format courses data
         const coursesMap = new Map();
-        teacherSubjects?.forEach(ts => {
-          const course = ts.subjects?.courses;
-          const subject = ts.subjects;
-          
-          if (course && subject) {
-            if (!coursesMap.has(course.id)) {
-              coursesMap.set(course.id, {
-                ...course,
-                subjects: [subject]
-              });
-            } else {
-              const existingCourse = coursesMap.get(course.id);
-              if (existingCourse && Array.isArray(existingCourse.subjects)) {
-                existingCourse.subjects.push(subject);
-                coursesMap.set(course.id, existingCourse);
+        if (teacherSubjects) {
+          teacherSubjects.forEach(ts => {
+            const course = ts.subjects?.courses;
+            const subject = ts.subjects;
+            
+            if (course && subject) {
+              if (!coursesMap.has(course.id)) {
+                coursesMap.set(course.id, {
+                  ...course,
+                  subjects: [subject]
+                });
+              } else {
+                const existingCourse = coursesMap.get(course.id);
+                if (existingCourse && Array.isArray(existingCourse.subjects)) {
+                  existingCourse.subjects.push(subject);
+                  coursesMap.set(course.id, existingCourse);
+                }
               }
             }
-          }
-        });
+          });
+        }
         
         setCourses(Array.from(coursesMap.values()));
         
@@ -99,7 +102,7 @@ const TeacherClassesPage = () => {
         if (timetableError) throw timetableError;
         
         // Format classes data
-        const classesData = timetableEntries?.map(entry => ({
+        const classesData = timetableEntries ? timetableEntries.map(entry => ({
           id: entry.id,
           day: getDayName(entry.day_of_week),
           dayNumber: entry.day_of_week,
@@ -110,7 +113,7 @@ const TeacherClassesPage = () => {
           subjectCode: entry.subjects?.code || '',
           room: entry.classes?.room || 'TBD',
           capacity: entry.classes?.capacity || 0,
-        })) || [];
+        })) : [];
         
         setClasses(classesData);
       } catch (error) {
