@@ -1,7 +1,6 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User, AuthState } from "@/types";
+import { User, AuthState, UserRole } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType extends AuthState {
@@ -103,10 +102,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: data[0].id,
           email: data[0].email,
           full_name: data[0].full_name,
-          role: data[0].role as "admin" | "teacher" | "student",
+          role: data[0].role as UserRole,
           is_first_login: data[0].is_first_login,
-          created_at: "",
-          updated_at: "",
         };
 
         // Store user in local storage

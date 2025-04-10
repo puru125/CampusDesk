@@ -7,6 +7,7 @@ import StudentDashboard from "./StudentDashboard";
 import PasswordReset from "@/components/auth/PasswordReset";
 import ProfileCompletion from "@/components/profile/ProfileCompletion";
 import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "@/types";
 
 const Dashboard = () => {
   const { user, isFirstLogin } = useAuth();
@@ -90,7 +91,7 @@ const Dashboard = () => {
     return (
       <ProfileCompletion 
         userId={user.id} 
-        userRole={user.role} 
+        userRole={user.role as UserRole} 
         currentPercentage={profileCompletionPercentage}
         onComplete={handleProfileCompletionFinished} 
       />

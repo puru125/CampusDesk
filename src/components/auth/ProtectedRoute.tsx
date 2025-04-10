@@ -27,7 +27,7 @@ const ProtectedRoute = ({
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role as UserRole)) {
     // Redirect to dashboard if role is not allowed
     return <Navigate to="/" replace />;
   }

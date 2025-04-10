@@ -3,8 +3,8 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
-  avatar_url: string;
-  role: string;
+  avatar_url?: string;
+  role: UserRole;
   is_first_login?: boolean;
 }
 
@@ -86,6 +86,10 @@ export interface CourseClassroom {
   classroom_id: string;
   created_at: string;
   updated_at: string;
+  subject_name?: string;
+  classroom_name?: string;
+  classroom_room?: string;
+  classroom_capacity?: number;
 }
 
 export interface AuthState {
@@ -207,4 +211,15 @@ export interface DashboardStatsView {
   pending_enrollments: number | null;
   upcoming_exams: number | null;
   recent_fee_collections: number | null;
+}
+
+// Defining the types for course classroom management
+export interface AssignedClassroom {
+  id: string;
+  subject_id: string;
+  classroom_id: string;
+  subject_name?: string;
+  classroom_name?: string;
+  classroom_room?: string;
+  classroom_capacity?: number;
 }

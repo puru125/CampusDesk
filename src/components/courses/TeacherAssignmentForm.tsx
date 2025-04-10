@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,7 +62,7 @@ const TeacherAssignmentForm = ({ courseId, subjects, onSuccess }: TeacherAssignm
           subject_id,
           created_at,
           updated_at,
-          subject:subject_id(id, name, code, credits, course_id, created_at, updated_at)
+          subject:subject_id(id, name, code, credits, course_id, created_at, updated_at, description)
         `)
         .in("subject_id", subjectIds);
 
