@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageHeader from "@/components/ui/page-header";
@@ -15,8 +15,11 @@ import SubjectsEditList from "./SubjectsEditList";
 import TeacherAssignmentForm from "./TeacherAssignmentForm";
 import ClassScheduleEdit from "./ClassScheduleEdit";
 
-const CourseEditModule = () => {
-  const { courseId } = useParams();
+interface CourseEditModuleProps {
+  courseId: string;
+}
+
+const CourseEditModule = ({ courseId }: CourseEditModuleProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();

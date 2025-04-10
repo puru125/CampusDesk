@@ -9,7 +9,7 @@ const CourseDetailsPage = () => {
     return <Navigate to="/courses" />;
   }
   
-  return <CourseEditModule />;
+  return <CourseEditModule courseId={courseId} />;
 };
 
 export default CourseDetailsPage;

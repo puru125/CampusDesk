@@ -34,12 +34,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { teacherSchema, TeacherFormValues } from "@/lib/validation-rules";
 
 const AddTeacherPage = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<TeacherFormValues>({
@@ -54,11 +57,30 @@ const AddTeacherPage = () => {
       contactNumber: "",
       joiningDate: new Date(),
     },
+    mode: "onChange",
   });
 
   const onSubmit = async (data: TeacherFormValues) => {
     try {
       setIsSubmitting(true);
+      setError(null);
+      
+      // Check if email already exists
+      const { data: existingUser, error: emailCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+      
+      if (emailCheckError && emailCheckError.code !== 'PGRST116') {
+        throw emailCheckError;
+      }
+      
+      if (existingUser) {
+        setError("Email already in use. Please use a different email.");
+        setIsSubmitting(false);
+        return;
+      }
       
       // Step 1: Create the user
       const { data: userData, error: userError } = await supabase
@@ -90,7 +112,7 @@ const AddTeacherPage = () => {
           department: data.department,
           specialization: data.specialization,
           qualification: data.qualification,
-          contact_number: data.contactNumber || null,
+          contact_number: data.contactNumber,
           joining_date: format(data.joiningDate, "yyyy-MM-dd")
         });
 
@@ -106,6 +128,7 @@ const AddTeacherPage = () => {
       navigate("/teachers");
     } catch (error: any) {
       console.error("Error adding teacher:", error);
+      setError(error.message || "Failed to add teacher");
       toast({
         title: "Error",
         description: error.message || "Failed to add teacher",
@@ -125,6 +148,14 @@ const AddTeacherPage = () => {
         </Button>
       </PageHeader>
 
+      {error && (
+        <Alert variant="destructive" className="mb-6 max-w-3xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle>Teacher Information</CardTitle>
@@ -141,7 +172,7 @@ const AddTeacherPage = () => {
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>Full Name<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="Dr. Jane Smith" {...field} />
                       </FormControl>
@@ -158,7 +189,7 @@ const AddTeacherPage = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -176,7 +207,7 @@ const AddTeacherPage = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Password<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -208,7 +239,7 @@ const AddTeacherPage = () => {
                   name="department"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Department</FormLabel>
+                      <FormLabel>Department<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="Computer Science" {...field} />
                       </FormControl>
@@ -222,7 +253,7 @@ const AddTeacherPage = () => {
                   name="specialization"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Specialization</FormLabel>
+                      <FormLabel>Specialization<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="Machine Learning" {...field} />
                       </FormControl>
@@ -236,7 +267,7 @@ const AddTeacherPage = () => {
                   name="qualification"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Qualification</FormLabel>
+                      <FormLabel>Qualification<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="Ph.D. in Computer Science" {...field} />
                       </FormControl>
@@ -250,13 +281,13 @@ const AddTeacherPage = () => {
                   name="contactNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact Number</FormLabel>
+                      <FormLabel>Contact Number<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="9876543210" {...field} />
                       </FormControl>
                       <FormMessage />
                       <FormDescription>
-                        Enter a valid phone number with country code if applicable.
+                        Enter a 10-digit phone number without spaces or special characters.
                       </FormDescription>
                     </FormItem>
                   )}
@@ -267,7 +298,7 @@ const AddTeacherPage = () => {
                   name="joiningDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Joining Date</FormLabel>
+                      <FormLabel>Joining Date<span className="text-destructive">*</span></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -294,6 +325,9 @@ const AddTeacherPage = () => {
                             onSelect={field.onChange}
                             disabled={(date) => date > new Date()}
                             initialFocus
+                            captionLayout="dropdown-buttons"
+                            fromYear={1960}
+                            toYear={new Date().getFullYear()}
                           />
                         </PopoverContent>
                       </Popover>

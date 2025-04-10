@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowLeft, Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -35,12 +35,14 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { studentSchema, StudentFormValues } from "@/lib/validation-rules";
 
 const AddStudentPage = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const form = useForm<StudentFormValues>({
@@ -55,11 +57,30 @@ const AddStudentPage = () => {
       guardianName: "",
       guardianContact: "",
     },
+    mode: "onChange",
   });
 
   const onSubmit = async (data: StudentFormValues) => {
     try {
       setIsSubmitting(true);
+      setError(null);
+      
+      // Check if email already exists
+      const { data: existingUser, error: emailCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+      
+      if (emailCheckError && emailCheckError.code !== 'PGRST116') {
+        throw emailCheckError;
+      }
+      
+      if (existingUser) {
+        setError("Email already in use. Please use a different email.");
+        setIsSubmitting(false);
+        return;
+      }
       
       // Step 1: Create the user
       const { data: userData, error: userError } = await supabase
@@ -90,8 +111,8 @@ const AddStudentPage = () => {
           enrollment_number: enrollmentNumber,
           date_of_birth: format(data.dateOfBirth, "yyyy-MM-dd"),
           enrollment_date: format(new Date(), "yyyy-MM-dd"),
-          contact_number: data.contactNumber || null,
-          address: data.address || null,
+          contact_number: data.contactNumber,
+          address: data.address,
           guardian_name: data.guardianName || null,
           guardian_contact: data.guardianContact || null,
           enrollment_status: 'pending'
@@ -109,6 +130,7 @@ const AddStudentPage = () => {
       navigate("/students");
     } catch (error: any) {
       console.error("Error adding student:", error);
+      setError(error.message || "Failed to add student");
       toast({
         title: "Error",
         description: error.message || "Failed to add student",
@@ -128,6 +150,14 @@ const AddStudentPage = () => {
         </Button>
       </PageHeader>
 
+      {error && (
+        <Alert variant="destructive" className="mb-6 max-w-3xl mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle>Student Information</CardTitle>
@@ -144,7 +174,7 @@ const AddStudentPage = () => {
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>Full Name<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="John Doe" {...field} />
                       </FormControl>
@@ -161,7 +191,7 @@ const AddStudentPage = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -179,7 +209,7 @@ const AddStudentPage = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Password<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -211,7 +241,7 @@ const AddStudentPage = () => {
                   name="dateOfBirth"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
+                      <FormLabel>Date of Birth<span className="text-destructive">*</span></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -238,6 +268,9 @@ const AddStudentPage = () => {
                             onSelect={field.onChange}
                             disabled={(date) => date > new Date()}
                             initialFocus
+                            captionLayout="dropdown-buttons"
+                            fromYear={1960}
+                            toYear={new Date().getFullYear()}
                           />
                         </PopoverContent>
                       </Popover>
@@ -251,13 +284,13 @@ const AddStudentPage = () => {
                   name="contactNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact Number</FormLabel>
+                      <FormLabel>Contact Number<span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="9876543210" {...field} />
                       </FormControl>
                       <FormMessage />
                       <FormDescription>
-                        Enter a valid phone number with country code if applicable.
+                        Enter a 10-digit phone number without spaces or special characters.
                       </FormDescription>
                     </FormItem>
                   )}
@@ -297,7 +330,7 @@ const AddStudentPage = () => {
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel>Address<span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Student's residential address"
