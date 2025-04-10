@@ -70,6 +70,7 @@ import AssignmentDetailsPage from "@/pages/teacher/AssignmentDetailsPage";
 import TeacherCommunicationPage from "@/pages/teacher/TeacherCommunicationPage";
 import TeacherReportsPage from "@/pages/teacher/TeacherReportsPage";
 import AttendancePage from "@/pages/teacher/AttendancePage";
+import TeacherDoubtsPage from "@/pages/teacher/TeacherDoubtsPage";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +122,7 @@ function App() {
                     <Route path="teacher/assignments/:assignmentId" element={<AssignmentDetailsPage />} />
                     <Route path="teacher/communication" element={<TeacherCommunicationPage />} />
                     <Route path="teacher/reports" element={<TeacherReportsPage />} />
+                    <Route path="teacher/doubts" element={<TeacherDoubtsPage />} />
                     <Route path="assignments/new" element={<CreateAssignmentPage />} />
                     <Route path="my-classes" element={<TeacherClassesPage />} />
                     <Route path="attendance" element={<AttendancePage />} />

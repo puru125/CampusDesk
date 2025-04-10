@@ -12,92 +12,183 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, ArrowLeft, Download, Calendar, Clock, Users, CheckCircle, XCircle, FileCheck, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 
+interface Assignment {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string;
+  max_score: number;
+  status: string;
+  teacher_id: string;
+  subject_id: string | null;
+  created_at: string;
+  subjects: {
+    id: string;
+    name: string;
+    code: string | null;
+  } | null;
+}
+
+interface Submission {
+  id: string;
+  student_id: string;
+  student: {
+    id: string;
+    enrollment_number: string;
+    user_id: string;
+    users: {
+      full_name: string;
+    };
+  };
+  submitted_at: string | null;
+  status: string;
+  score: number | null;
+  feedback: string | null;
+  file_name: string | null;
+  file_path: string | null;
+}
+
 const AssignmentDetailsPage = () => {
-  const { assignmentId } = useParams();
+  const { assignmentId } = useParams<{ assignmentId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [assignment, setAssignment] = useState<any>(null);
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [assignment, setAssignment] = useState<Assignment | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [savingGrades, setSavingGrades] = useState(false);
+  const [studentCount, setStudentCount] = useState(0);
   
   useEffect(() => {
-    // Mock data for the assignment
-    const mockAssignment = {
-      id: assignmentId,
-      title: "Database Normalization",
-      description: "Complete the database normalization exercise. Identify the normal forms and apply normalization techniques to the given database schema.",
-      subject: "Database Systems",
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      status: "active",
-      totalSubmissions: 28,
-      pendingGrading: 12,
-      maxScore: 100,
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+    const fetchAssignmentDetails = async () => {
+      try {
+        if (!user || !assignmentId) return;
+        
+        // Get teacher profile
+        const { data: teacherProfile, error: teacherError } = await supabase
+          .from('teachers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (teacherError) throw teacherError;
+        
+        // Get assignment details
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('assignments')
+          .select(`
+            id,
+            title,
+            description,
+            due_date,
+            max_score,
+            status,
+            teacher_id,
+            subject_id,
+            created_at,
+            subjects(id, name, code)
+          `)
+          .eq('id', assignmentId)
+          .eq('teacher_id', teacherProfile.id)
+          .single();
+          
+        if (assignmentError) throw assignmentError;
+        
+        setAssignment(assignmentData);
+        
+        // Get count of students assigned to this teacher
+        const { count: studentCountResult } = await supabase
+          .from('teacher_students')
+          .select('*', { count: 'exact', head: true })
+          .eq('teacher_id', teacherProfile.id);
+          
+        setStudentCount(studentCountResult || 0);
+        
+        // Get all submissions for this assignment
+        const { data: submissionsData, error: submissionsError } = await supabase
+          .from('assignment_submissions')
+          .select(`
+            id,
+            student_id,
+            submitted_at,
+            status,
+            score,
+            feedback,
+            file_name,
+            file_path,
+            student:student_id(
+              id,
+              enrollment_number,
+              user_id,
+              users:user_id(
+                full_name
+              )
+            )
+          `)
+          .eq('assignment_id', assignmentId);
+          
+        if (submissionsError) throw submissionsError;
+        
+        setSubmissions(submissionsData || []);
+        
+        // Get potential students who haven't submitted yet
+        const { data: teacherStudentsData, error: teacherStudentsError } = await supabase
+          .from('teacher_students')
+          .select(`
+            student_id,
+            students:student_id(
+              id,
+              enrollment_number,
+              user_id,
+              users:user_id(
+                full_name
+              )
+            )
+          `)
+          .eq('teacher_id', teacherProfile.id);
+          
+        if (teacherStudentsError) throw teacherStudentsError;
+        
+        // Add missing students as pending submissions
+        const existingStudentIds = submissionsData?.map(s => s.student_id) || [];
+        const missingStudents = teacherStudentsData
+          ?.filter(ts => !existingStudentIds.includes(ts.student_id))
+          .map(ts => ({
+            id: `pending-${ts.student_id}`,
+            student_id: ts.student_id,
+            student: ts.students,
+            submitted_at: null,
+            status: 'pending',
+            score: null,
+            feedback: null,
+            file_name: null,
+            file_path: null
+          })) || [];
+          
+        setSubmissions(prev => [...prev, ...missingStudents]);
+      } catch (error) {
+        console.error("Error fetching assignment details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch assignment data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     };
     
-    // Mock data for submissions
-    const mockSubmissions = [
-      {
-        id: "1",
-        studentId: "1",
-        studentName: "Rajesh Kumar",
-        rollNo: "CS2301",
-        submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        status: "submitted",
-        score: "",
-        feedback: "",
-        fileName: "database_normalization_rajesh.pdf",
-      },
-      {
-        id: "2",
-        studentId: "2",
-        studentName: "Priya Sharma",
-        rollNo: "CS2302",
-        submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-        status: "submitted",
-        score: "",
-        feedback: "",
-        fileName: "normalization_exercise_priya.pdf",
-      },
-      {
-        id: "3",
-        studentId: "3",
-        studentName: "Amit Singh",
-        rollNo: "CS2303",
-        submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        status: "submitted",
-        score: "85",
-        feedback: "Good work on identifying the normal forms. Could improve on explaining the steps taken.",
-        fileName: "amit_normalization.pdf",
-      },
-      {
-        id: "4",
-        studentId: "4",
-        studentName: "Neha Patel",
-        rollNo: "CS2304",
-        submittedAt: null,
-        status: "pending",
-        score: "",
-        feedback: "",
-        fileName: "",
-      },
-    ];
-    
-    setAssignment(mockAssignment);
-    setSubmissions(mockSubmissions);
-    setLoading(false);
-  }, [assignmentId]);
+    fetchAssignmentDetails();
+  }, [user, assignmentId, toast]);
   
   const handleScoreChange = (submissionId: string, value: string) => {
     setSubmissions(prev => 
       prev.map(sub => 
         sub.id === submissionId 
-          ? { ...sub, score: value } 
+          ? { ...sub, score: value ? Number(value) : null } 
           : sub
       )
     );
@@ -117,10 +208,50 @@ const AssignmentDetailsPage = () => {
     try {
       setSavingGrades(true);
       
-      // In a real implementation, this would save to the database
-      console.log("Saving grades:", submissions.filter(sub => sub.status === "submitted"));
+      const submissionsToUpdate = submissions.filter(
+        sub => sub.status === 'submitted' && !sub.id.startsWith('pending')
+      );
       
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      // Update submissions in database
+      for (const submission of submissionsToUpdate) {
+        await supabase
+          .from('assignment_submissions')
+          .update({
+            score: submission.score,
+            feedback: submission.feedback,
+            status: submission.score !== null ? 'graded' : 'submitted'
+          })
+          .eq('id', submission.id);
+      }
+      
+      // Refresh submission data
+      const { data: refreshedData } = await supabase
+        .from('assignment_submissions')
+        .select(`
+          id,
+          student_id,
+          submitted_at,
+          status,
+          score,
+          feedback,
+          file_name,
+          file_path,
+          student:student_id(
+            id,
+            enrollment_number,
+            user_id,
+            users:user_id(
+              full_name
+            )
+          )
+        `)
+        .eq('assignment_id', assignmentId);
+        
+      // Update local state with refreshed data
+      if (refreshedData) {
+        const pendingSubmissions = submissions.filter(sub => sub.id.startsWith('pending'));
+        setSubmissions([...refreshedData, ...pendingSubmissions]);
+      }
       
       toast({
         title: "Grades Saved",
@@ -139,6 +270,35 @@ const AssignmentDetailsPage = () => {
     }
   };
   
+  const downloadSubmission = async (fileUrl: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('assignments')
+        .download(fileUrl);
+        
+      if (error) throw error;
+      
+      // Create download link
+      const downloadUrl = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      // Clean up URL object
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download file",
+        variant: "destructive",
+      });
+    }
+  };
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -147,9 +307,29 @@ const AssignmentDetailsPage = () => {
     );
   }
   
+  if (!assignment) {
+    return (
+      <div className="text-center py-12">
+        <XCircle className="h-12 w-12 mx-auto text-red-500" />
+        <h3 className="mt-2 text-lg font-medium">Assignment Not Found</h3>
+        <p className="mt-1 text-gray-500">
+          The assignment you're looking for doesn't exist or you don't have access to it.
+        </p>
+        <Button 
+          variant="outline" 
+          onClick={() => navigate("/assignments")}
+          className="mt-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Assignments
+        </Button>
+      </div>
+    );
+  }
+  
   const pendingCount = submissions.filter(sub => sub.status === "pending").length;
   const submittedCount = submissions.filter(sub => sub.status === "submitted").length;
-  const gradedCount = submissions.filter(sub => sub.status === "submitted" && sub.score).length;
+  const gradedCount = submissions.filter(sub => sub.status === "graded").length;
   
   return (
     <div>
@@ -171,7 +351,9 @@ const AssignmentDetailsPage = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Badge variant="outline" className="mb-4">{assignment.subject}</Badge>
+              {assignment.subjects && (
+                <Badge variant="outline" className="mb-4">{assignment.subjects.name}</Badge>
+              )}
               <p className="text-gray-700 mb-4">{assignment.description}</p>
               
               <div className="space-y-2 mt-4">
@@ -180,7 +362,7 @@ const AssignmentDetailsPage = () => {
                     <Calendar className="h-4 w-4 mr-1" />
                     <span>Due Date:</span>
                   </div>
-                  <span className="font-medium">{format(assignment.dueDate, "PPP")}</span>
+                  <span className="font-medium">{format(parseISO(assignment.due_date), "PPP")}</span>
                 </div>
                 
                 <div className="flex justify-between text-sm">
@@ -188,7 +370,7 @@ const AssignmentDetailsPage = () => {
                     <Clock className="h-4 w-4 mr-1" />
                     <span>Created:</span>
                   </div>
-                  <span className="font-medium">{format(assignment.createdAt, "PPP")}</span>
+                  <span className="font-medium">{format(parseISO(assignment.created_at), "PPP")}</span>
                 </div>
                 
                 <div className="flex justify-between text-sm">
@@ -196,7 +378,7 @@ const AssignmentDetailsPage = () => {
                     <FileText className="h-4 w-4 mr-1" />
                     <span>Max Score:</span>
                   </div>
-                  <span className="font-medium">{assignment.maxScore} points</span>
+                  <span className="font-medium">{assignment.max_score} points</span>
                 </div>
               </div>
             </div>
@@ -215,17 +397,26 @@ const AssignmentDetailsPage = () => {
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Submitted</span>
-                  <span>{submittedCount} / {submissions.length}</span>
+                  <span>{submittedCount + gradedCount} / {submissions.length}</span>
                 </div>
-                <Progress value={(submittedCount / submissions.length) * 100} className="h-2" />
+                <Progress 
+                  value={((submittedCount + gradedCount) / submissions.length) * 100} 
+                  className="h-2" 
+                />
               </div>
               
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Graded</span>
-                  <span>{gradedCount} / {submittedCount}</span>
+                  <span>{gradedCount} / {submittedCount + gradedCount}</span>
                 </div>
-                <Progress value={submittedCount > 0 ? (gradedCount / submittedCount) * 100 : 0} className="h-2" />
+                <Progress 
+                  value={(submittedCount + gradedCount) > 0 
+                    ? (gradedCount / (submittedCount + gradedCount)) * 100 
+                    : 0
+                  } 
+                  className="h-2" 
+                />
               </div>
               
               <div className="flex justify-between mt-4">
@@ -251,7 +442,7 @@ const AssignmentDetailsPage = () => {
           </TabsTrigger>
           <TabsTrigger value="grading" className="flex items-center">
             <FileCheck className="mr-2 h-4 w-4" />
-            Needs Grading ({submissions.filter(s => s.status === "submitted" && !s.score).length})
+            Needs Grading ({submittedCount})
           </TabsTrigger>
         </TabsList>
         
@@ -277,14 +468,18 @@ const AssignmentDetailsPage = () => {
                       <tr key={submission.id} className="border-b">
                         <td className="px-4 py-3">
                           <div>
-                            <div className="font-medium">{submission.studentName}</div>
-                            <div className="text-sm text-gray-500">{submission.rollNo}</div>
+                            <div className="font-medium">{submission.student?.users?.full_name || 'Unknown'}</div>
+                            <div className="text-sm text-gray-500">{submission.student?.enrollment_number || 'N/A'}</div>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           {submission.status === "submitted" ? (
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                               Submitted
+                            </Badge>
+                          ) : submission.status === "graded" ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              Graded
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
@@ -293,18 +488,39 @@ const AssignmentDetailsPage = () => {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {submission.submittedAt ? format(submission.submittedAt, "PPP 'at' h:mm a") : "Not submitted"}
+                          {submission.submitted_at 
+                            ? format(parseISO(submission.submitted_at), "PPP 'at' h:mm a") 
+                            : "Not submitted"
+                          }
                         </td>
                         <td className="px-4 py-3">
-                          {submission.score ? `${submission.score}/${assignment.maxScore}` : "Not graded"}
+                          {submission.score !== null 
+                            ? `${submission.score}/${assignment.max_score}` 
+                            : "Not graded"
+                          }
                         </td>
                         <td className="px-4 py-3">
-                          {submission.status === "submitted" && (
+                          {(submission.status === "submitted" || submission.status === "graded") && (
                             <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" disabled={!submission.fileName}>
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
+                              {submission.file_path && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => downloadSubmission(
+                                    submission.file_path as string,
+                                    submission.file_name || 'download'
+                                  )}
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => document.getElementById(`grade-submission-${submission.id}`)?.scrollIntoView({
+                                  behavior: 'smooth'
+                                })}
+                              >
                                 <FileCheck className="h-4 w-4" />
                               </Button>
                             </div>
@@ -330,19 +546,35 @@ const AssignmentDetailsPage = () => {
                   {submissions
                     .filter(s => s.status === "submitted")
                     .map(submission => (
-                      <div key={submission.id} className="border rounded-md p-4">
+                      <div 
+                        key={submission.id} 
+                        id={`grade-submission-${submission.id}`}
+                        className="border rounded-md p-4"
+                      >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-medium">{submission.studentName}</h3>
-                            <div className="text-sm text-gray-500">{submission.rollNo}</div>
+                            <h3 className="font-medium">{submission.student?.users?.full_name || 'Unknown'}</h3>
+                            <div className="text-sm text-gray-500">{submission.student?.enrollment_number || 'N/A'}</div>
                             <div className="text-sm text-gray-500 mt-1">
-                              Submitted: {format(submission.submittedAt, "PPP 'at' h:mm a")}
+                              Submitted: {submission.submitted_at 
+                                ? format(parseISO(submission.submitted_at), "PPP 'at' h:mm a") 
+                                : "Not submitted"
+                              }
                             </div>
                           </div>
-                          <Button variant="outline" size="sm" disabled={!submission.fileName}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                          </Button>
+                          {submission.file_path && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => downloadSubmission(
+                                submission.file_path as string,
+                                submission.file_name || 'download'
+                              )}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download
+                            </Button>
+                          )}
                         </div>
                         
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -351,9 +583,9 @@ const AssignmentDetailsPage = () => {
                             <Input
                               type="number"
                               min="0"
-                              max={assignment.maxScore}
-                              placeholder={`Out of ${assignment.maxScore}`}
-                              value={submission.score}
+                              max={assignment.max_score}
+                              placeholder={`Out of ${assignment.max_score}`}
+                              value={submission.score !== null ? submission.score : ''}
                               onChange={(e) => handleScoreChange(submission.id, e.target.value)}
                             />
                           </div>
@@ -361,7 +593,7 @@ const AssignmentDetailsPage = () => {
                             <label className="block text-sm font-medium mb-2">Feedback</label>
                             <Textarea
                               placeholder="Provide feedback to the student"
-                              value={submission.feedback}
+                              value={submission.feedback || ''}
                               onChange={(e) => handleFeedbackChange(submission.id, e.target.value)}
                             />
                           </div>

@@ -21,30 +21,106 @@ const TeacherStudentsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   
   useEffect(() => {
-    // Mock data for students and classes
-    const mockStudents = [
-      { id: "1", name: "Rajesh Kumar", roll: "CS2301", course: "BTech CSE", attendance: "92%", grade: "A" },
-      { id: "2", name: "Priya Sharma", roll: "CS2302", course: "BTech CSE", attendance: "88%", grade: "A-" },
-      { id: "3", name: "Amit Singh", roll: "CS2303", course: "BTech CSE", attendance: "76%", grade: "B" },
-      { id: "4", name: "Neha Patel", roll: "CS2304", course: "BTech CSE", attendance: "95%", grade: "A+" },
-      { id: "5", name: "Vijay Mehta", roll: "CS2305", course: "BTech CSE", attendance: "82%", grade: "B+" },
-    ];
+    const fetchTeacherStudents = async () => {
+      try {
+        if (!user) return;
+        
+        // Get teacher profile
+        const { data: teacherProfile, error: teacherError } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (teacherError) throw teacherError;
+        
+        // Get teacher's subjects
+        const { data: teacherSubjects, error: subjectsError } = await supabase
+          .from('teacher_subjects')
+          .select('subject_id, subjects(id, name, code)')
+          .eq('teacher_id', teacherProfile.id);
+          
+        if (subjectsError) throw subjectsError;
+        
+        const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
+        
+        // Get students assigned to this teacher
+        const { data: teacherStudents, error: studentsError } = await supabase
+          .from('teacher_students')
+          .select(`
+            student_id,
+            students(
+              id,
+              contact_number,
+              enrollment_number,
+              enrollment_status,
+              user_id,
+              users:user_id(
+                full_name,
+                email
+              )
+            )
+          `)
+          .eq('teacher_id', teacherProfile.id);
+
+        if (studentsError) throw studentsError;
+        
+        // Format students data
+        const formattedStudents = teacherStudents?.map(ts => {
+          const student = ts.students;
+          return {
+            id: student.id,
+            name: student.users?.full_name || 'Unknown',
+            roll: student.enrollment_number || 'N/A',
+            email: student.users?.email || 'N/A',
+            attendance: "N/A", // Calculate this based on actual data
+            grade: "N/A",      // Calculate this based on actual data
+            contact: student.contact_number || 'N/A'
+          };
+        }) || [];
+        
+        setStudents(formattedStudents);
+        
+        // Get teacher's classes
+        const { data: teacherClasses, error: classesError } = await supabase
+          .from('timetable_entries')
+          .select(`
+            subjects(id, name, code),
+            classes(id, name, room, capacity)
+          `)
+          .eq('teacher_id', teacherProfile.id);
+          
+        if (classesError) throw classesError;
+        
+        // Format classes data
+        const formattedClasses = teacherClasses?.map(tc => ({
+          id: tc.subjects?.id || '',
+          name: tc.subjects?.name || 'Unknown Subject',
+          code: tc.subjects?.code || ''
+        })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
+        
+        setClasses(formattedClasses);
+        
+      } catch (error) {
+        console.error("Error fetching teacher students:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch student data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    const mockClasses = [
-      { id: "1", name: "Database Systems", code: "CS301" },
-      { id: "2", name: "Web Development", code: "CS302" },
-      { id: "3", name: "Data Structures", code: "CS201" },
-    ];
-    
-    setStudents(mockStudents);
-    setClasses(mockClasses);
-    setLoading(false);
-  }, []);
+    fetchTeacherStudents();
+  }, [user, toast]);
   
-  // Filter students based on search term
+  // Filter students based on search term and selected class
   const filteredStudents = students.filter(student => 
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.roll.toLowerCase().includes(searchTerm.toLowerCase())
+    (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.roll.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (selectedClass === "" || student.class === selectedClass)
   );
   
   return (
@@ -72,7 +148,11 @@ const TeacherStudentsPage = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="flex items-center" onClick={() => setSelectedClass("")}>
+          <Button 
+            variant={selectedClass === "" ? "default" : "outline"} 
+            className="flex items-center" 
+            onClick={() => setSelectedClass("")}
+          >
             <BookOpen className="mr-2 h-4 w-4" />
             All Classes
           </Button>
@@ -106,7 +186,8 @@ const TeacherStudentsPage = () => {
                   <tr className="border-b">
                     <th className="px-4 py-3 text-left font-medium">Name</th>
                     <th className="px-4 py-3 text-left font-medium">Roll No.</th>
-                    <th className="px-4 py-3 text-left font-medium">Course</th>
+                    <th className="px-4 py-3 text-left font-medium">Email</th>
+                    <th className="px-4 py-3 text-left font-medium">Contact</th>
                     <th className="px-4 py-3 text-left font-medium">Attendance</th>
                     <th className="px-4 py-3 text-left font-medium">Grade</th>
                     <th className="px-4 py-3 text-left font-medium">Actions</th>
@@ -117,7 +198,8 @@ const TeacherStudentsPage = () => {
                     <tr key={student.id} className="border-b">
                       <td className="px-4 py-3">{student.name}</td>
                       <td className="px-4 py-3">{student.roll}</td>
-                      <td className="px-4 py-3">{student.course}</td>
+                      <td className="px-4 py-3">{student.email}</td>
+                      <td className="px-4 py-3">{student.contact}</td>
                       <td className="px-4 py-3">{student.attendance}</td>
                       <td className="px-4 py-3">{student.grade}</td>
                       <td className="px-4 py-3">

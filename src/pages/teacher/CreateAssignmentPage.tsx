@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,11 @@ import { FileText, Calendar as CalendarIcon, Clock, ArrowLeft, Loader2 } from "l
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+interface Subject {
+  id: string;
+  name: string;
+}
+
 const assignmentSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -55,11 +60,7 @@ const CreateAssignmentPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [subjects, setSubjects] = useState([
-    { id: "1", name: "Database Systems" },
-    { id: "2", name: "Web Development" },
-    { id: "3", name: "Data Structures" },
-  ]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   
   const form = useForm<AssignmentFormValues>({
     resolver: zodResolver(assignmentSchema),
@@ -77,12 +78,83 @@ const CreateAssignmentPage = () => {
   
   const allowLateSubmission = form.watch("allowLateSubmission");
   
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        if (!user) return;
+        
+        // Get teacher profile
+        const { data: teacherProfile, error: teacherError } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (teacherError) throw teacherError;
+        
+        // Get teacher's subjects
+        const { data, error } = await supabase
+          .from('teacher_subjects')
+          .select('subjects(id, name)')
+          .eq('teacher_id', teacherProfile.id);
+          
+        if (error) throw error;
+        
+        const formattedSubjects = data?.map(item => ({
+          id: item.subjects?.id || '',
+          name: item.subjects?.name || ''
+        })).filter(s => s.id) || [];
+        
+        setSubjects(formattedSubjects);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load subjects",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    fetchSubjects();
+  }, [user, toast]);
+  
   const onSubmit = async (data: AssignmentFormValues) => {
     try {
       setLoading(true);
       
-      // For now, just show a success toast - in a real implementation, we'd save to Supabase
-      console.log("Assignment data:", data);
+      if (!user) throw new Error("User not authenticated");
+      
+      // Get teacher profile
+      const { data: teacherProfile, error: teacherError } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (teacherError) throw teacherError;
+      
+      // Combine date and time
+      const dueDateTime = new Date(data.dueDate);
+      const [hours, minutes] = data.dueTime.split(':').map(Number);
+      dueDateTime.setHours(hours, minutes);
+      
+      // Create new assignment
+      const { data: assignment, error } = await supabase
+        .from('assignments')
+        .insert({
+          teacher_id: teacherProfile.id,
+          subject_id: data.subject,
+          title: data.title,
+          description: data.description,
+          due_date: dueDateTime.toISOString(),
+          max_score: data.maxScore,
+          status: 'active'
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
       
       toast({
         title: "Assignment Created",

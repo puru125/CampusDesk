@@ -98,7 +98,7 @@ const TeacherClassesPage = () => {
         // Format courses data
         const coursesMap = new Map();
         if (teacherSubjects) {
-          teacherSubjects.forEach(ts => {
+          teacherSubjects.forEach((ts: TeacherSubject) => {
             const course = ts.subjects?.courses;
             const subject = ts.subjects;
             
@@ -139,7 +139,7 @@ const TeacherClassesPage = () => {
         if (timetableError) throw timetableError;
         
         // Format classes data
-        const classesData = timetableEntries ? timetableEntries.map(entry => ({
+        const classesData = timetableEntries ? timetableEntries.map((entry: TimetableEntry) => ({
           id: entry.id,
           day: getDayName(entry.day_of_week),
           dayNumber: entry.day_of_week,
