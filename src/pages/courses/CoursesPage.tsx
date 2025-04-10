@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -172,17 +173,18 @@ const CoursesPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/courses/${course.id}`)}
+                          onClick={() => navigate(`/courses/${course.id}/edit`)}
                         >
-                          <Users className="h-4 w-4 mr-1" />
-                          Students
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/courses/${course.id}/edit`)}
+                          onClick={() => navigate(`/courses/${course.id}`)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Users className="h-4 w-4 mr-1" />
+                          Students
                         </Button>
                         <Button
                           variant="ghost"

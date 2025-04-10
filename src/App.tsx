@@ -18,6 +18,7 @@ import TeachersPage from "./pages/teachers/TeachersPage";
 import AddTeacherPage from "./pages/teachers/AddTeacherPage";
 import CoursesPage from "./pages/courses/CoursesPage";
 import AddCoursePage from "./pages/courses/AddCoursePage";
+import CourseEditPage from "./pages/courses/CourseEditPage";
 import TimetablePage from "./pages/timetable/TimetablePage";
 import AddTimetableEntryPage from "./pages/timetable/AddTimetableEntryPage";
 import ExamsPage from "./pages/exams/ExamsPage";
@@ -117,6 +118,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Shell>
                     <AddCoursePage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/courses/:courseId/edit" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <CourseEditPage />
                   </Shell>
                 </ProtectedRoute>
               } 
