@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import NotificationsList from "./NotificationsList";
+import { useToast } from "@/components/ui/use-toast";
 
 interface NotificationCounterProps {
   onClick?: () => void;
@@ -17,10 +18,12 @@ interface NotificationCounterProps {
 
 const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
   const [entityId, setEntityId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [lastNotificationTime, setLastNotificationTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -44,8 +47,24 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
             schema: 'public',
             table: table
           },
-          () => {
-            fetchUnreadCount();
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              fetchUnreadCount();
+              const now = new Date();
+              
+              // Only show toast if this is not the initial load
+              if (lastNotificationTime && 
+                 (now.getTime() - lastNotificationTime.getTime() > 1000)) {
+                toast({
+                  title: "New Notification",
+                  description: "You have received a new notification",
+                });
+              }
+              
+              setLastNotificationTime(now);
+            } else {
+              fetchUnreadCount();
+            }
           }
         )
         .subscribe();
@@ -160,6 +179,45 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
     }
   };
 
+  const markAllAsRead = async () => {
+    try {
+      let table = '';
+      let field = '';
+      
+      if (user?.role === 'admin') {
+        table = 'admin_notifications';
+      } else if (user?.role === 'teacher') {
+        table = 'teacher_notifications';
+        field = 'teacher_id';
+      } else if (user?.role === 'student') {
+        table = 'student_notifications';
+        field = 'student_id';
+      } else {
+        return;
+      }
+      
+      let query = supabase
+        .from(table)
+        .update({ is_read: true });
+      
+      if (user?.role !== 'admin' && entityId) {
+        query = query.eq(field, entityId);
+      }
+      
+      const { error } = await query;
+      
+      if (error) throw error;
+      
+      setUnreadCount(0);
+      toast({
+        title: "Notifications marked as read",
+        description: "All notifications have been marked as read"
+      });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -174,11 +232,18 @@ const NotificationCounter = ({ onClick }: NotificationCounterProps) => {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-4 border-b">
-          <div className="font-medium">Recent Notifications</div>
-          <p className="text-sm text-gray-500">
-            {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-          </p>
+        <div className="p-4 border-b flex justify-between items-center">
+          <div>
+            <div className="font-medium">Recent Notifications</div>
+            <p className="text-sm text-gray-500">
+              {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {unreadCount > 0 && (
+            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+              Mark all read
+            </Button>
+          )}
         </div>
         <div className="max-h-96 overflow-auto">
           <NotificationsList limit={5} showViewAll={false} />

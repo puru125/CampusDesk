@@ -1,439 +1,475 @@
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import PageHeader from "@/components/ui/page-header";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Bell, Send, Search, UserPlus, Users, MessageSquare, ChevronDown, Mail, MenuSquare, 
-  Edit, Trash2, Loader2, Calendar
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import PageHeader from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { format } from "date-fns";
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
+import { MessageSquare, Send, Users } from 'lucide-react';
+
+const formSchema = z.object({
+  title: z.string().min(5, {
+    message: 'Title must be at least 5 characters.',
+  }),
+  message: z.string().min(10, {
+    message: 'Message must be at least 10 characters.',
+  }),
+  student_id: z.string().min(1, {
+    message: 'Please select a student.',
+  }),
+});
+
+type Student = {
+  id: string;
+  first_name: string;
+  last_name: string;
+};
+
+type Message = {
+  id: string;
+  title: string;
+  message: string;
+  student_id: string;
+  created_at: string;
+  student?: {
+    first_name: string;
+    last_name: string;
+  };
+};
 
 const TeacherCommunicationPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [teacherData, setTeacherData] = useState<any>(null);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [announcementTitle, setAnnouncementTitle] = useState("");
-  const [announcementContent, setAnnouncementContent] = useState("");
-  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
-  
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('compose');
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: '',
+      message: '',
+      student_id: '',
+    },
+  });
+
   useEffect(() => {
-    fetchTeacherData();
-    fetchClasses();
-    fetchAnnouncements();
-    
-    // Set up real-time listener for announcements
-    const channel = supabase
-      .channel('announcements-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'announcements'
-        },
-        (payload) => {
-          console.log('Realtime announcement update:', payload);
-          fetchAnnouncements();
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    if (user) {
+      fetchTeacherId();
+    }
   }, [user]);
-  
-  const fetchTeacherData = async () => {
-    if (!user) return;
-    
+
+  useEffect(() => {
+    if (teacherId) {
+      fetchStudents();
+      fetchMessages();
+      
+      // Set up real-time listener for new messages
+      const channel = supabase
+        .channel('messages-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'teacher_messages',
+            filter: `teacher_id=eq.${teacherId}`
+          },
+          (payload) => {
+            // Fetch the student information for the new message
+            fetchMessageWithStudent(payload.new.id);
+            toast({
+              title: 'New Message',
+              description: 'You have received a new message',
+            });
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [teacherId]);
+
+  const fetchTeacherId = async () => {
     try {
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('teachers')
-        .select('*')
+        .select('id')
         .eq('user_id', user.id)
         .single();
-        
+
       if (error) throw error;
       
-      setTeacherData(data);
+      if (data) {
+        setTeacherId(data.id);
+      }
     } catch (error) {
-      console.error("Error fetching teacher data:", error);
+      console.error('Error fetching teacher ID:', error);
     }
   };
-  
-  const fetchClasses = async () => {
+
+  const fetchStudents = async () => {
     try {
-      // In a real implementation, fetch classes taught by the teacher
+      setLoading(true);
+      
+      if (!teacherId) return;
+
+      // Get classes assigned to this teacher
+      const { data: teacherClasses, error: classesError } = await supabase
+        .from('teacher_classes')
+        .select('class_id')
+        .eq('teacher_id', teacherId);
+
+      if (classesError) throw classesError;
+
+      if (!teacherClasses || teacherClasses.length === 0) {
+        setStudents([]);
+        setLoading(false);
+        return;
+      }
+
+      const classIds = teacherClasses.map(tc => tc.class_id);
+
+      // Get students in these classes
       const { data, error } = await supabase
-        .from('teacher_subjects')
+        .from('students')
+        .select('id, first_name, last_name')
+        .in('class_id', classIds);
+
+      if (error) throw error;
+
+      setStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      if (!teacherId) return;
+
+      const { data, error } = await supabase
+        .from('teacher_messages')
         .select(`
-          subjects (
-            id,
-            name,
-            course_id,
-            courses (
-              id, 
-              name, 
-              code
-            )
+          id,
+          title,
+          message,
+          student_id,
+          created_at,
+          students:student_id (
+            first_name,
+            last_name
           )
         `)
-        .eq('teacher_id', teacherData?.id || 'none');
-        
-      if (error) throw error;
-      
-      // Format the data
-      const formattedClasses = data?.map(item => ({
-        id: item.subjects?.id || '',
-        name: item.subjects?.name || '',
-        courseCode: item.subjects?.courses?.code || '',
-      })) || [];
-      
-      // If no classes are found in the database, use mock data
-      if (formattedClasses.length === 0) {
-        setClasses([
-          { id: "1", name: "Database Systems", courseCode: "CS301" },
-          { id: "2", name: "Web Development", courseCode: "CS302" },
-          { id: "3", name: "Data Structures", courseCode: "CS201" },
-        ]);
-      } else {
-        setClasses(formattedClasses);
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching classes:", error);
-      // Fallback to mock data
-      setClasses([
-        { id: "1", name: "Database Systems", courseCode: "CS301" },
-        { id: "2", name: "Web Development", courseCode: "CS302" },
-        { id: "3", name: "Data Structures", courseCode: "CS201" },
-      ]);
-      setLoading(false);
-    }
-  };
-  
-  const fetchAnnouncements = async () => {
-    try {
-      // In a real implementation, fetch from the database
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .or(`target_role.eq.all,target_role.eq.teacher`)
+        .eq('teacher_id', teacherId)
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
-      
-      if (data && data.length > 0) {
-        setAnnouncements(data);
-      } else {
-        // Fallback to mock data
-        setAnnouncements([
-          {
-            id: "1",
-            title: "Midterm Exam Schedule",
-            content: "The midterm exams will be held from October 15th to October 22nd. Please check the timetable for your specific exam dates and times.",
-            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            target: "All Students",
-          },
-          {
-            id: "2",
-            title: "Assignment Deadline Extended",
-            content: "The deadline for the Database Systems assignment has been extended by one week. The new submission date is November 5th.",
-            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            target: "Database Systems",
-          },
-          {
-            id: "3",
-            title: "Guest Lecture Announcement",
-            content: "There will be a guest lecture on 'Modern Web Development Practices' by Mr. John Smith on October 28th in the Main Auditorium at 2:00 PM.",
-            created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-            target: "Web Development",
-          },
-        ]);
-      }
+
+      // Transform the data to match the Message type
+      const formattedMessages = data.map(msg => ({
+        id: msg.id,
+        title: msg.title,
+        message: msg.message,
+        student_id: msg.student_id,
+        created_at: msg.created_at,
+        student: msg.students ? {
+          first_name: msg.students.first_name,
+          last_name: msg.students.last_name
+        } : undefined
+      }));
+
+      setMessages(formattedMessages);
     } catch (error) {
-      console.error("Error fetching announcements:", error);
-      // Fallback to mock data
-      setAnnouncements([
-        {
-          id: "1",
-          title: "Midterm Exam Schedule",
-          content: "The midterm exams will be held from October 15th to October 22nd. Please check the timetable for your specific exam dates and times.",
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          target: "All Students",
-        },
-        {
-          id: "2",
-          title: "Assignment Deadline Extended",
-          content: "The deadline for the Database Systems assignment has been extended by one week. The new submission date is November 5th.",
-          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          target: "Database Systems",
-        },
-        {
-          id: "3",
-          title: "Guest Lecture Announcement",
-          content: "There will be a guest lecture on 'Modern Web Development Practices' by Mr. John Smith on October 28th in the Main Auditorium at 2:00 PM.",
-          created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          target: "Web Development",
-        },
-      ]);
+      console.error('Error fetching messages:', error);
     }
   };
-  
-  const handleSubmitAnnouncement = async () => {
+
+  const fetchMessageWithStudent = async (messageId: string) => {
     try {
-      setSendingAnnouncement(true);
-      
-      if (!announcementTitle.trim() || !announcementContent.trim()) {
+      const { data, error } = await supabase
+        .from('teacher_messages')
+        .select(`
+          id,
+          title,
+          message,
+          student_id,
+          created_at,
+          students:student_id (
+            first_name,
+            last_name
+          )
+        `)
+        .eq('id', messageId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const newMessage = {
+          id: data.id,
+          title: data.title,
+          message: data.message,
+          student_id: data.student_id,
+          created_at: data.created_at,
+          student: data.students ? {
+            first_name: data.students.first_name,
+            last_name: data.students.last_name
+          } : undefined
+        };
+
+        setMessages(prev => [newMessage, ...prev]);
+      }
+    } catch (error) {
+      console.error('Error fetching new message:', error);
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      if (!teacherId) {
         toast({
-          title: "Missing Information",
-          description: "Please provide both title and content for the announcement",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Teacher ID not found. Please try again later.',
+          variant: 'destructive',
         });
         return;
       }
-      
-      // In a real implementation, save to Supabase
-      const target = selectedClass ? 
-        classes.find(c => c.id === selectedClass)?.name || "All Students" : 
-        "All Students";
-      
+
+      // Insert message in the database
       const { data, error } = await supabase
-        .from('announcements')
+        .from('teacher_messages')
         .insert({
-          title: announcementTitle,
-          content: announcementContent,
-          target_role: 'all', // or 'student' if targeting specific students
-          created_by: user?.id,
-          is_active: true
+          title: values.title,
+          message: values.message,
+          teacher_id: teacherId,
+          student_id: values.student_id,
         })
-        .select();
-      
+        .select()
+        .single();
+
       if (error) throw error;
+
+      // Create a notification for the student
+      const { error: notificationError } = await supabase
+        .from('student_notifications')
+        .insert({
+          title: 'New message from teacher',
+          message: values.title,
+          student_id: values.student_id,
+          is_read: false
+        });
+
+      if (notificationError) throw notificationError;
+
+      toast({
+        title: 'Message Sent',
+        description: 'Your message has been sent successfully.',
+      });
+
+      // Reset form
+      form.reset();
       
-      // Create notification for students in this class
-      if (selectedClass && teacherData) {
-        // In a real app, you'd get all students in this class and create notifications for them
-        const { error: notifError } = await supabase
-          .from('student_notifications')
-          .insert({
-            title: `New Announcement: ${announcementTitle}`,
-            message: `${announcementContent.substring(0, 100)}${announcementContent.length > 100 ? '...' : ''}`,
-            is_read: false,
-            category: 'announcement',
-            // You'd loop through students and create notifications for each in a real app
-            // For simplicity, we're not doing that here
-          });
-          
-        if (notifError) console.error("Error creating student notifications:", notifError);
+      // Add new message to the list
+      if (data) {
+        const student = students.find(s => s.id === values.student_id);
+        
+        const newMessage = {
+          id: data.id,
+          title: data.title,
+          message: data.message,
+          student_id: data.student_id,
+          created_at: data.created_at,
+          student: student ? {
+            first_name: student.first_name,
+            last_name: student.last_name
+          } : undefined
+        };
+        
+        setMessages(prev => [newMessage, ...prev]);
       }
       
-      // Update local state with the new announcement
-      const newAnnouncement = data?.[0] || {
-        id: Date.now().toString(),
-        title: announcementTitle,
-        content: announcementContent,
-        created_at: new Date().toISOString(),
-        target: target,
-      };
-      
-      setAnnouncements([newAnnouncement, ...announcements]);
-      
-      // Clear form
-      setAnnouncementTitle("");
-      setAnnouncementContent("");
-      setSelectedClass("");
-      
-      toast({
-        title: "Announcement Sent",
-        description: "Your announcement has been sent successfully",
-      });
+      // Switch to messages tab
+      setActiveTab('messages');
     } catch (error) {
-      console.error("Error sending announcement:", error);
+      console.error('Error sending message:', error);
       toast({
-        title: "Error",
-        description: "Failed to send announcement",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
       });
-    } finally {
-      setSendingAnnouncement(false);
     }
   };
-  
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
   return (
     <div>
       <PageHeader
         title="Communication"
-        description="Send announcements and messages to students"
-        icon={Bell}
+        description="Send messages to students and view your communication history"
+        icon={MessageSquare}
       />
-      
-      <Tabs defaultValue="announcements" className="mt-6">
-        <TabsList>
-          <TabsTrigger value="announcements" className="flex items-center">
-            <MenuSquare className="mr-2 h-4 w-4" />
-            Announcements
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
-          </TabsTrigger>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="compose">Compose Message</TabsTrigger>
+          <TabsTrigger value="messages">Message History</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="announcements" className="mt-6 space-y-6">
+        <TabsContent value="compose">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Create Announcement</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Input
-                  placeholder="Announcement Title"
-                  value={announcementTitle}
-                  onChange={(e) => setAnnouncementTitle(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="Announcement Content"
-                  className="min-h-[100px]"
-                  value={announcementContent}
-                  onChange={(e) => setAnnouncementContent(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Target Audience" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-students">All Students</SelectItem>
-                    {classes.map(cls => (
-                      <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name} ({cls.courseCode})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={handleSubmitAnnouncement} 
-                disabled={sendingAnnouncement}
-                className="w-full"
-              >
-                {sendingAnnouncement ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Send Announcement
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Announcements</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Search announcements..."
-                  className="pl-8"
-                />
-              </div>
+              <CardTitle>New Message</CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
-                </div>
-              ) : announcements.length > 0 ? (
-                <div className="space-y-4">
-                  {announcements.map((announcement) => (
-                    <Card key={announcement.id} className="border-l-4 border-l-institute-500">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-base">{announcement.title}</CardTitle>
-                          <div className="flex space-x-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="py-2">
-                        <p className="text-sm">{announcement.content}</p>
-                      </CardContent>
-                      <CardFooter className="pt-0 pb-2 flex justify-between items-center">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          <span>{format(new Date(announcement.created_at), "PPP 'at' h:mm a")}</span>
-                        </div>
-                        <div className="flex items-center text-xs">
-                          <Users className="h-3 w-3 mr-1" />
-                          <span>Target: {announcement.target || 'All Students'}</span>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Bell className="h-12 w-12 mx-auto text-gray-400" />
-                  <h3 className="mt-2 text-lg font-medium">No Announcements</h3>
-                  <p className="mt-1 text-gray-500">
-                    You haven't created any announcements yet.
-                  </p>
-                </div>
-              )}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="student_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recipient</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a student" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all-students">All Students</SelectItem>
+                            {students.map((student) => (
+                              <SelectItem key={student.id} value={student.id}>
+                                {student.first_name} {student.last_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select the student you want to send a message to
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter message subject" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Message</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Type your message here..."
+                            className="min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full">
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Message
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="messages" className="mt-6">
+        <TabsContent value="messages">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Direct Messages</CardTitle>
+              <CardTitle className="flex items-center">
+                <Users className="mr-2 h-5 w-5" />
+                Message History
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 mx-auto text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium">Messaging Coming Soon</h3>
-                <p className="mt-1 text-gray-500">
-                  Direct messaging functionality will be available in the next update.
-                </p>
-              </div>
+              {messages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No messages found. Start communicating with your students!
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className="border rounded-lg p-4 shadow-sm hover:shadow transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-medium text-lg">{message.title}</h3>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(message.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-sm mb-3">{message.message}</p>
+                      <div className="text-xs text-muted-foreground flex items-center">
+                        <span className="font-semibold">To:</span>
+                        <span className="ml-2">
+                          {message.student
+                            ? `${message.student.first_name} ${message.student.last_name}`
+                            : 'Unknown Student'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

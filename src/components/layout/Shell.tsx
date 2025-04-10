@@ -6,8 +6,7 @@ import { cn } from "@/lib/utils";
 import Sidebar from "./Sidebar";
 import { 
   LogOut, 
-  User,
-  Bell 
+  User
 } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import NotificationCounter from "@/components/notifications/NotificationCounter";
 
 interface ShellProps {
   children: ReactNode;
@@ -42,9 +42,21 @@ const Shell = ({ children, className }: ShellProps) => {
       .toUpperCase();
   };
 
+  const navigateToNotifications = () => {
+    if (user?.role === 'admin') {
+      navigate("/admin/notifications");
+    } else if (user?.role === 'teacher') {
+      navigate("/teacher/notifications");
+    } else if (user?.role === 'student') {
+      navigate("/student/notifications");
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+      <Sidebar>
+        {children}
+      </Sidebar>
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="h-16 border-b bg-white flex items-center justify-between px-6">
           <div className="flex items-center">
@@ -53,10 +65,7 @@ const Shell = ({ children, className }: ShellProps) => {
             </h1>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell size={20} />
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
-            </Button>
+            <NotificationCounter onClick={navigateToNotifications} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">

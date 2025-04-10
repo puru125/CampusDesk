@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -56,6 +57,7 @@ import EnrollmentApprovalPage from "@/pages/settings/EnrollmentApprovalPage";
 import AdminProfilePage from "@/pages/admin/AdminProfilePage";
 import ValidationRulesPage from "@/pages/admin/ValidationRulesPage";
 import AdminFeedbackPage from "@/pages/admin/AdminFeedbackPage";
+import AdminNotificationsPage from "@/pages/admin/AdminNotificationsPage";
 
 // Announcements
 import AnnouncementsPage from "@/pages/announcements/AnnouncementsPage";
@@ -75,6 +77,7 @@ import TeacherDoubtsPage from "@/pages/teacher/TeacherDoubtsPage";
 import AttendanceRecordPage from "@/pages/teacher/AttendanceRecordPage";
 import ExamReportsPage from "@/pages/teacher/ExamReportsPage";
 import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
+import TeacherNotificationsPage from "@/pages/teacher/TeacherNotificationsPage";
 
 // Student Module
 import StudentCoursesPage from "@/pages/student/StudentCoursesPage";
@@ -187,13 +190,13 @@ function App() {
                     
                     {/* Add routes for teacher and admin notifications */}
                     <Route path="/teacher/notifications" element={
-                      <ProtectedRoute requiredRole="teacher">
+                      <ProtectedRoute allowedRoles={["teacher"]}>
                         <TeacherNotificationsPage />
                       </ProtectedRoute>
                     } />
 
                     <Route path="/admin/notifications" element={
-                      <ProtectedRoute requiredRole="admin">
+                      <ProtectedRoute allowedRoles={["admin"]}>
                         <AdminNotificationsPage />
                       </ProtectedRoute>
                     } />
