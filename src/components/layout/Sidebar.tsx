@@ -1,3 +1,4 @@
+
 import {
   LayoutDashboard,
   Calendar,
@@ -37,7 +38,17 @@ const Sidebar = () => {
     {
       title: "Dashboard",
       icon: LayoutDashboard,
-      href: "/dashboard",
+      href: "/",
+    },
+    {
+      title: "Students",
+      icon: Users,
+      href: "/students",
+    },
+    {
+      title: "Teachers",
+      icon: Users,
+      href: "/teachers",
     },
     {
       title: "Courses",
@@ -45,19 +56,9 @@ const Sidebar = () => {
       href: "/courses",
     },
     {
-      title: "Users",
-      icon: Users,
-      href: "/users",
-    },
-    {
       title: "Timetable",
       icon: Calendar,
       href: "/timetable",
-    },
-    {
-      title: "Attendance",
-      icon: ListChecks,
-      href: "/attendance",
     },
     {
       title: "Fees",
@@ -65,24 +66,14 @@ const Sidebar = () => {
       href: "/fees",
     },
     {
-      title: "Reports",
-      icon: FileText,
-      href: "/reports",
-    },
-    {
-      title: "Analytics",
-      icon: BarChart,
-      href: "/analytics",
-    },
-    {
       title: "Announcements",
       icon: Bell,
       href: "/announcements",
     },
     {
-      title: "Feedback",
+      title: "Student Feedback",
       icon: MessageSquare,
-      href: "/feedback",
+      href: "/admin/feedback",
     },
     {
       title: "Settings",
@@ -95,7 +86,12 @@ const Sidebar = () => {
     {
       title: "Dashboard",
       icon: LayoutDashboard,
-      href: "/dashboard",
+      href: "/",
+    },
+    {
+      title: "My Classes",
+      icon: Book,
+      href: "/my-classes",
     },
     {
       title: "Timetable",
@@ -128,7 +124,12 @@ const Sidebar = () => {
     {
       title: "Dashboard",
       icon: Home, 
-      href: "/dashboard",
+      href: "/",
+    },
+    {
+      title: "My Courses",
+      icon: Book,
+      href: "/student/courses",
     },
     {
       title: "Timetable",
@@ -136,19 +137,19 @@ const Sidebar = () => {
       href: "/student/timetable",
     },
     {
-      title: "Doubts",
-      icon: HelpCircle, 
-      href: "/student/doubts",
-    },
-    {
-      title: "Courses",
-      icon: Book,
-      href: "/student/courses",
-    },
-    {
       title: "Attendance",
       icon: ListChecks,
       href: "/student/attendance",
+    },
+    {
+      title: "Submit Feedback",
+      icon: MessageSquare,
+      href: "/student/feedback",
+    },
+    {
+      title: "Doubts",
+      icon: HelpCircle, 
+      href: "/student/doubts",
     },
     {
       title: "Fees",

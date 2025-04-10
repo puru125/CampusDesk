@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -53,19 +52,21 @@ const AdminFeedbackPage = () => {
           } as Feedback;
         }
         
-        // Using non-null assertion operator since we've checked item is not null above
-        const studentName = item.students_view && 'full_name' in item.students_view 
-          ? item.students_view.full_name 
+        // Get student name safely
+        const studentName = item.students_view && 
+                           typeof item.students_view === 'object' && 
+                           'full_name' in item.students_view 
+          ? String(item.students_view.full_name) 
           : "Unknown Student";
           
         return {
-          id: item.id || '',
-          created_at: item.created_at || '',
-          student_id: item.student_id || '',
-          title: item.title || '',
-          message: item.message || '',
-          rating: item.rating || 0,
-          is_read: item.is_read || false,
+          id: item.id ? String(item.id) : '',
+          created_at: item.created_at ? String(item.created_at) : '',
+          student_id: item.student_id ? String(item.student_id) : '',
+          title: item.title ? String(item.title) : '',
+          message: item.message ? String(item.message) : '',
+          rating: typeof item.rating === 'number' ? item.rating : 0,
+          is_read: item.is_read === true,
           student_name: studentName
         } as Feedback;
       });
