@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Student, StudentView } from "@/types";
+import { StudentView } from "@/types";
 import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ const StudentsPage = () => {
     try {
       setLoading(true);
       
-      // Using a regular query with the table name for better TypeScript support
+      // Using the students table instead of students_view and joining with users
       const { data, error } = await supabase
         .from('students')
         .select(`
@@ -70,12 +70,12 @@ const StudentsPage = () => {
           enrollment_number: student.enrollment_number,
           date_of_birth: student.date_of_birth,
           enrollment_date: student.enrollment_date,
-          enrollment_status: student.enrollment_status,
+          enrollment_status: student.enrollment_status as 'pending' | 'enrolled' | 'rejected' | string,
           contact_number: student.contact_number,
           address: student.address,
           guardian_name: student.guardian_name,
           guardian_contact: student.guardian_contact,
-          fee_status: student.fee_status,
+          fee_status: student.fee_status as 'pending' | 'paid' | 'overdue' | string,
           total_fees_due: student.total_fees_due,
           total_fees_paid: student.total_fees_paid,
           last_payment_date: student.last_payment_date,

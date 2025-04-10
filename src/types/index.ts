@@ -1,4 +1,3 @@
-
 export type UserRole = 'admin' | 'teacher' | 'student';
 
 export interface User {
@@ -38,13 +37,13 @@ export interface Student {
   enrollment_number?: string;
   date_of_birth?: string;
   enrollment_date?: string;
-  enrollment_status?: 'pending' | 'enrolled' | 'rejected';
+  enrollment_status?: 'pending' | 'enrolled' | 'rejected' | string;
   contact_number?: string;
   address?: string;
   guardian_name?: string;
   guardian_contact?: string;
   profile_picture_url?: string;
-  fee_status?: 'pending' | 'paid' | 'overdue';
+  fee_status?: 'pending' | 'paid' | 'overdue' | string;
   total_fees_due?: number;
   total_fees_paid?: number;
   last_payment_date?: string;
@@ -137,7 +136,6 @@ export interface Stats {
   recent_fee_collections: number;
 }
 
-// Add view type definitions
 export interface DashboardStatsView {
   total_students: number;
   total_teachers: number;
