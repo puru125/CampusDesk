@@ -45,6 +45,7 @@ const Sidebar = () => {
     { path: "/courses", icon: BookOpen, label: "Courses" },
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
+    { path: "/exams", icon: FileText, label: "Exams" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
@@ -55,6 +56,7 @@ const Sidebar = () => {
     { path: "/assignments", icon: BookOpen, label: "Assignments" },
     { path: "/students", icon: GraduationCap, label: "Students" },
     { path: "/timetable", icon: Calendar, label: "Timetable" },
+    { path: "/exams", icon: FileText, label: "Exams" },
   ];
 
   const studentLinks = [
@@ -63,6 +65,7 @@ const Sidebar = () => {
     { path: "/timetable", icon: Calendar, label: "Timetable" },
     { path: "/assignments", icon: FileText, label: "Assignments" },
     { path: "/fees", icon: CreditCard, label: "Fees" },
+    { path: "/exams", icon: FileText, label: "Exams" },
     { path: "/notifications", icon: Bell, label: "Notifications" },
   ];
 

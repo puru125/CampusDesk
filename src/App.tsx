@@ -23,6 +23,11 @@ import AddTimetableEntryPage from "./pages/timetable/AddTimetableEntryPage";
 import ExamsPage from "./pages/exams/ExamsPage";
 import AddExamPage from "./pages/exams/AddExamPage";
 
+// Fee Management Pages
+import FeesPage from "./pages/fees/FeesPage";
+import AddFeeStructurePage from "./pages/fees/AddFeeStructurePage";
+import MakePaymentPage from "./pages/fees/MakePaymentPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -153,6 +158,48 @@ const App = () => (
                 <ProtectedRoute>
                   <Shell>
                     <AddExamPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Fees Management Routes */}
+            <Route 
+              path="/fees" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <FeesPage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fees/structure/new" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AddFeeStructurePage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fees/structure/:id" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <AddFeeStructurePage />
+                  </Shell>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fees/payment/new" 
+              element={
+                <ProtectedRoute>
+                  <Shell>
+                    <MakePaymentPage />
                   </Shell>
                 </ProtectedRoute>
               } 
