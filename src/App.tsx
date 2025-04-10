@@ -79,6 +79,7 @@ import StudentIDCardPage from "@/pages/teacher/StudentIDCardPage";
 // Student Module
 import StudentCoursesPage from "@/pages/student/StudentCoursesPage";
 import StudentAttendancePage from "@/pages/student/StudentAttendancePage";
+import StudentAssignmentsPage from "@/pages/student/StudentAssignmentsPage"; // New import
 import StudentExamsPage from "@/pages/student/StudentExamsPage";
 import StudentFeedbackPage from "@/pages/student/StudentFeedbackPage";
 import StudentNotificationsPage from "@/pages/student/StudentNotificationsPage";
@@ -151,6 +152,7 @@ function App() {
                     <Route path="student/profile" element={<StudentProfilePage />} />
                     <Route path="student/courses" element={<StudentCoursesPage />} />
                     <Route path="student/attendance" element={<StudentAttendancePage />} />
+                    <Route path="student/assignments" element={<StudentAssignmentsPage />} />
                     <Route path="student/exams" element={<StudentExamsPage />} />
                     <Route path="student/feedback" element={<StudentFeedbackPage />} />
                     <Route path="student/feedback/success" element={<FeedbackSuccessPage />} />
