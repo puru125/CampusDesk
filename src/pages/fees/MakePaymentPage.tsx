@@ -183,7 +183,7 @@ const MakePaymentPage = () => {
             courses:course_id (name)
           `)
           .in('academic_year', academicYears)
-          .is_active(true)
+          // This line was fixed by removing is_active filter which doesn't exist
           .or(`course_id.in.(${courseIds.join(',')}),course_id.is.null`);
           
         if (feesError) throw feesError;

@@ -148,7 +148,8 @@ const PendingApprovals = () => {
 
     setIsProcessing(true);
     try {
-      let functionName = actionType === "approve" ? "approve_payment" : "reject_payment";
+      // Updated this line to use the correct string literal type for the function name
+      const functionName = actionType === "approve" ? "approve_payment" : "reject_payment";
       
       const functionBody = {
         p_admin_id: user.id,
