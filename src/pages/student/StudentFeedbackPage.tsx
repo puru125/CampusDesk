@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +44,9 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
+      // Ensure rating is within valid range (1-10)
+      const validRating = Math.min(10, Math.max(1, rating));
+      
       // Create a new feedback entry in the student_feedback table
       const { error } = await extendedSupabase
         .from('student_feedback')
@@ -52,7 +55,7 @@ const StudentFeedbackPage = () => {
             student_id: studentData.id,
             title: subject,
             message: feedbackText,
-            rating: rating,
+            rating: validRating,
             is_read: false,
           }
         ]);
@@ -115,10 +118,11 @@ const StudentFeedbackPage = () => {
               </div>
 
               <div>
-                <Label htmlFor="rating">Rating</Label>
+                <Label htmlFor="rating">Rating (1-10)</Label>
                 <Slider
                   id="rating"
                   defaultValue={[rating]}
+                  min={1} 
                   max={10}
                   step={1}
                   onValueChange={(value) => setRating(value[0])}

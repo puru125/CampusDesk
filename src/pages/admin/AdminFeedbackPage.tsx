@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -39,7 +40,8 @@ const AdminFeedbackPage = () => {
       
       // Format the response to match our Feedback interface
       return (data || []).map(item => {
-        if (!item || typeof item !== 'object') {
+        // Safely handle potentially null items
+        if (!item) {
           return {
             id: '',
             created_at: '',
@@ -53,11 +55,12 @@ const AdminFeedbackPage = () => {
         }
         
         // Get student name safely
-        const studentName = item.students_view && 
-                           typeof item.students_view === 'object' && 
-                           'full_name' in item.students_view 
-          ? String(item.students_view.full_name) 
-          : "Unknown Student";
+        const studentViewData = item.students_view || {};
+        const studentName = typeof studentViewData === 'object' && 
+                           'full_name' in studentViewData && 
+                           studentViewData.full_name 
+                           ? String(studentViewData.full_name) 
+                           : "Unknown Student";
           
         return {
           id: item.id ? String(item.id) : '',
