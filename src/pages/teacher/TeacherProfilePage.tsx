@@ -24,7 +24,10 @@ const profileSchema = z.object({
   department: z.string().min(2, "Department is required"),
   specialization: z.string().min(2, "Specialization is required"),
   qualification: z.string().min(2, "Qualification is required"),
-  contactNumber: z.string().min(10, "Contact number must be at least 10 digits"),
+  contactNumber: z.string()
+    .min(10, "Contact number must be at least 10 digits")
+    .max(10, "Contact number must be exactly 10 digits")
+    .regex(/^\d+$/, "Contact number must contain only digits"),
   joiningDate: z.date()
 });
 
@@ -159,137 +162,141 @@ const TeacherProfilePage = () => {
                 </CardDescription>
               </CardHeader>
               
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      {...form.register("fullName")}
-                      disabled
-                    />
-                    {form.formState.errors.fullName && (
-                      <p className="text-sm text-red-500">{form.formState.errors.fullName.message}</p>
-                    )}
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">Full Name</Label>
+                      <Input
+                        id="fullName"
+                        {...form.register("fullName")}
+                        disabled
+                      />
+                      {form.formState.errors.fullName && (
+                        <p className="text-sm text-red-500">{form.formState.errors.fullName.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        {...form.register("email")}
+                        disabled
+                      />
+                      {form.formState.errors.email && (
+                        <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+                      )}
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      {...form.register("email")}
-                      disabled
-                    />
-                    {form.formState.errors.email && (
-                      <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
-                    )}
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
-                    <div className="flex items-center">
-                      <Building className="mr-2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="department"
-                        {...form.register("department")}
-                      />
-                    </div>
-                    {form.formState.errors.department && (
-                      <p className="text-sm text-red-500">{form.formState.errors.department.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="specialization">Specialization</Label>
-                    <div className="flex items-center">
-                      <BookOpen className="mr-2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="specialization"
-                        {...form.register("specialization")}
-                      />
-                    </div>
-                    {form.formState.errors.specialization && (
-                      <p className="text-sm text-red-500">{form.formState.errors.specialization.message}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="qualification">Qualification</Label>
-                    <Input
-                      id="qualification"
-                      {...form.register("qualification")}
-                    />
-                    {form.formState.errors.qualification && (
-                      <p className="text-sm text-red-500">{form.formState.errors.qualification.message}</p>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="contactNumber">Contact Number</Label>
-                    <div className="flex items-center">
-                      <Phone className="mr-2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="contactNumber"
-                        {...form.register("contactNumber")}
-                      />
-                    </div>
-                    {form.formState.errors.contactNumber && (
-                      <p className="text-sm text-red-500">{form.formState.errors.contactNumber.message}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="joiningDate">Joining Date</Label>
-                  <div className="flex items-center">
-                    <Calendar className="mr-2 h-4 w-4 text-gray-400" />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !form.getValues("joiningDate") && "text-muted-foreground"
-                          )}
-                        >
-                          {form.getValues("joiningDate") ? (
-                            format(form.getValues("joiningDate"), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <input
-                          type="date"
-                          className="p-2 border rounded"
-                          value={form.getValues("joiningDate") ? format(form.getValues("joiningDate"), "yyyy-MM-dd") : ""}
-                          onChange={(e) => {
-                            form.setValue("joiningDate", new Date(e.target.value));
-                          }}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="department">Department</Label>
+                      <div className="flex items-center">
+                        <Building className="mr-2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="department"
+                          {...form.register("department")}
                         />
-                      </PopoverContent>
-                    </Popover>
-                    {form.formState.errors.joiningDate && (
-                      <p className="text-sm text-red-500">{form.formState.errors.joiningDate.message}</p>
-                    )}
+                      </div>
+                      {form.formState.errors.department && (
+                        <p className="text-sm text-red-500">{form.formState.errors.department.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="specialization">Specialization</Label>
+                      <div className="flex items-center">
+                        <BookOpen className="mr-2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="specialization"
+                          {...form.register("specialization")}
+                        />
+                      </div>
+                      {form.formState.errors.specialization && (
+                        <p className="text-sm text-red-500">{form.formState.errors.specialization.message}</p>
+                      )}
+                    </div>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="qualification">Qualification</Label>
+                      <Input
+                        id="qualification"
+                        {...form.register("qualification")}
+                      />
+                      {form.formState.errors.qualification && (
+                        <p className="text-sm text-red-500">{form.formState.errors.qualification.message}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="contactNumber">Contact Number</Label>
+                      <div className="flex items-center">
+                        <Phone className="mr-2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="contactNumber"
+                          {...form.register("contactNumber")}
+                          maxLength={10}
+                          placeholder="10-digit number only"
+                        />
+                      </div>
+                      {form.formState.errors.contactNumber && (
+                        <p className="text-sm text-red-500">{form.formState.errors.contactNumber.message}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="joiningDate">Joining Date</Label>
+                    <div className="flex items-center">
+                      <Calendar className="mr-2 h-4 w-4 text-gray-400" />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !form.getValues("joiningDate") && "text-muted-foreground"
+                            )}
+                          >
+                            {form.getValues("joiningDate") ? (
+                              format(form.getValues("joiningDate"), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <input
+                            type="date"
+                            className="p-2 border rounded"
+                            value={form.getValues("joiningDate") ? format(form.getValues("joiningDate"), "yyyy-MM-dd") : ""}
+                            onChange={(e) => {
+                              form.setValue("joiningDate", new Date(e.target.value));
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {form.formState.errors.joiningDate && (
+                        <p className="text-sm text-red-500">{form.formState.errors.joiningDate.message}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {teacherData?.employee_id && (
+                    <Alert className="bg-blue-50 border-blue-200">
+                      <IdCard className="h-4 w-4 text-blue-500" />
+                      <AlertTitle>Employee ID</AlertTitle>
+                      <AlertDescription>
+                        Your Employee ID is <strong>{teacherData.employee_id}</strong>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-                
-                {teacherData?.employee_id && (
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <IdCard className="h-4 w-4 text-blue-500" />
-                    <AlertTitle>Employee ID</AlertTitle>
-                    <AlertDescription>
-                      Your Employee ID is <strong>{teacherData.employee_id}</strong>
-                    </AlertDescription>
-                  </Alert>
-                )}
               </CardContent>
               
               <CardFooter className="flex justify-end">
