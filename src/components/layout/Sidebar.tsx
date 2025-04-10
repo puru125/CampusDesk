@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,7 +52,8 @@ const Sidebar = () => {
     { path: "/fees", icon: CreditCard, label: "Fees" },
     { path: "/exams", icon: FileText, label: "Exams" },
     { path: "/announcements", icon: Megaphone, label: "Announcements" },
-    { path: "/settings", icon: CheckCircle, label: "Approvals" },
+    { path: "/settings/approvals", icon: CheckCircle, label: "Approvals" },
+    { path: "/settings", icon: Settings, label: "Settings" },
   ];
 
   const teacherLinks = [

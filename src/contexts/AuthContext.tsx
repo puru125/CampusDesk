@@ -95,6 +95,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log("Attempting login with:", email, "and password");
+      
       // Call the RPC function to authenticate
       const { data, error } = await supabase.rpc("authenticate_user", {
         p_email: email,
@@ -103,8 +105,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error("Authentication error:", error);
-        throw error;
+        toast({
+          title: "Login Failed",
+          description: error.message || "Authentication error",
+          variant: "destructive",
+        });
+        return false;
       }
+
+      console.log("Auth response:", data);
 
       if (data && data.length > 0) {
         const user: User = {
@@ -115,6 +124,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           is_first_login: data[0].is_first_login,
         };
 
+        console.log("Logged in user:", user);
+
         // Store user in local storage
         localStorage.setItem("ims_user", JSON.stringify(user));
 
@@ -123,6 +134,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           user,
           isAuthenticated: true,
           isLoading: false,
+        });
+
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${user.full_name}`,
         });
 
         return true;
