@@ -1,5 +1,5 @@
 
-import { PageHeader } from "@/components/ui/page-header";
+import PageHeader from "@/components/ui/page-header";
 import { Bell } from "lucide-react";
 import StudentNotificationsList from "@/components/student/StudentNotificationsList";
 

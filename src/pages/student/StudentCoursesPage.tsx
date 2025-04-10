@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-// Define interfaces correctly
 interface Course {
   id: string;
   name: string;
@@ -114,7 +112,6 @@ const StudentCoursesPage = () => {
 
   const fetchEnrolledCourses = async () => {
     try {
-      // Then get their enrolled courses
       const { data, error } = await extendedSupabase
         .from('student_course_enrollments')
         .select(`
@@ -167,7 +164,6 @@ const StudentCoursesPage = () => {
   };
 
   const openDropDialog = (enrollment: EnrolledCourse) => {
-    // Only allow dropping active or pending courses
     if (enrollment.status === "active" || enrollment.status === "pending") {
       setSelectedEnrollment(enrollment);
       setDropDialogOpen(true);
@@ -196,7 +192,6 @@ const StudentCoursesPage = () => {
       return;
     }
 
-    // Check if already enrolled
     const isAlreadyEnrolled = enrolledCourses.some(
       enrollment => 
         enrollment.course_id === selectedCourse.id && 
@@ -232,7 +227,6 @@ const StudentCoursesPage = () => {
         description: "Your enrollment request has been submitted for approval",
       });
 
-      // Refresh enrolled courses to show the pending enrollment
       fetchEnrolledCourses();
       closeEnrollDialog();
     } catch (error) {
@@ -252,8 +246,6 @@ const StudentCoursesPage = () => {
 
     setIsDropping(true);
     try {
-      // For now, just delete the enrollment record
-      // In a real system, you might want to set a status or create a drop request
       const { error } = await extendedSupabase
         .from('student_course_enrollments')
         .delete()
@@ -266,7 +258,6 @@ const StudentCoursesPage = () => {
         description: "You have successfully dropped the course",
       });
 
-      // Refresh enrolled courses
       fetchEnrolledCourses();
       closeDropDialog();
     } catch (error) {
@@ -340,7 +331,7 @@ const StudentCoursesPage = () => {
               </Button>
               
               {enrollmentData?.status === "pending" && (
-                <Badge variant="outline" className="bg-yellow-50">
+                <Badge variant="secondary" className="bg-yellow-50">
                   Pending Approval
                 </Badge>
               )}
@@ -370,8 +361,8 @@ const StudentCoursesPage = () => {
 
   const getStatusVariant = (status?: string) => {
     switch (status) {
-      case "pending": return "warning";
-      case "approved": return "warning";
+      case "pending": return "secondary";
+      case "approved": return "secondary";
       case "active": return "success";
       case "rejected": return "destructive";
       case "completed": return "success";
@@ -440,7 +431,6 @@ const StudentCoursesPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Enrollment Dialog */}
       <Dialog open={enrollDialogOpen} onOpenChange={setEnrollDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -503,7 +493,6 @@ const StudentCoursesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Drop Course Dialog */}
       <Dialog open={dropDialogOpen} onOpenChange={setDropDialogOpen}>
         <DialogContent>
           <DialogHeader>

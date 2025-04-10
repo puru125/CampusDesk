@@ -3,14 +3,34 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, Calendar, Clock, CreditCard, Bell, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "@radix-ui/react-icons";
+import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Calendar, Clock, CreditCard, Bell, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import StudentNotificationsList from "@/components/student/StudentNotificationsList";
+
+// Sample activities data
+const sampleActivities = [
+  {
+    id: "1",
+    title: "Assignment Submitted",
+    description: "Data Structures assignment submitted successfully",
+    time: "2:30 PM",
+    date: "Today",
+    user: "You"
+  },
+  {
+    id: "2",
+    title: "Exam Result Published",
+    description: "Mid-term examination results have been published",
+    time: "11:00 AM",
+    date: "Yesterday",
+    user: "Admin"
+  }
+];
 
 const StudentDashboard = () => {
   const { user } = useAuth();
@@ -230,7 +250,7 @@ const StudentDashboard = () => {
                       </div>
                       <div className="text-right">
                         <div className="flex items-center">
-                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          <Calendar className="h-3 w-3 mr-1" />
                           <span className="text-sm">Oct 15, 2023</span>
                         </div>
                         <Badge variant="outline" className="mt-1">10:00 AM - 12:00 PM</Badge>
@@ -246,7 +266,7 @@ const StudentDashboard = () => {
                       </div>
                       <div className="text-right">
                         <div className="flex items-center">
-                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          <Calendar className="h-3 w-3 mr-1" />
                           <span className="text-sm">Oct 18, 2023</span>
                         </div>
                         <Badge variant="outline" className="mt-1">2:00 PM - 3:00 PM</Badge>
@@ -265,7 +285,7 @@ const StudentDashboard = () => {
           </Card>
           
           {/* Recent activity section */}
-          <RecentActivityCard />
+          <RecentActivityCard activities={sampleActivities} />
         </div>
         
         {/* Sidebar content - 1/3 width on medium screens and up */}
