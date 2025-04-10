@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +45,7 @@ const StudentDoubtsCard = () => {
         if (!user) return;
         
         // Get teacher profile
-        const { data: teacherProfile, error: teacherError } = await supabase
+        const { data: teacherProfile, error: teacherError } = await extendedSupabase
           .from('teachers')
           .select('*')
           .eq('user_id', user.id)
@@ -55,7 +54,7 @@ const StudentDoubtsCard = () => {
         if (teacherError) throw teacherError;
         
         // Get student doubts
-        const { data, error } = await supabase
+        const { data, error } = await extendedSupabase
           .from('student_doubts')
           .select(`
             id,
@@ -106,7 +105,7 @@ const StudentDoubtsCard = () => {
       setSubmitting(true);
       
       // Get teacher profile
-      const { data: teacherProfile, error: teacherError } = await supabase
+      const { data: teacherProfile, error: teacherError } = await extendedSupabase
         .from('teachers')
         .select('id')
         .eq('user_id', user?.id)
@@ -115,7 +114,7 @@ const StudentDoubtsCard = () => {
       if (teacherError) throw teacherError;
       
       // Submit answer
-      const { error } = await supabase
+      const { error } = await extendedSupabase
         .from('doubt_answers')
         .insert({
           doubt_id: selectedDoubt,
@@ -126,7 +125,7 @@ const StudentDoubtsCard = () => {
       if (error) throw error;
       
       // Update doubt status
-      await supabase
+      await extendedSupabase
         .from('student_doubts')
         .update({ status: 'answered' })
         .eq('id', selectedDoubt);
