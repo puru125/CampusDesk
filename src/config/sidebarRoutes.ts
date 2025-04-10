@@ -172,9 +172,4 @@ export const studentRoutes: Route[] = [
     icon: Bell,
     href: "/student/notifications",
   },
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
 ];

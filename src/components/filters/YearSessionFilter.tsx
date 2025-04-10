@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { 
   DropdownMenu, 
@@ -15,20 +15,34 @@ interface YearSessionFilterProps {
   onFilterChange: (filter: YearSessionValues) => void;
   years?: string[];
   sessions?: string[];
+  defaultYear?: string | null;
+  defaultSession?: string | null;
 }
 
 const YearSessionFilter = ({ 
   onFilterChange, 
   years = [], 
-  sessions = ["Semester 1", "Semester 2"]
+  sessions = ["Semester 1", "Semester 2"],
+  defaultYear = null,
+  defaultSession = null
 }: YearSessionFilterProps) => {
-  const [selectedYear, setSelectedYear] = useState<string | null>(null);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string | null>(defaultYear);
+  const [selectedSession, setSelectedSession] = useState<string | null>(defaultSession);
   
   // Generate years if none provided (current year and 5 years back)
   const availableYears = years.length > 0 
     ? years 
     : Array.from({ length: 6 }, (_, i) => (new Date().getFullYear() - i).toString());
+
+  // Apply default filters on initial load
+  useEffect(() => {
+    if (defaultYear || defaultSession) {
+      onFilterChange({
+        year: defaultYear || undefined,
+        session: defaultSession || undefined
+      });
+    }
+  }, []);
 
   const handleYearSelect = (year: string) => {
     setSelectedYear(year);
@@ -40,12 +54,10 @@ const YearSessionFilter = ({
 
   const handleSessionSelect = (session: string) => {
     setSelectedSession(session);
-    if (selectedYear) {
-      onFilterChange({ 
-        year: selectedYear,
-        session
-      });
-    }
+    onFilterChange({ 
+      year: selectedYear || undefined,
+      session
+    });
   };
 
   const clearFilters = () => {
@@ -62,7 +74,7 @@ const YearSessionFilter = ({
             {selectedYear || "Year"} <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[160px]">
+        <DropdownMenuContent align="start" className="w-[160px] bg-white">
           <DropdownMenuGroup>
             {availableYears.map((year) => (
               <DropdownMenuItem 
@@ -84,7 +96,7 @@ const YearSessionFilter = ({
             {selectedSession || "Session"} <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[160px]">
+        <DropdownMenuContent align="start" className="w-[160px] bg-white">
           <DropdownMenuGroup>
             {sessions.map((session) => (
               <DropdownMenuItem 

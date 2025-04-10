@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -136,9 +135,9 @@ function App() {
                     <Route path="fees/make-payment" element={<MakePaymentPage />} />
                     <Route path="announcements" element={<AnnouncementsPage />} />
                     
-                    {/* Changed from settings to approvals */}
+                    {/* Admin/Teacher settings */}
                     <Route path="approvals" element={<EnrollmentApprovalPage />} />
-                    <Route path="settings" element={<EnrollmentApprovalPage />} /> {/* Redirect old path */}
+                    <Route path="settings" element={<SettingsPage />} />
                     
                     {/* Teacher Module Routes */}
                     <Route path="teacher/profile" element={<TeacherProfilePage />} />

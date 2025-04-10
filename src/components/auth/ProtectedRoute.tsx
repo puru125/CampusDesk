@@ -37,6 +37,11 @@ const ProtectedRoute = ({
     return <Navigate to="/student/profile" replace />;
   }
 
+  // Prevent students from accessing the settings page
+  if (user?.role === "student" && location.pathname === "/settings") {
+    return <Navigate to="/student/profile" replace />;
+  }
+
   if (user?.role === "teacher" && location.pathname === "/profile") {
     return <Navigate to="/teacher/profile" replace />;
   }
