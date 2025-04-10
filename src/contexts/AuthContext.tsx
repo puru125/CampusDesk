@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, AuthState } from "@/types";
@@ -8,6 +9,7 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   resetPassword: (newPassword: string) => Promise<boolean>;
   updateProfile: (profileData: any) => Promise<boolean>;
+  isFirstLogin: boolean; // Added this property
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +29,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated: false,
     isLoading: true,
   });
+
+  // Derive isFirstLogin from the user state
+  const isFirstLogin = authState.user?.is_first_login || false;
 
   useEffect(() => {
     // Check for stored session on initial load
@@ -98,7 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: data[0].id,
           email: data[0].email,
           full_name: data[0].full_name,
-          role: data[0].role,
+          role: data[0].role as "admin" | "teacher" | "student",
           is_first_login: data[0].is_first_login,
           created_at: "",
           updated_at: "",
@@ -220,6 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         resetPassword,
         updateProfile,
+        isFirstLogin, // Add isFirstLogin to the context value
       }}
     >
       {children}

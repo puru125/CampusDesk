@@ -23,7 +23,7 @@ const Dashboard = () => {
       }
 
       // Check if it's first login
-      if (user.is_first_login) {
+      if (isFirstLogin) {
         setShowPasswordReset(true);
         setIsLoading(false);
         return;
@@ -55,7 +55,7 @@ const Dashboard = () => {
     };
 
     checkUserStatus();
-  }, [user]);
+  }, [user, isFirstLogin]);
 
   const handlePasswordResetComplete = () => {
     setShowPasswordReset(false);

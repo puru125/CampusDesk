@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,10 +39,11 @@ const AdminProfilePage = () => {
       }
       
       if (data) {
-        setAdminProfile(data);
-        setContactNumber(data.contact_number || "");
-        setDesignation(data.designation || "");
-        setDepartment(data.department || "");
+        const profileData = data as unknown as AdminProfile;
+        setAdminProfile(profileData);
+        setContactNumber(profileData.contact_number || "");
+        setDesignation(profileData.designation || "");
+        setDepartment(profileData.department || "");
       }
     } catch (error) {
       console.error("Error loading admin profile:", error);
@@ -63,17 +63,9 @@ const AdminProfilePage = () => {
     try {
       setSaving(true);
       
-      const profileData = {
-        id: user.id,
-        contact_number: contactNumber,
-        designation: designation,
-        department: department,
-      };
-      
       let query;
       
       if (adminProfile) {
-        // Update existing profile
         query = supabase
           .from("admin_profiles")
           .update({
@@ -83,10 +75,14 @@ const AdminProfilePage = () => {
           })
           .eq("id", user.id);
       } else {
-        // Create new profile
         query = supabase
           .from("admin_profiles")
-          .insert(profileData);
+          .insert({
+            id: user.id,
+            contact_number: contactNumber,
+            designation: designation,
+            department: department,
+          });
       }
       
       const { error } = await query;
