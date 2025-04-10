@@ -18,7 +18,9 @@ import {
   UserPlus,
   UserCog,
   CheckCircle,
-  Megaphone
+  Megaphone,
+  HelpCircle,
+  BarChart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,10 +63,10 @@ const Sidebar = () => {
     { path: "/my-classes", icon: School, label: "My Classes" },
     { path: "/attendance", icon: FileText, label: "Attendance" },
     { path: "/assignments", icon: BookOpen, label: "Assignments" },
-    { path: "/students", icon: GraduationCap, label: "Students" },
+    { path: "/students", icon: GraduationCap, label: "My Students" },
     { path: "/timetable", icon: Calendar, label: "Timetable" },
-    { path: "/exams", icon: FileText, label: "Exams" },
-    { path: "/settings", icon: Settings, label: "Settings" },
+    { path: "/teacher/doubts", icon: HelpCircle, label: "Student Doubts" },
+    { path: "/teacher/reports", icon: BarChart, label: "Reports" },
   ];
 
   const studentLinks = [
@@ -96,6 +98,8 @@ const Sidebar = () => {
   const handleProfileClick = () => {
     if (user.role === "admin") {
       navigate("/admin/profile");
+    } else if (user.role === "teacher") {
+      navigate("/teacher/profile");
     } else {
       navigate("/settings");
     }

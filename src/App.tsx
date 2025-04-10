@@ -71,6 +71,8 @@ import TeacherCommunicationPage from "@/pages/teacher/TeacherCommunicationPage";
 import TeacherReportsPage from "@/pages/teacher/TeacherReportsPage";
 import AttendancePage from "@/pages/teacher/AttendancePage";
 import TeacherDoubtsPage from "@/pages/teacher/TeacherDoubtsPage";
+import AttendanceRecordPage from "@/pages/teacher/AttendanceRecordPage";
+import ExamReportsPage from "@/pages/teacher/ExamReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -89,31 +91,37 @@ function App() {
                 <Shell>
                   <Routes>
                     <Route index element={<Dashboard />} />
-                    <Route path="students" element={<StudentsPage />} />
+                    
+                    {/* Admin Routes - not accessible by teachers */}
                     <Route path="students/new" element={<AddStudentPage />} />
-                    <Route path="teachers" element={<TeachersPage />} />
                     <Route path="teachers/new" element={<AddTeacherPage />} />
-                    <Route path="courses" element={<CoursesPage />} />
                     <Route path="courses/new" element={<AddCoursePage />} />
-                    <Route path="courses/:courseId" element={<CourseDetailsPage />} />
                     <Route path="courses/:courseId/edit" element={<CourseEditPage />} />
-                    <Route path="classrooms" element={<ClassroomsPage />} />
                     <Route path="classrooms/new" element={<AddClassroomPage />} />
                     <Route path="classrooms/:classroomId/edit" element={<EditClassroomPage />} />
-                    <Route path="timetable" element={<TimetablePage />} />
                     <Route path="timetable/new" element={<AddTimetableEntryPage />} />
-                    <Route path="exams" element={<ExamsPage />} />
                     <Route path="exams/new" element={<AddExamPage />} />
-                    <Route path="fees" element={<FeesPage />} />
                     <Route path="fees/new" element={<AddFeeStructurePage />} />
-                    <Route path="fees/make-payment" element={<MakePaymentPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="settings/approvals" element={<EnrollmentApprovalPage />} />
                     <Route path="admin/profile" element={<AdminProfilePage />} />
                     <Route path="admin/validation-rules" element={<ValidationRulesPage />} />
+                    <Route path="settings/approvals" element={<EnrollmentApprovalPage />} />
+                    
+                    {/* Shared Routes - accessible by both admin and teacher */}
+                    <Route path="students" element={<StudentsPage />} />
+                    <Route path="teachers" element={<TeachersPage />} />
+                    <Route path="courses" element={<CoursesPage />} />
+                    <Route path="courses/:courseId" element={<CourseDetailsPage />} />
+                    <Route path="classrooms" element={<ClassroomsPage />} />
+                    <Route path="timetable" element={<TimetablePage />} />
+                    <Route path="exams" element={<ExamsPage />} />
+                    <Route path="fees" element={<FeesPage />} />
+                    <Route path="fees/make-payment" element={<MakePaymentPage />} />
                     <Route path="announcements" element={<AnnouncementsPage />} />
                     
-                    {/* Teacher module routes */}
+                    {/* Admin-only Settings - not for teachers */}
+                    <Route path="settings" element={<SettingsPage />} />
+                    
+                    {/* Teacher Module Routes */}
                     <Route path="teacher/profile" element={<TeacherProfilePage />} />
                     <Route path="teacher/classes" element={<TeacherClassesPage />} />
                     <Route path="teacher/students" element={<TeacherStudentsPage />} />
@@ -123,6 +131,10 @@ function App() {
                     <Route path="teacher/communication" element={<TeacherCommunicationPage />} />
                     <Route path="teacher/reports" element={<TeacherReportsPage />} />
                     <Route path="teacher/doubts" element={<TeacherDoubtsPage />} />
+                    <Route path="teacher/attendance-records" element={<AttendanceRecordPage />} />
+                    <Route path="teacher/exam-reports" element={<ExamReportsPage />} />
+                    
+                    {/* Aliases for easier navigation */}
                     <Route path="assignments/new" element={<CreateAssignmentPage />} />
                     <Route path="my-classes" element={<TeacherClassesPage />} />
                     <Route path="attendance" element={<AttendancePage />} />

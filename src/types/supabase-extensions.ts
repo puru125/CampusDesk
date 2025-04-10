@@ -255,7 +255,119 @@ export interface ExtendedDatabase extends Database {
             referencedColumns: ["id"];
           }
         ];
-      }
+      };
+      
+      attendance_records: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          student_id: string;
+          class_id: string;
+          subject_id: string;
+          date: string;
+          status: string;
+          remarks: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          student_id: string;
+          class_id: string;
+          subject_id: string;
+          date: string;
+          status: string;
+          remarks?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          teacher_id?: string;
+          student_id?: string;
+          class_id?: string;
+          subject_id?: string;
+          date?: string;
+          status?: string;
+          remarks?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_teacher_id_fkey";
+            columns: ["teacher_id"];
+            referencedRelation: "teachers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_records_student_id_fkey";
+            columns: ["student_id"];
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_records_class_id_fkey";
+            columns: ["class_id"];
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_records_subject_id_fkey";
+            columns: ["subject_id"];
+            referencedRelation: "subjects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      
+      exam_reports: {
+        Row: {
+          id: string;
+          exam_id: string;
+          student_id: string;
+          marks_obtained: number;
+          pass_status: boolean;
+          teacher_comments: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          exam_id: string;
+          student_id: string;
+          marks_obtained: number;
+          pass_status: boolean;
+          teacher_comments?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          exam_id?: string;
+          student_id?: string;
+          marks_obtained?: number;
+          pass_status?: boolean;
+          teacher_comments?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "exam_reports_exam_id_fkey";
+            columns: ["exam_id"];
+            referencedRelation: "exams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "exam_reports_student_id_fkey";
+            columns: ["student_id"];
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     
     // Make sure to include views from the original Database type
