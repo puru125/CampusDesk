@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,43 +32,100 @@ const TeacherCommunicationPage = () => {
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
+  const [teacherId, setTeacherId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   
   useEffect(() => {
-    // Mock data for now - this would be fetched from Supabase in a real implementation
-    const mockAnnouncements = [
-      {
-        id: "1",
-        title: "Midterm Exam Schedule",
-        content: "The midterm exams will be held from October 15th to October 22nd. Please check the timetable for your specific exam dates and times.",
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        target: "All Students",
-      },
-      {
-        id: "2",
-        title: "Assignment Deadline Extended",
-        content: "The deadline for the Database Systems assignment has been extended by one week. The new submission date is November 5th.",
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        target: "Database Systems",
-      },
-      {
-        id: "3",
-        title: "Guest Lecture Announcement",
-        content: "There will be a guest lecture on 'Modern Web Development Practices' by Mr. John Smith on October 28th in the Main Auditorium at 2:00 PM.",
-        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        target: "Web Development",
-      },
-    ];
-    
-    const mockClasses = [
-      { id: "1", name: "Database Systems", courseCode: "CS301" },
-      { id: "2", name: "Web Development", courseCode: "CS302" },
-      { id: "3", name: "Data Structures", courseCode: "CS201" },
-    ];
-    
-    setAnnouncements(mockAnnouncements);
-    setClasses(mockClasses);
-    setLoading(false);
-  }, []);
+    fetchTeacherData();
+    fetchAnnouncements();
+  }, [user]);
+  
+  const fetchTeacherData = async () => {
+    try {
+      if (!user) return;
+      
+      // Get teacher profile
+      const { data: teacherProfile, error: teacherError } = await extendedSupabase
+        .from('teachers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+          
+      if (teacherError) throw teacherError;
+      
+      setTeacherId(teacherProfile.id);
+      
+      // Get teacher's classes from timetable
+      const { data: timetableEntries, error: timetableError } = await extendedSupabase
+        .from('timetable_entries')
+        .select(`
+          subjects(id, name, code),
+          classes(id, name, room, capacity)
+        `)
+        .eq('teacher_id', teacherProfile.id);
+          
+      if (timetableError) throw timetableError;
+      
+      // Format classes data - filter out duplicates based on class ID
+      const formattedClasses = timetableEntries?.filter(te => te.classes).map(te => ({
+        id: te.classes?.id || 'unknown',
+        name: te.classes?.name || 'Unknown Class',
+        room: te.classes?.room || '',
+        subject: te.subjects?.name || 'Unknown Subject',
+        code: te.subjects?.code || ''
+      })).filter((v, i, a) => a.findIndex(t => t.id === v.id) === i) || [];
+      
+      setClasses(formattedClasses);
+      setLoading(false);
+      
+    } catch (error) {
+      console.error("Error fetching teacher data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch class data",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
+  
+  const fetchAnnouncements = async () => {
+    try {
+      if (!user) return;
+      
+      // Get teacher profile if not already set
+      if (!teacherId) {
+        const { data: teacherProfile, error: teacherError } = await extendedSupabase
+          .from('teachers')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+            
+        if (teacherError) throw teacherError;
+        
+        setTeacherId(teacherProfile.id);
+      }
+      
+      // Fetch announcements created by this teacher
+      const { data: announcementsData, error: announcementsError } = await extendedSupabase
+        .from('announcements')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
+            
+      if (announcementsError) throw announcementsError;
+      
+      setAnnouncements(announcementsData || []);
+      
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch announcements",
+        variant: "destructive",
+      });
+    }
+  };
   
   const handleSubmitAnnouncement = async () => {
     try {
@@ -83,15 +140,24 @@ const TeacherCommunicationPage = () => {
         return;
       }
       
-      // In a real implementation, this would save to Supabase
-      const newAnnouncement = {
-        id: Date.now().toString(),
-        title: announcementTitle,
-        content: announcementContent,
-        created_at: new Date(),
-        target: selectedClass ? classes.find(c => c.id === selectedClass)?.name || "All Students" : "All Students",
-      };
+      // Determine target audience
+      let targetRole = "student"; // Default to students
       
+      // Insert announcement into database
+      const { data: newAnnouncement, error: announcementError } = await extendedSupabase
+        .from('announcements')
+        .insert({
+          title: announcementTitle,
+          content: announcementContent,
+          target_role: targetRole,
+          created_by: user?.id
+        })
+        .select()
+        .single();
+      
+      if (announcementError) throw announcementError;
+      
+      // Add to local state
       setAnnouncements([newAnnouncement, ...announcements]);
       
       // Clear form
@@ -114,6 +180,39 @@ const TeacherCommunicationPage = () => {
       setSendingAnnouncement(false);
     }
   };
+  
+  const handleDeleteAnnouncement = async (id: string) => {
+    try {
+      // Delete from database
+      const { error } = await extendedSupabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Remove from local state
+      setAnnouncements(announcements.filter(a => a.id !== id));
+      
+      toast({
+        title: "Announcement Deleted",
+        description: "Announcement has been deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete announcement",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Filter announcements by search term
+  const filteredAnnouncements = announcements.filter(announcement => 
+    announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    announcement.content.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
   return (
     <div>
@@ -161,13 +260,13 @@ const TeacherCommunicationPage = () => {
               <div className="space-y-2">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Target Audience" />
+                    <SelectValue placeholder="Target Audience (Optional)" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Students</SelectItem>
                     {classes.map(cls => (
                       <SelectItem key={cls.id} value={cls.id}>
-                        {cls.name} ({cls.courseCode})
+                        {cls.name} - {cls.subject} ({cls.room})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -203,6 +302,8 @@ const TeacherCommunicationPage = () => {
                 <Input
                   placeholder="Search announcements..."
                   className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </CardHeader>
@@ -211,18 +312,20 @@ const TeacherCommunicationPage = () => {
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
                 </div>
-              ) : announcements.length > 0 ? (
+              ) : filteredAnnouncements.length > 0 ? (
                 <div className="space-y-4">
-                  {announcements.map((announcement) => (
+                  {filteredAnnouncements.map((announcement) => (
                     <Card key={announcement.id} className="border-l-4 border-l-institute-500">
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
                           <CardTitle className="text-base">{announcement.title}</CardTitle>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-red-500"
+                              onClick={() => handleDeleteAnnouncement(announcement.id)}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -238,7 +341,7 @@ const TeacherCommunicationPage = () => {
                         </div>
                         <div className="flex items-center text-xs">
                           <Users className="h-3 w-3 mr-1" />
-                          <span>Target: {announcement.target}</span>
+                          <span>Target: {announcement.target_role === 'student' ? 'Students' : 'All'}</span>
                         </div>
                       </CardFooter>
                     </Card>

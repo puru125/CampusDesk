@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -45,9 +46,13 @@ const AttendancePage = () => {
           .eq('user_id', user.id)
           .single();
           
-        if (teacherError) throw teacherError;
+        if (teacherError) {
+          console.error("Error fetching teacher profile:", teacherError);
+          throw teacherError;
+        }
         
         setTeacherId(teacherProfile.id);
+        console.log("Teacher ID:", teacherProfile.id);
         
         // Get teacher's classes and subjects
         const { data: timetable, error: timetableError } = await extendedSupabase
@@ -60,7 +65,12 @@ const AttendancePage = () => {
           `)
           .eq('teacher_id', teacherProfile.id);
           
-        if (timetableError) throw timetableError;
+        if (timetableError) {
+          console.error("Error fetching timetable:", timetableError);
+          throw timetableError;
+        }
+        
+        console.log("Timetable entries:", timetable);
         
         // Extract unique classes
         const uniqueClasses = timetable?.reduce((acc: any[], entry) => {
@@ -75,6 +85,7 @@ const AttendancePage = () => {
         }, []) || [];
         
         setClasses(uniqueClasses);
+        console.log("Unique classes:", uniqueClasses);
         
         // Extract unique subjects
         const uniqueSubjects = timetable?.reduce((acc: any[], entry) => {
@@ -89,6 +100,7 @@ const AttendancePage = () => {
         }, []) || [];
         
         setSubjects(uniqueSubjects);
+        console.log("Unique subjects:", uniqueSubjects);
         
         if (uniqueClasses.length > 0) {
           setSelectedClass(uniqueClasses[0].id);
@@ -119,26 +131,21 @@ const AttendancePage = () => {
       
       try {
         setLoading(true);
+        console.log("Fetching students for class:", selectedClass, "and teacher:", teacherId);
         
-        // First get student IDs from teacher_students table
-        const { data: teacherStudentsData, error: studentsError } = await extendedSupabase
-          .from('teacher_students')
-          .select('student_id')
-          .eq('teacher_id', teacherId);
+        // First get all students
+        const { data: studentsData, error: studentsError } = await extendedSupabase
+          .from('students_view')
+          .select('*');
           
-        if (studentsError) throw studentsError;
+        if (studentsError) {
+          console.error("Error fetching students:", studentsError);
+          throw studentsError;
+        }
         
-        if (teacherStudentsData && teacherStudentsData.length > 0) {
-          const studentIds = teacherStudentsData.map(ts => ts.student_id);
-          
-          // Then get detailed student information
-          const { data: studentDetails, error: detailsError } = await extendedSupabase
-            .from('students_view')
-            .select('*')
-            .in('id', studentIds);
-            
-          if (detailsError) throw detailsError;
-          
+        console.log("All students:", studentsData);
+        
+        if (studentsData && studentsData.length > 0) {
           // Check if attendance already exists for this date, class, and subject
           const { data: existingAttendance, error: attendanceError } = await extendedSupabase
             .from('attendance_records')
@@ -148,7 +155,12 @@ const AttendancePage = () => {
             .eq('subject_id', selectedSubject)
             .eq('date', selectedDate);
           
-          if (attendanceError) throw attendanceError;
+          if (attendanceError) {
+            console.error("Error fetching attendance:", attendanceError);
+            throw attendanceError;
+          }
+          
+          console.log("Existing attendance:", existingAttendance);
           
           // Map existing attendance records by student_id for quick lookup
           const attendanceMap = new Map();
@@ -157,7 +169,7 @@ const AttendancePage = () => {
           });
           
           // Format students data with attendance status
-          const formattedAttendance = studentDetails?.map(student => {
+          const formattedAttendance = studentsData.map(student => {
             // Use existing attendance if available, otherwise default to present
             const isPresent = attendanceMap.has(student.id) 
               ? attendanceMap.get(student.id) 
@@ -170,7 +182,7 @@ const AttendancePage = () => {
               rollNo: student.enrollment_number || 'N/A',
               present: isPresent
             };
-          }) || [];
+          });
           
           setAttendanceData(formattedAttendance);
         } else {
@@ -381,7 +393,7 @@ const AttendancePage = () => {
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-institute-600" />
             </div>
-          ) : filteredAttendance.length > 0 ? (
+          ) : attendanceData.length > 0 ? (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full">
