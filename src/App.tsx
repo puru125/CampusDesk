@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -8,15 +7,104 @@ import {
 } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import { supabase } from "./integrations/supabase/client";
-import { Toaster } from "./components/ui/toaster";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import { UserRole } from "./types";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import UpdatePasswordPage from "./pages/auth/UpdatePasswordPage";
+import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import TeacherDashboard from "./pages/dashboard/TeacherDashboard";
+import StudentDashboard from "./pages/dashboard/StudentDashboard";
+import StudentsPage from "./pages/admin/StudentsPage";
+import TeachersPage from "./pages/admin/TeachersPage";
+import CoursesPage from "./pages/admin/CoursesPage";
+import TimetablePage from "./pages/admin/TimetablePage";
+import FeesPage from "./pages/admin/FeesPage";
+import AnnouncementsPage from "./pages/AnnouncementsPage";
+import StudentFeedbackPage from "./pages/admin/StudentFeedbackPage";
+import ApprovalsPage from "./pages/admin/ApprovalsPage";
+import MyClassesPage from "./pages/teacher/MyClassesPage";
+import AttendancePage from "./pages/teacher/AttendancePage";
+import TeacherDoubtsPage from "./pages/teacher/TeacherDoubtsPage";
+import AssignmentsPage from "./pages/teacher/TeacherAssignmentsPage";
+import TeacherCommunicationPage from "./pages/teacher/TeacherCommunicationPage";
+import TeacherProfilePage from "./pages/teacher/TeacherProfilePage";
+import TeacherIDCardPage from "./pages/teacher/TeacherIDCardPage";
+import StudentCoursesPage from "./pages/student/StudentCoursesPage";
+import StudentTimetablePage from "./pages/student/StudentTimetablePage";
+import StudentAttendancePage from "./pages/student/StudentAttendancePage";
+import StudentAssignmentsPage from "./pages/student/StudentAssignmentsPage";
+import StudentFeedbackFormPage from "./pages/student/StudentFeedbackFormPage";
+import StudentDoubtsPage from "./pages/student/StudentDoubtsPage";
+import StudentNotificationsPage from "./pages/student/StudentNotificationsPage";
+import Shell from "./components/Shell";
+import { Roles } from "./types";
+import TeacherReportsPage from "./pages/teacher/TeacherReportsPage";
 
-// Modified ProtectedRoute component from inline to use the imported one
-const Shell = ({ children }: { children: React.ReactNode }) => {
-  return <div className="shell-container">{children}</div>;
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles: Roles[];
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  allowedRoles,
+}) => {
+  const { user, loading } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      try {
+        let tableName = "";
+        if (allowedRoles.includes("admin")) tableName = "admins";
+        else if (allowedRoles.includes("teacher")) tableName = "teachers";
+        else if (allowedRoles.includes("student")) tableName = "students";
+
+        if (tableName) {
+          const { data, error } = await supabase
+            .from(tableName)
+            .select("*")
+            .eq("user_id", user.id)
+            .single();
+
+          if (error) {
+            console.error("Error fetching profile:", error);
+          } else {
+            setProfile(data);
+          }
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching profile:", error);
+      }
+    };
+
+    fetchProfile();
+  }, [user, allowedRoles]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (profile === null) {
+    return <div>Loading profile...</div>;
+  }
+
+  if (
+    allowedRoles.length > 0 &&
+    !allowedRoles.includes(profile?.role as Roles)
+  ) {
+    return <div>Unauthorized</div>;
+  }
+
+  return <>{children}</>;
 };
 
 const App: React.FC = () => {
@@ -24,10 +112,13 @@ const App: React.FC = () => {
     <>
       <Router>
         <Routes>
-          <Route path="/login" element={<div>Login Page</div>} />
-          <Route path="/register" element={<div>Register Page</div>} />
-          <Route path="/forgot-password" element={<div>Forgot Password Page</div>} />
-          <Route path="/update-password" element={<div>Update Password Page</div>} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/update-password"
+            element={<UpdatePasswordPage />}
+          />
 
           {/* Admin Routes */}
           <Route
@@ -35,7 +126,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Admin Dashboard</div>
+                  <AdminDashboard />
                 </Shell>
               </ProtectedRoute>
             }
@@ -45,7 +136,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Students Page</div>
+                  <StudentsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -55,7 +146,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Teachers Page</div>
+                  <TeachersPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -65,7 +156,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Courses Page</div>
+                  <CoursesPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -75,7 +166,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Timetable Page</div>
+                  <TimetablePage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -85,7 +176,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Fees Page</div>
+                  <FeesPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -95,7 +186,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Announcements Page</div>
+                  <AnnouncementsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -105,7 +196,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Student Feedback Page</div>
+                  <StudentFeedbackPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -115,7 +206,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Shell>
-                  <div>Approvals Page</div>
+                  <ApprovalsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -127,7 +218,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Teacher Dashboard</div>
+                  <TeacherDashboard />
                 </Shell>
               </ProtectedRoute>
             }
@@ -137,7 +228,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>My Classes Page</div>
+                  <MyClassesPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -147,7 +238,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Timetable Page</div>
+                  <TimetablePage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -157,7 +248,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Attendance Page</div>
+                  <AttendancePage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -167,7 +258,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Teacher Doubts Page</div>
+                  <TeacherDoubtsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -177,17 +268,17 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Assignments Page</div>
+                  <AssignmentsPage />
                 </Shell>
               </ProtectedRoute>
             }
           />
           <Route
-            path="/teacher/reports"
+            path="/teacher/reports",
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Teacher Reports Page</div>
+                  <TeacherReportsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -197,7 +288,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Announcements Page</div>
+                  <AnnouncementsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -207,7 +298,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Teacher Communication Page</div>
+                  <TeacherCommunicationPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -217,7 +308,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Teacher Profile Page</div>
+                  <TeacherProfilePage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -227,7 +318,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["teacher"]}>
                 <Shell>
-                  <div>Teacher ID Card Page</div>
+                  <TeacherIDCardPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -239,7 +330,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Dashboard</div>
+                  <StudentDashboard />
                 </Shell>
               </ProtectedRoute>
             }
@@ -249,7 +340,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Courses Page</div>
+                  <StudentCoursesPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -259,7 +350,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Timetable Page</div>
+                  <StudentTimetablePage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -269,7 +360,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Attendance Page</div>
+                  <StudentAttendancePage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -279,7 +370,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Assignments Page</div>
+                  <StudentAssignmentsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -289,7 +380,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Feedback Form Page</div>
+                  <StudentFeedbackFormPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -299,7 +390,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Doubts Page</div>
+                  <StudentDoubtsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -309,7 +400,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Fees Page</div>
+                  <FeesPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -319,7 +410,7 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Announcements Page</div>
+                  <AnnouncementsPage />
                 </Shell>
               </ProtectedRoute>
             }
@@ -329,14 +420,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute allowedRoles={["student"]}>
                 <Shell>
-                  <div>Student Notifications Page</div>
+                  <StudentNotificationsPage />
                 </Shell>
               </ProtectedRoute>
             }
           />
         </Routes>
       </Router>
-      <Toaster />
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </>
   );
 };
