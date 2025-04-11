@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -456,7 +455,8 @@ const TeacherReportsPage = () => {
               <SelectValue placeholder="Select Course" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Courses</SelectItem>
+              {/* Changed the empty string to "all" to fix the error */}
+              <SelectItem value="all">All Courses</SelectItem>
               {courses.map(course => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.name} ({course.code})
@@ -466,14 +466,15 @@ const TeacherReportsPage = () => {
           </Select>
         </div>
         
-        {selectedCourse && (
+        {selectedCourse && selectedCourse !== "all" && (
           <div className="w-64">
             <Select value={selectedStudent} onValueChange={setSelectedStudent}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Student" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Students</SelectItem>
+                {/* Changed the empty string to "all" to fix the error */}
+                <SelectItem value="all">All Students</SelectItem>
                 {students.map(student => (
                   <SelectItem key={student.id} value={student.id}>
                     {student.name} ({student.enrollment})
@@ -499,7 +500,7 @@ const TeacherReportsPage = () => {
             <PieChartIcon className="mr-2 h-4 w-4" />
             Grade Distribution
           </TabsTrigger>
-          {selectedStudent && (
+          {selectedStudent && selectedStudent !== "all" && (
             <TabsTrigger value="student" className="flex items-center">
               <UserCircle className="mr-2 h-4 w-4" />
               Student Overview
@@ -508,6 +509,7 @@ const TeacherReportsPage = () => {
         </TabsList>
         
         <div ref={chartRef}>
+          
           <TabsContent value="attendance" className="mt-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -708,7 +710,7 @@ const TeacherReportsPage = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={selectedStudent ? studentPerformance.grades : getOverallGradeDistribution()}
+                            data={selectedStudent && selectedStudent !== "all" ? studentPerformance.grades : getOverallGradeDistribution()}
                             cx="50%"
                             cy="50%"
                             labelLine={true}
@@ -809,7 +811,7 @@ const TeacherReportsPage = () => {
             </div>
           </TabsContent>
           
-          {selectedStudent && (
+          {selectedStudent && selectedStudent !== "all" && (
             <TabsContent value="student" className="mt-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -847,70 +849,4 @@ const TeacherReportsPage = () => {
                       <div>
                         <h3 className="text-lg font-medium mb-4">Assignment Performance</h3>
                         {studentPerformance.assignments?.length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="text-left py-2">Assignment</th>
-                                  <th className="text-left py-2">Score</th>
-                                  <th className="text-left py-2">Max Score</th>
-                                  <th className="text-left py-2">Percentage</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {studentPerformance.assignments?.map((assignment, index) => (
-                                  <tr key={index} className="border-b">
-                                    <td className="py-2">{assignment.title}</td>
-                                    <td className="py-2">{assignment.score}</td>
-                                    <td className="py-2">{assignment.maxScore}</td>
-                                    <td className="py-2">{assignment.percentage.toFixed(1)}%</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-gray-500">
-                            No assignment data available
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Grade Distribution</h3>
-                        <div className="h-[300px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={studentPerformance.grades || []}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={true}
-                                outerRadius={100}
-                                fill="#8884d8"
-                                dataKey="value"
-                                label={({ name, value }) => `${name}: ${value}`}
-                              >
-                                {studentPerformance.grades?.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                              </Pie>
-                              <Tooltip />
-                              <Legend />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-        </div>
-      </Tabs>
-    </div>
-  );
-};
-
-export default TeacherReportsPage;
+                          <div className="overflow
