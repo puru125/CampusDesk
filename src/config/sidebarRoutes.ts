@@ -1,3 +1,4 @@
+
 import {
   Home,
   LayoutDashboard,
@@ -17,7 +18,7 @@ import {
   Archive,
 } from "lucide-react";
 
-interface Route {
+export interface Route {
   title: string;
   href: string;
   icon: LucideIcon;
@@ -170,3 +171,8 @@ export const sidebarRoutes: SidebarRoutes = {
     },
   ],
 };
+
+// Add export aliases for backward compatibility with existing code
+export const adminRoutes = sidebarRoutes.admin;
+export const teacherRoutes = sidebarRoutes.teacher;
+export const studentRoutes = sidebarRoutes.student;
