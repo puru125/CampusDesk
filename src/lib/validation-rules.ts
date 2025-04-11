@@ -161,6 +161,17 @@ export const attendanceSchema = z.object({
 
 export type AttendanceFormValues = z.infer<typeof attendanceSchema>;
 
+// Study Material validation
+export const studyMaterialSchema = z.object({
+  title: z.string().min(3, "Title is required"),
+  description: z.string().optional(),
+  subjectId: z.string().min(1, "Subject is required"),
+  file: z.instanceof(File, { message: "File is required" })
+    .refine((file) => file.size <= 10 * 1024 * 1024, "File size must be less than 10MB"),
+});
+
+export type StudyMaterialFormValues = z.infer<typeof studyMaterialSchema>;
+
 // Add YearSessionValues interface for filtering
 export interface YearSessionValues {
   year?: string;

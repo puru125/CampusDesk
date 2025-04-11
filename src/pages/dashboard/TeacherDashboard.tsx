@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { School, Users, BookOpen, Calendar, CheckSquare, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -67,14 +66,13 @@ const TeacherDashboard = () => {
           teacherSubjects?.map(ts => ts.subjects?.course_id) || []
         )].filter(Boolean);
         
-        // Count students in teacher's courses
-        const { data: studentCountData, error: studentError } = await supabase
-          .from('student_course_enrollments')
+        // Count students assigned to this teacher
+        const { data: teacherStudentsCount, error: studentCountError } = await supabase
+          .from('teacher_students')
           .select('count', { count: 'exact' })
-          .in('course_id', courseIds)
-          .eq('status', 'approved');
+          .eq('teacher_id', teacherProfile.id);
           
-        if (studentError) throw studentError;
+        if (studentCountError) throw studentCountError;
         
         // Get timetable entries
         const today = new Date();
@@ -96,12 +94,9 @@ const TeacherDashboard = () => {
         if (timetableError) throw timetableError;
         
         // Calculate stats
-        // Fix: Access student count properly, as it's returned as count property in the metadata, not in the data
-        const studentCount = studentCountData || 0;
-        
         setStats({
           classes: timetableEntries?.filter(te => te.day_of_week === currentDay).length || 0,
-          students: typeof studentCountData === 'number' ? studentCountData : 0,
+          students: teacherStudentsCount || 0,
           courses: courseIds.length,
           upcomingClasses: timetableEntries?.length || 0
         });

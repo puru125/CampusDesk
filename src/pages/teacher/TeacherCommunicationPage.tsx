@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bell, Send, Search, Users, MessageSquare, ChevronDown, MenuSquare, 
-  Edit, Trash2, Loader2, Calendar
+  Edit, Trash2, Loader2, Calendar, FileText, Upload, BookOpen
 } from "lucide-react";
 import {
   Select,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import StudyMaterialUpload from "@/components/teacher/StudyMaterialUpload";
 
 const TeacherCommunicationPage = () => {
   const { user } = useAuth();
@@ -218,7 +219,7 @@ const TeacherCommunicationPage = () => {
     <div>
       <PageHeader
         title="Communication"
-        description="Send announcements and messages to students"
+        description="Send announcements and share study materials with students"
         icon={Bell}
       />
       
@@ -228,9 +229,9 @@ const TeacherCommunicationPage = () => {
             <MenuSquare className="mr-2 h-4 w-4" />
             Announcements
           </TabsTrigger>
-          <TabsTrigger value="messages" className="flex items-center">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Messages
+          <TabsTrigger value="study-materials" className="flex items-center">
+            <BookOpen className="mr-2 h-4 w-4" />
+            Study Materials
           </TabsTrigger>
         </TabsList>
         
@@ -360,21 +361,8 @@ const TeacherCommunicationPage = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="messages" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Direct Messages</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 mx-auto text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium">Messaging Coming Soon</h3>
-                <p className="mt-1 text-gray-500">
-                  Direct messaging functionality will be available in the next update.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="study-materials" className="mt-6">
+          <StudyMaterialUpload teacherId={teacherId} classes={classes} />
         </TabsContent>
       </Tabs>
     </div>
