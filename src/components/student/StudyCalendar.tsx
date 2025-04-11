@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { enUS } from "date-fns/locale";
 
 // Add basic calendar styles inline to avoid CSS loading issues
 const calendarStyles = `
@@ -116,8 +117,9 @@ interface StudyCalendarProps {
   refreshTrigger: number;
 }
 
+// Update how we define locales to avoid using require
 const locales = {
-  "en-US": require("date-fns/locale/en-US"),
+  "en-US": enUS
 };
 
 const localizer = dateFnsLocalizer({
