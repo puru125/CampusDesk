@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
-// Remove the CSS import that might be causing issues
-// import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
 import { useToast } from "@/hooks/use-toast";
@@ -27,69 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { enUS } from "date-fns/locale";
-
-// Add basic calendar styles inline to avoid CSS loading issues
-const calendarStyles = `
-  .rbc-calendar {
-    box-sizing: border-box;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .rbc-btn-group {
-    display: inline-flex;
-    margin-bottom: 10px;
-  }
-  
-  .rbc-btn-group button {
-    margin: 0;
-    padding: 5px 10px;
-    border: 1px solid #ccc;
-    background: white;
-  }
-  
-  .rbc-btn-group button:first-child {
-    border-top-left-radius: 4px;
-    border-bottom-left-radius: 4px;
-  }
-  
-  .rbc-btn-group button:last-child {
-    border-top-right-radius: 4px;
-    border-bottom-right-radius: 4px;
-  }
-  
-  .rbc-toolbar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    font-size: 16px;
-  }
-  
-  .rbc-toolbar-label {
-    flex-grow: 1;
-    text-align: center;
-    font-weight: bold;
-  }
-  
-  .rbc-header {
-    font-weight: bold;
-    padding: 10px 3px;
-    text-align: center;
-    border-bottom: 1px solid #ddd;
-  }
-  
-  .rbc-event {
-    padding: 2px 5px;
-    background-color: #3174ad;
-    color: white;
-    border-radius: 5px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-`;
 
 interface StudyPlan {
   id: string;
@@ -117,9 +53,8 @@ interface StudyCalendarProps {
   refreshTrigger: number;
 }
 
-// Update how we define locales to avoid using require
 const locales = {
-  "en-US": enUS
+  "en-US": require("date-fns/locale/en-US"),
 };
 
 const localizer = dateFnsLocalizer({
@@ -139,19 +74,6 @@ const StudyCalendar = ({ studentId, refreshTrigger }: StudyCalendarProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // Add this to inject the custom calendar styles
-  useEffect(() => {
-    // Create a style element and inject the CSS
-    const styleEl = document.createElement('style');
-    styleEl.innerHTML = calendarStyles;
-    document.head.appendChild(styleEl);
-
-    // Clean up when component unmounts
-    return () => {
-      document.head.removeChild(styleEl);
-    };
-  }, []);
-
   useEffect(() => {
     fetchStudyPlans();
   }, [studentId, refreshTrigger]);
@@ -159,7 +81,6 @@ const StudyCalendar = ({ studentId, refreshTrigger }: StudyCalendarProps) => {
   const fetchStudyPlans = async () => {
     setLoading(true);
     try {
-      console.log("Fetching study plans for student:", studentId);
       const { data, error } = await extendedSupabase
         .from("student_study_plans")
         .select("*")
@@ -171,7 +92,6 @@ const StudyCalendar = ({ studentId, refreshTrigger }: StudyCalendarProps) => {
       }
 
       if (data) {
-        console.log("Study plans fetched:", data.length);
         // Convert to calendar events
         const calendarEvents: CalendarEvent[] = data.map((plan: StudyPlan) => ({
           id: plan.id,
@@ -309,46 +229,22 @@ const StudyCalendar = ({ studentId, refreshTrigger }: StudyCalendarProps) => {
     );
   }
 
-  console.log("Rendering calendar with events:", events.length);
-
   return (
     <>
       <Card>
         <CardContent className="p-6">
           <div className="h-[70vh]">
-            {/* Add a try-catch for the Calendar component */}
-            {(() => {
-              try {
-                return (
-                  <Calendar
-                    localizer={localizer}
-                    events={events}
-                    startAccessor="start"
-                    endAccessor="end"
-                    style={{ height: "100%" }}
-                    onSelectEvent={handleSelectEvent}
-                    eventPropGetter={eventStyleGetter}
-                    popup
-                    views={["month", "week", "day", "agenda"]}
-                  />
-                );
-              } catch (error) {
-                console.error("Error rendering calendar:", error);
-                return (
-                  <div className="flex items-center justify-center h-full border border-dashed border-gray-300 rounded-md p-8">
-                    <div className="text-center">
-                      <p className="text-red-500 mb-4">Failed to load calendar</p>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => window.location.reload()}
-                      >
-                        Reload page
-                      </Button>
-                    </div>
-                  </div>
-                );
-              }
-            })()}
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: "100%" }}
+              onSelectEvent={handleSelectEvent}
+              eventPropGetter={eventStyleGetter}
+              popup
+              views={["month", "week", "day", "agenda"]}
+            />
           </div>
         </CardContent>
       </Card>
