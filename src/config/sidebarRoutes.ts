@@ -1,201 +1,172 @@
-
 import {
-  LayoutDashboard,
-  Calendar,
-  Book,
-  Users,
-  Settings,
-  HelpCircle,
   Home,
-  Bell,
-  MessageSquare,
+  LayoutDashboard,
+  Settings,
+  Users,
+  Book,
+  Calendar,
   BarChart,
   ListChecks,
+  Bell,
   FileText,
-  CreditCard,
-  Megaphone,
-  UserCircle,
-  IdCard,
-  CheckCircle,
-  BookOpen,
-  BarChart3,
-  FileBarChart,
-  FileLineChart,
-  FileSpreadsheet
+  Presentation,
+  LucideIcon,
+  DollarSign,
+  UserPlus,
+  File,
+  Archive,
 } from "lucide-react";
-import { LucideIcon } from "lucide-react";
 
-export interface Route {
+interface Route {
   title: string;
-  icon: LucideIcon;
   href: string;
+  icon: LucideIcon;
 }
 
-export const adminRoutes: Route[] = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/",
-  },
-  {
-    title: "Students",
-    icon: Users,
-    href: "/students",
-  },
-  {
-    title: "Teachers",
-    icon: Users,
-    href: "/teachers",
-  },
-  {
-    title: "Courses",
-    icon: Book,
-    href: "/courses",
-  },
-  {
-    title: "Timetable",
-    icon: Calendar,
-    href: "/timetable",
-  },
-  {
-    title: "Fees",
-    icon: CreditCard,
-    href: "/fees",
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    href: "/admin/analytics",
-  },
-  {
-    title: "Announcements",
-    icon: Megaphone,
-    href: "/announcements",
-  },
-  {
-    title: "Student Feedback",
-    icon: MessageSquare,
-    href: "/admin/feedback",
-  },
-  {
-    title: "Approvals",
-    icon: CheckCircle,
-    href: "/approvals",
-  },
-];
+interface SidebarRoutes {
+  [key: string]: Route[];
+}
 
-export const teacherRoutes: Route[] = [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/",
-  },
-  {
-    title: "My Classes",
-    icon: Book,
-    href: "/my-classes",
-  },
-  {
-    title: "Timetable",
-    icon: Calendar,
-    href: "/timetable",
-  },
-  {
-    title: "Attendance",
-    icon: ListChecks,
-    href: "/attendance",
-  },
-  {
-    title: "Doubts",
-    icon: HelpCircle,
-    href: "/teacher/doubts",
-  },
-  {
-    title: "Assignments",
-    icon: FileText,
-    href: "/assignments",
-  },
-  {
-    title: "Reports",
-    icon: FileBarChart,
-    href: "/teacher/reports",
-  },
-  {
-    title: "Announcements",
-    icon: Megaphone,
-    href: "/announcements",
-  },
-  {
-    title: "Communication",
-    icon: Bell,
-    href: "/teacher/communication",
-  },
-  {
-    title: "My Profile",
-    icon: UserCircle,
-    href: "/teacher/profile",
-  },
-  {
-    title: "ID Card",
-    icon: IdCard,
-    href: "/teacher/id-card",
-  },
-];
-
-export const studentRoutes: Route[] = [
-  {
-    title: "Dashboard",
-    icon: Home,
-    href: "/",
-  },
-  {
-    title: "My Courses",
-    icon: Book,
-    href: "/student/courses",
-  },
-  {
-    title: "Timetable",
-    icon: Calendar,
-    href: "/student/timetable",
-  },
-  {
-    title: "Attendance",
-    icon: ListChecks,
-    href: "/student/attendance",
-  },
-  {
-    title: "Assignments",
-    icon: FileText,
-    href: "/student/assignments",
-  },
-  {
-    title: "Study Materials",
-    icon: BookOpen,
-    href: "/student/study-materials",
-  },
-  {
-    title: "Submit Feedback",
-    icon: MessageSquare,
-    href: "/student/feedback",
-  },
-  {
-    title: "Doubts",
-    icon: HelpCircle,
-    href: "/student/doubts",
-  },
-  {
-    title: "Fees",
-    icon: CreditCard,
-    href: "/fees",
-  },
-  {
-    title: "Announcements",
-    icon: Megaphone,
-    href: "/announcements",
-  },
-  {
-    title: "Notifications",
-    icon: Bell,
-    href: "/student/notifications",
-  },
-];
+export const sidebarRoutes: SidebarRoutes = {
+  admin: [
+    {
+      title: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Manage Users",
+      href: "/admin/users",
+      icon: Users,
+    },
+    {
+      title: "Manage Students",
+      href: "/admin/students",
+      icon: UserPlus,
+    },
+    {
+      title: "Manage Teachers",
+      href: "/admin/teachers",
+      icon: Users,
+    },
+    {
+      title: "Manage Courses",
+      href: "/admin/courses",
+      icon: Book,
+    },
+    {
+      title: "Manage Payments",
+      href: "/admin/payments",
+      icon: DollarSign,
+    },
+    {
+      title: "Manage Exams",
+      href: "/admin/exams",
+      icon: FileText,
+    },
+    {
+      title: "Manage Study Materials",
+      href: "/admin/study-materials",
+      icon: File,
+    },
+    {
+      title: "Manage Classes",
+      href: "/admin/classes",
+      icon: Archive,
+    },
+    {
+      title: "Announcements",
+      href: "/admin/announcements",
+      icon: Bell,
+    },
+    {
+      title: "Settings",
+      href: "/admin/settings",
+      icon: Settings,
+    },
+  ],
+  teacher: [
+    {
+      title: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "My Classes",
+      href: "/teacher/classes",
+      icon: Book,
+    },
+    {
+      title: "Attendance",
+      href: "/teacher/attendance",
+      icon: ListChecks,
+    },
+    {
+      title: "Assignments",
+      href: "/teacher/assignments",
+      icon: FileText,
+    },
+    {
+      title: "Study Materials",
+      href: "/teacher/study-materials",
+      icon: File,
+    },
+    {
+      title: "Exams",
+      href: "/teacher/exams",
+      icon: Presentation,
+    },
+    {
+      title: "Settings",
+      href: "/teacher/settings",
+      icon: Settings,
+    },
+  ],
+  student: [
+    {
+      title: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Courses",
+      href: "/student/courses",
+      icon: Book,
+    },
+    {
+      title: "Attendance",
+      href: "/student/attendance",
+      icon: ListChecks,
+    },
+    {
+      title: "Assignments",
+      href: "/student/assignments",
+      icon: FileText,
+    },
+    {
+      title: "Exams",
+      href: "/student/exams",
+      icon: Presentation,
+    },
+    {
+      title: "Fees",
+      href: "/fees",
+      icon: DollarSign,
+    },
+    {
+      title: "Study Planner",
+      href: "/student/study-planner",
+      icon: Calendar,
+    },
+    {
+      title: "Academic Progress",
+      href: "/student/academic-progress",
+      icon: BarChart,
+    },
+    {
+      title: "Settings",
+      href: "/student/settings",
+      icon: Settings,
+    },
+  ],
+};
