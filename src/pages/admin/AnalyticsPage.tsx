@@ -305,7 +305,7 @@ const AnalyticsPage = () => {
       
       <div className="flex items-center justify-between mt-6 mb-6">
         <div className="w-64">
-          <Select value={selectedYear} onValueChange={(value: string) => setSelectedYear(value)}>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger>
               <SelectValue placeholder="Select Year" />
             </SelectTrigger>
@@ -344,6 +344,417 @@ const AnalyticsPage = () => {
               Academic Performance
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="enrollment" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Monthly Enrollment Trends</CardTitle>
+                <Button onClick={() => handleDownloadReport('enrollment')}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Report
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {enrollmentLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={enrollmentData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="approved" name="Approved" fill="#0088FE" />
+                        <Bar dataKey="pending" name="Pending" fill="#FFBB28" />
+                        <Bar dataKey="rejected" name="Rejected" fill="#FF8042" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Total Enrollments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {enrollmentLoading ? (
+                      <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      enrollmentData.reduce((sum, month) => sum + month.total, 0)
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Approval Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {enrollmentLoading ? (
+                      <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      (() => {
+                        const total = enrollmentData.reduce((sum, month) => sum + month.total, 0);
+                        const approved = enrollmentData.reduce((sum, month) => sum + month.approved, 0);
+                        return total > 0 ? `${((approved / total) * 100).toFixed(1)}%` : "0%";
+                      })()
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Monthly Average</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {enrollmentLoading ? (
+                      <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      (() => {
+                        const total = enrollmentData.reduce((sum, month) => sum + month.total, 0);
+                        return (total / 12).toFixed(1);
+                      })()
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="courses" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Course Popularity</CardTitle>
+                <Button onClick={() => handleDownloadReport('course')}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Report
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {coursesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin"></div>
+                  </div>
+                ) : courseData.length > 0 ? (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={courseData.slice(0, 10)}
+                        layout="vertical"
+                        margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="name" width={80} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="students" name="Students Enrolled" fill="#0088FE" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No course enrollment data available for selected period
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+              {coursesLoading ? (
+                Array(4).fill(0).map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Loading...</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center">
+                        <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : courseData.slice(0, 4).map((course: any, index) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <CardTitle className="text-sm">{course.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-center">{course.students}</div>
+                    <div className="text-center text-xs text-gray-500">students enrolled</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="fees" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Fee Collection - {selectedYear}</CardTitle>
+                <Button onClick={() => handleDownloadReport('fee')}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Report
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {feeLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={feeData}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip formatter={(value) => [`₹${value.toLocaleString('en-IN')}`, 'Amount']} />
+                        <Legend />
+                        <Line type="monotone" dataKey="amount" name="Fee Collection" stroke="#0088FE" activeDot={{ r: 8 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Total Collection</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {feeLoading ? (
+                      <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      `₹${feeData.reduce((sum, month) => sum + month.amount, 0).toLocaleString('en-IN')}`
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Highest Collection</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {feeLoading ? (
+                      <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      (() => {
+                        const maxMonth = feeData.reduce((max, month) => 
+                          month.amount > max.amount ? month : max, { amount: 0, name: 'None' });
+                        return `₹${maxMonth.amount.toLocaleString('en-IN')}`;
+                      })()
+                    )}
+                  </div>
+                  <div className="text-center text-xs text-gray-500">
+                    {feeLoading ? "" : 
+                      (() => {
+                        const maxMonth = feeData.reduce((max, month) => 
+                          month.amount > max.amount ? month : max, { amount: 0, name: 'None' });
+                        return maxMonth.name;
+                      })()
+                    }
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Monthly Average</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {feeLoading ? (
+                      <div className="w-6 h-6 border-4 border-t-blue-500 border-b-blue-700 rounded-full animate-spin mx-auto"></div>
+                    ) : (
+                      `₹${(feeData.reduce((sum, month) => sum + month.amount, 0) / 12).toLocaleString('en-IN', { 
+                        maximumFractionDigits: 0 
+                      })}`
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="attendance" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Attendance Trends</CardTitle>
+                <Button onClick={() => handleDownloadReport('attendance')}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Report
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={attendanceData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip formatter={(value) => [`${value}%`, 'Attendance']} />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="attendance" 
+                        name="Attendance Rate" 
+                        stroke="#0088FE" 
+                        activeDot={{ r: 8 }} 
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Average Attendance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {`${(attendanceData.reduce((sum, week) => sum + week.attendance, 0) / attendanceData.length).toFixed(1)}%`}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Highest Attendance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {`${Math.max(...attendanceData.map(week => week.attendance))}%`}
+                  </div>
+                  <div className="text-center text-xs text-gray-500">
+                    {(() => {
+                      const maxWeek = attendanceData.reduce((max, week) => 
+                        week.attendance > max.attendance ? week : max, { attendance: 0, name: 'None' });
+                      return maxWeek.name;
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Lowest Attendance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {`${Math.min(...attendanceData.map(week => week.attendance))}%`}
+                  </div>
+                  <div className="text-center text-xs text-gray-500">
+                    {(() => {
+                      const minWeek = attendanceData.reduce((min, week) => 
+                        week.attendance < min.attendance ? week : min, { attendance: 100, name: 'None' });
+                      return minWeek.name;
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="performance" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Academic Performance Analysis</CardTitle>
+                <Button onClick={() => handleDownloadReport('performance')}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Report
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={performanceData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis domain={[0, 100]} />
+                      <Tooltip formatter={(value) => [`${value}%`, '']} />
+                      <Legend />
+                      <Bar dataKey="avgScore" name="Average Score" fill="#0088FE" />
+                      <Bar dataKey="completionRate" name="Completion Rate" fill="#00C49F" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Overall Average Score</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {`${(performanceData.reduce((sum, item) => sum + item.avgScore, 0) / performanceData.length).toFixed(1)}%`}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Overall Completion Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {`${(performanceData.reduce((sum, item) => sum + item.completionRate, 0) / performanceData.length).toFixed(1)}%`}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Highest Performance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-center">
+                    {`${Math.max(...performanceData.map(item => item.avgScore))}%`}
+                  </div>
+                  <div className="text-center text-xs text-gray-500">
+                    {(() => {
+                      const maxItem = performanceData.reduce((max, item) => 
+                        item.avgScore > max.avgScore ? item : max, { avgScore: 0, name: 'None' });
+                      return maxItem.name;
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
