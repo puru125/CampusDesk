@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { School, Users, BookOpen, Calendar, CheckSquare, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -67,9 +68,9 @@ const TeacherDashboard = () => {
         )].filter(Boolean);
         
         // Count students assigned to this teacher
-        const { data: teacherStudentsCount, error: studentCountError } = await supabase
+        const { count: teacherStudentsCount, error: studentCountError } = await supabase
           .from('teacher_students')
-          .select('count', { count: 'exact' })
+          .select('*', { count: 'exact', head: true })
           .eq('teacher_id', teacherProfile.id);
           
         if (studentCountError) throw studentCountError;

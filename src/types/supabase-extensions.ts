@@ -477,6 +477,65 @@ export type StudentNotificationsTable = {
   ];
 };
 
+export type StudyMaterialsTable = {
+  Row: {
+    id: string;
+    teacher_id: string;
+    subject_id: string;
+    title: string;
+    description: string | null;
+    file_name: string;
+    file_path: string;
+    file_size: number;
+    file_type: string;
+    file_url: string;
+    created_at: string;
+    updated_at: string;
+  };
+  Insert: {
+    id?: string;
+    teacher_id: string;
+    subject_id: string;
+    title: string;
+    description?: string | null;
+    file_name: string;
+    file_path: string;
+    file_size: number;
+    file_type: string;
+    file_url: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Update: {
+    id?: string;
+    teacher_id?: string;
+    subject_id?: string;
+    title?: string;
+    description?: string | null;
+    file_name?: string;
+    file_path?: string;
+    file_size?: number;
+    file_type?: string;
+    file_url?: string;
+    created_at?: string;
+    updated_at?: string;
+  };
+  Relationships: [
+    {
+      foreignKeyName: "study_materials_teacher_id_fkey";
+      columns: ["teacher_id"];
+      referencedRelation: "teachers";
+      referencedColumns: ["id"];
+    },
+    {
+      foreignKeyName: "study_materials_subject_id_fkey";
+      columns: ["subject_id"];
+      referencedRelation: "subjects";
+      referencedColumns: ["id"];
+    }
+  ];
+};
+
 // Define the extended database schema using proper intersection types
 export interface ExtendedDatabase extends Database {
   public: {
@@ -490,6 +549,7 @@ export interface ExtendedDatabase extends Database {
       exam_reports: ExamReportsTable;
       student_feedback: StudentFeedbackTable;
       student_notifications: StudentNotificationsTable;
+      study_materials: StudyMaterialsTable;
     };
     Views: Database["public"]["Views"] & {
       student_timetable_view: StudentTimetableView;
