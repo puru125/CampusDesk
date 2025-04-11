@@ -10,7 +10,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
@@ -148,7 +148,7 @@ const AcademicProgressPage = () => {
   };
 
   const customTooltipFormatter = (value: ValueType, name: NameType) => {
-    if (typeof value === 'number') {
+    if (value !== null && typeof value === 'number') {
       return [`${value.toFixed(1)}%`, name];
     }
     return [value, name];
