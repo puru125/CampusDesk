@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,7 @@ const StudentStudyMaterialsPage = () => {
       if (!user) return;
       
       // Get student profile
-      const { data: studentProfile, error: studentError } = await extendedSupabase
+      const { data: studentProfile, error: studentError } = await supabase
         .from('students')
         .select('id')
         .eq('user_id', user.id)
@@ -54,7 +54,7 @@ const StudentStudyMaterialsPage = () => {
       if (studentError) throw studentError;
       
       // Get enrolled courses
-      const { data: enrollments, error: enrollmentError } = await extendedSupabase
+      const { data: enrollments, error: enrollmentError } = await supabase
         .from('student_course_enrollments')
         .select('course_id')
         .eq('student_id', studentProfile.id)
@@ -70,7 +70,7 @@ const StudentStudyMaterialsPage = () => {
       const courseIds = enrollments.map(e => e.course_id);
       
       // Get subjects for these courses
-      const { data: subjectsData, error: subjectsError } = await extendedSupabase
+      const { data: subjectsData, error: subjectsError } = await supabase
         .from('subjects')
         .select('id, name, code')
         .in('course_id', courseIds);
@@ -83,12 +83,12 @@ const StudentStudyMaterialsPage = () => {
       if (subjectsData && subjectsData.length > 0) {
         const subjectIds = subjectsData.map(s => s.id);
         
-        const { data: materialsData, error: materialsError } = await extendedSupabase
+        const { data: materialsData, error: materialsError } = await supabase
           .from('study_materials')
           .select(`
             *,
             subjects(id, name, code),
-            teachers:teacher_id(id, users:user_id(full_name))
+            teachers:teacher_id(id, user_id(full_name))
           `)
           .in('subject_id', subjectIds)
           .order('created_at', { ascending: false });
@@ -116,7 +116,7 @@ const StudentStudyMaterialsPage = () => {
       material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       material.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       material.subjects?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      material.teachers?.users?.full_name.toLowerCase().includes(searchTerm.toLowerCase());
+      (material.teachers?.user_id?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesSubject = selectedSubject === "all" || material.subject_id === selectedSubject;
     
@@ -195,7 +195,7 @@ const StudentStudyMaterialsPage = () => {
                         </div>
                         <div className="flex items-center">
                           <User className="h-3 w-3 mr-1" />
-                          <span>{material.teachers?.users?.full_name || 'Unknown Teacher'}</span>
+                          <span>{material.teachers?.user_id?.full_name || 'Unknown Teacher'}</span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />

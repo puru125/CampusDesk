@@ -97,7 +97,7 @@ const TeacherDashboard = () => {
         // Calculate stats
         setStats({
           classes: timetableEntries?.filter(te => te.day_of_week === currentDay).length || 0,
-          students: teacherStudentsCount || 0,
+          students: typeof teacherStudentsCount === 'number' ? teacherStudentsCount : 0, // Fix type error here
           courses: courseIds.length,
           upcomingClasses: timetableEntries?.length || 0
         });

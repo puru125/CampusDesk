@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,7 +57,7 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
     try {
       if (!teacherId) return;
       
-      const { data, error } = await extendedSupabase
+      const { data, error } = await supabase
         .from("teacher_subjects")
         .select(`
           subject_id,
@@ -90,7 +90,7 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
     try {
       if (!teacherId) return;
       
-      const { data, error } = await extendedSupabase
+      const { data, error } = await supabase
         .from("study_materials")
         .select(`
           *,
@@ -138,19 +138,19 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
       const filePath = `study-materials/${fileName}`;
       
       // Upload file to Supabase Storage
-      const { error: uploadError } = await extendedSupabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('study-materials')
         .upload(filePath, file);
       
       if (uploadError) throw uploadError;
       
       // Get public URL for the uploaded file
-      const { data: urlData } = extendedSupabase.storage
+      const { data: urlData } = supabase.storage
         .from('study-materials')
         .getPublicUrl(filePath);
       
       // Insert record in the database
-      const { data: materialData, error: insertError } = await extendedSupabase
+      const { data: materialData, error: insertError } = await supabase
         .from("study_materials")
         .insert({
           title,
@@ -200,7 +200,7 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
   const handleDelete = async (id: string, filePath: string) => {
     try {
       // Delete from database
-      const { error: dbError } = await extendedSupabase
+      const { error: dbError } = await supabase
         .from("study_materials")
         .delete()
         .eq("id", id);
@@ -208,7 +208,7 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
       if (dbError) throw dbError;
       
       // Delete from storage
-      const { error: storageError } = await extendedSupabase.storage
+      const { error: storageError } = await supabase.storage
         .from('study-materials')
         .remove([filePath]);
       
