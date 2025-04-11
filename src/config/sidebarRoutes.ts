@@ -17,11 +17,7 @@ import {
   UserCircle,
   IdCard,
   CheckCircle,
-  BookOpen,
-  BarChart3,
-  FileBarChart,
-  FileLineChart,
-  FileSpreadsheet
+  ChartBar,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -61,11 +57,6 @@ export const adminRoutes: Route[] = [
     title: "Fees",
     icon: CreditCard,
     href: "/fees",
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    href: "/admin/analytics",
   },
   {
     title: "Announcements",
@@ -116,8 +107,8 @@ export const teacherRoutes: Route[] = [
     href: "/assignments",
   },
   {
-    title: "Reports",
-    icon: FileBarChart,
+    title: "Reports & Analytics",
+    icon: ChartBar,
     href: "/teacher/reports",
   },
   {
@@ -167,11 +158,6 @@ export const studentRoutes: Route[] = [
     title: "Assignments",
     icon: FileText,
     href: "/student/assignments",
-  },
-  {
-    title: "Study Materials",
-    icon: BookOpen,
-    href: "/student/study-materials",
   },
   {
     title: "Submit Feedback",

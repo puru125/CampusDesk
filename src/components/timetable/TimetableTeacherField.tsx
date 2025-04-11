@@ -45,7 +45,7 @@ const TimetableTeacherField = ({
             </FormControl>
             <SelectContent>
               {teachers.map((teacher) => (
-                <SelectItem key={teacher.id} value={teacher.id || "no-id"}>
+                <SelectItem key={teacher.id} value={teacher.id}>
                   {teacher.full_name} {teacher.specialization && `(${teacher.specialization})`}
                 </SelectItem>
               ))}

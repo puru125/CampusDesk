@@ -762,90 +762,6 @@ export type Database = {
           },
         ]
       }
-      student_academic_records: {
-        Row: {
-          assignment_id: string | null
-          created_at: string
-          exam_id: string | null
-          id: string
-          max_score: number | null
-          percentage: number | null
-          record_type: string
-          recorded_at: string
-          remarks: string | null
-          score: number | null
-          student_id: string
-          subject_id: string
-          updated_at: string
-        }
-        Insert: {
-          assignment_id?: string | null
-          created_at?: string
-          exam_id?: string | null
-          id?: string
-          max_score?: number | null
-          percentage?: number | null
-          record_type: string
-          recorded_at?: string
-          remarks?: string | null
-          score?: number | null
-          student_id: string
-          subject_id: string
-          updated_at?: string
-        }
-        Update: {
-          assignment_id?: string | null
-          created_at?: string
-          exam_id?: string | null
-          id?: string
-          max_score?: number | null
-          percentage?: number | null
-          record_type?: string
-          recorded_at?: string
-          remarks?: string | null
-          score?: number | null
-          student_id?: string
-          subject_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_academic_records_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_academic_records_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_academic_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_academic_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_academic_records_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       student_course_enrollments: {
         Row: {
           academic_year: string | null
@@ -1069,60 +985,6 @@ export type Database = {
           },
         ]
       }
-      student_study_plans: {
-        Row: {
-          color: string | null
-          created_at: string
-          description: string | null
-          end_time: string
-          id: string
-          is_completed: boolean
-          start_time: string
-          student_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          end_time: string
-          id?: string
-          is_completed?: boolean
-          start_time: string
-          student_id: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          end_time?: string
-          id?: string
-          is_completed?: boolean
-          start_time?: string
-          student_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_study_plans_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_study_plans_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students_view"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       students: {
         Row: {
           address: string | null
@@ -1190,73 +1052,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      study_materials: {
-        Row: {
-          created_at: string
-          description: string | null
-          file_name: string
-          file_path: string
-          file_size: number
-          file_type: string
-          file_url: string
-          id: string
-          subject_id: string
-          teacher_id: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          file_name: string
-          file_path: string
-          file_size: number
-          file_type: string
-          file_url: string
-          id?: string
-          subject_id: string
-          teacher_id: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          file_name?: string
-          file_path?: string
-          file_size?: number
-          file_type?: string
-          file_url?: string
-          id?: string
-          subject_id?: string
-          teacher_id?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "study_materials_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "study_materials_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "teachers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "study_materials_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "teachers_view"
             referencedColumns: ["id"]
           },
         ]
@@ -1659,58 +1454,6 @@ export type Database = {
         }
         Relationships: []
       }
-      student_progress_view: {
-        Row: {
-          assignment_title: string | null
-          created_at: string | null
-          enrollment_number: string | null
-          exam_title: string | null
-          id: string | null
-          max_score: number | null
-          percentage: number | null
-          record_type: string | null
-          recorded_at: string | null
-          remarks: string | null
-          score: number | null
-          student_id: string | null
-          student_name: string | null
-          student_user_id: string | null
-          subject_code: string | null
-          subject_id: string | null
-          subject_name: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_academic_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_academic_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_academic_records_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_user_id_fkey"
-            columns: ["student_user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       student_timetable_view: {
         Row: {
           class_id: string | null
@@ -1910,19 +1653,6 @@ export type Database = {
           joining_date: string
           contact_number: string
           created_at: string
-        }[]
-      }
-      get_student_progress_summary: {
-        Args: { p_student_id: string }
-        Returns: {
-          subject_id: string
-          subject_name: string
-          subject_code: string
-          total_records: number
-          average_percentage: number
-          highest_score: number
-          lowest_score: number
-          last_updated: string
         }[]
       }
       initialize_system: {

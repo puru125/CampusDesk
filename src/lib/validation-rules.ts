@@ -50,7 +50,7 @@ export const teacherSchema = z.object({
     .min(2, "Qualification is required")
     .nonempty("Qualification is required"),
   contactNumber: z.string()
-    .min(10, "Contact number must be exactly 10 digits")
+    .min(10, "Contact number must be at least 10 digits")
     .max(10, "Contact number must be exactly 10 digits")
     .regex(/^\d+$/, "Contact number must contain only digits")
     .nonempty("Contact number is required"),
@@ -86,14 +86,8 @@ export const studentSchema = z.object({
   address: z.string()
     .min(5, "Address is required")
     .nonempty("Address is required"),
-  guardianName: z.string()
-    .min(2, "Guardian name is required")
-    .nonempty("Guardian name is required"),
-  guardianContact: z.string()
-    .min(10, "Guardian contact must be exactly 10 digits")
-    .max(10, "Guardian contact must be exactly 10 digits")
-    .regex(/^\d+$/, "Guardian contact must contain only digits")
-    .nonempty("Guardian contact is required"),
+  guardianName: z.string().optional(),
+  guardianContact: z.string().optional(),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;
@@ -160,17 +154,6 @@ export const attendanceSchema = z.object({
 });
 
 export type AttendanceFormValues = z.infer<typeof attendanceSchema>;
-
-// Study Material validation
-export const studyMaterialSchema = z.object({
-  title: z.string().min(3, "Title is required"),
-  description: z.string().optional(),
-  subjectId: z.string().min(1, "Subject is required"),
-  file: z.instanceof(File, { message: "File is required" })
-    .refine((file) => file.size <= 10 * 1024 * 1024, "File size must be less than 10MB"),
-});
-
-export type StudyMaterialFormValues = z.infer<typeof studyMaterialSchema>;
 
 // Add YearSessionValues interface for filtering
 export interface YearSessionValues {

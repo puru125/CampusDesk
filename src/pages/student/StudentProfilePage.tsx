@@ -30,26 +30,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, User, UserRound, School, IdCard, AlertCircle } from "lucide-react";
+import { Loader2, Save, User, UserRound, School, IdCard } from "lucide-react";
 import StudentIDCard from "@/components/student/StudentIDCard";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Define form schema for student profile with improved validation
+// Define form schema for student profile
 const studentProfileSchema = z.object({
   full_name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  contact_number: z.string()
-    .min(10, { message: "Contact number must be exactly 10 digits" })
-    .max(10, { message: "Contact number must be exactly 10 digits" })
-    .regex(/^\d+$/, { message: "Contact number must contain only digits" })
-    .nonempty({ message: "Contact number is required" }),
-  date_of_birth: z.date({ required_error: "Date of birth is required" }),
-  address: z.string().min(5, { message: "Address is required" }).nonempty({ message: "Address is required" }),
-  guardian_name: z.string().min(2, { message: "Guardian name is required" }).nonempty({ message: "Guardian name is required" }),
-  guardian_contact: z.string()
-    .min(10, { message: "Guardian contact must be exactly 10 digits" })
-    .max(10, { message: "Guardian contact must be exactly 10 digits" })
-    .regex(/^\d+$/, { message: "Guardian contact must contain only digits" })
-    .nonempty({ message: "Guardian contact is required" }),
+  contact_number: z.string().optional(),
+  date_of_birth: z.date().optional(),
+  address: z.string().optional(),
+  guardian_name: z.string().optional(),
+  guardian_contact: z.string().optional(),
 });
 
 type StudentProfileFormValues = z.infer<typeof studentProfileSchema>;
@@ -80,7 +71,6 @@ const StudentProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const form = useForm<StudentProfileFormValues>({
     resolver: zodResolver(studentProfileSchema),
@@ -160,7 +150,6 @@ const StudentProfilePage = () => {
 
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
-    setValidationError(null);
     if (!isEditing) {
       // Entering edit mode
       form.reset({
@@ -178,7 +167,6 @@ const StudentProfilePage = () => {
     if (!user?.id) return;
     
     setIsSaving(true);
-    setValidationError(null);
     try {
       const { error } = await supabase.rpc('update_profile', {
         p_user_id: user.id,
@@ -200,7 +188,6 @@ const StudentProfilePage = () => {
       });
     } catch (error) {
       console.error("Error updating profile:", error);
-      setValidationError("Failed to update profile. Please check all required fields.");
       toast({
         title: "Error",
         description: "Failed to update profile",
@@ -260,13 +247,6 @@ const StudentProfilePage = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {validationError && (
-                    <Alert variant="destructive" className="mb-6">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{validationError}</AlertDescription>
-                    </Alert>
-                  )}
-                  
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -275,9 +255,7 @@ const StudentProfilePage = () => {
                           name="full_name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center">
-                                Full Name <span className="text-red-500 ml-1">*</span>
-                              </FormLabel>
+                              <FormLabel>Full Name</FormLabel>
                               <FormControl>
                                 <Input placeholder="Enter your full name" {...field} />
                               </FormControl>
@@ -291,24 +269,10 @@ const StudentProfilePage = () => {
                           name="contact_number"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center">
-                                Contact Number <span className="text-red-500 ml-1">*</span>
-                              </FormLabel>
+                              <FormLabel>Contact Number</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="10-digit number" 
-                                  {...field} 
-                                  maxLength={10}
-                                  onChange={(e) => {
-                                    // Only allow digits
-                                    const value = e.target.value.replace(/\D/g, '');
-                                    field.onChange(value);
-                                  }}
-                                />
+                                <Input placeholder="Enter your phone number" {...field} />
                               </FormControl>
-                              <FormDescription>
-                                Must be exactly 10 digits with no spaces or special characters
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -319,9 +283,7 @@ const StudentProfilePage = () => {
                           name="date_of_birth"
                           render={({ field }) => (
                             <FormItem className="flex flex-col">
-                              <FormLabel className="flex items-center">
-                                Date of Birth <span className="text-red-500 ml-1">*</span>
-                              </FormLabel>
+                              <FormLabel>Date of Birth</FormLabel>
                               <DatePicker
                                 selected={field.value}
                                 onSelect={field.onChange}
@@ -336,9 +298,7 @@ const StudentProfilePage = () => {
                           name="address"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center">
-                                Address <span className="text-red-500 ml-1">*</span>
-                              </FormLabel>
+                              <FormLabel>Address</FormLabel>
                               <FormControl>
                                 <Input placeholder="Enter your address" {...field} />
                               </FormControl>
@@ -352,9 +312,7 @@ const StudentProfilePage = () => {
                           name="guardian_name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center">
-                                Guardian Name <span className="text-red-500 ml-1">*</span>
-                              </FormLabel>
+                              <FormLabel>Guardian Name</FormLabel>
                               <FormControl>
                                 <Input placeholder="Enter guardian's name" {...field} />
                               </FormControl>
@@ -368,24 +326,10 @@ const StudentProfilePage = () => {
                           name="guardian_contact"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="flex items-center">
-                                Guardian Contact <span className="text-red-500 ml-1">*</span>
-                              </FormLabel>
+                              <FormLabel>Guardian Contact</FormLabel>
                               <FormControl>
-                                <Input 
-                                  placeholder="10-digit number" 
-                                  {...field} 
-                                  maxLength={10}
-                                  onChange={(e) => {
-                                    // Only allow digits
-                                    const value = e.target.value.replace(/\D/g, '');
-                                    field.onChange(value);
-                                  }}
-                                />
+                                <Input placeholder="Enter guardian's contact" {...field} />
                               </FormControl>
-                              <FormDescription>
-                                Must be exactly 10 digits with no spaces or special characters
-                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
