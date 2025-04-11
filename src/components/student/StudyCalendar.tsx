@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
+import enUS from "date-fns/locale/en-US"; // Changed from require() to import
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -54,7 +55,7 @@ interface StudyCalendarProps {
 }
 
 const locales = {
-  "en-US": require("date-fns/locale/en-US"),
+  "en-US": enUS, // Use the imported ES module
 };
 
 const localizer = dateFnsLocalizer({
