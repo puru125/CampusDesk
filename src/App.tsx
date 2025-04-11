@@ -92,9 +92,6 @@ import AskDoubtPage from "@/pages/student/AskDoubtPage";
 import StudentTimetablePage from "@/pages/student/StudentTimetablePage";
 import StudentStudyMaterialsPage from "@/pages/student/StudentStudyMaterialsPage";
 
-import StudentStudyPlannerPage from "./pages/student/StudentStudyPlannerPage";
-import AcademicProgressPage from "./pages/student/AcademicProgressPage";
-
 const queryClient = new QueryClient();
 
 function App() {
@@ -184,10 +181,6 @@ function App() {
                     <Route path="fees/payment/new" element={<MakePaymentPage />} />
                     <Route path="doubts" element={<TeacherDoubtsPage />} />
                     <Route path="study-materials" element={<StudentStudyMaterialsPage />} />
-                    
-                    {/* New Routes */}
-                    <Route path="/student/study-planner" element={<StudentStudyPlannerPage />} />
-                    <Route path="/student/academic-progress" element={<AcademicProgressPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>

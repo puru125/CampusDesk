@@ -23,8 +23,8 @@ import "jspdf/dist/polyfills.es.js";
 const TeacherReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
-  const [selectedStudent, setSelectedStudent] = useState<string>("all");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [selectedStudent, setSelectedStudent] = useState<string>("");
   const chartRef = useRef<HTMLDivElement>(null);
   
   // Fetch teacher data
@@ -107,7 +107,7 @@ const TeacherReportsPage = () => {
         enrollment: item.students?.enrollment_number
       }));
     },
-    enabled: !!selectedCourse && selectedCourse !== "all",
+    enabled: !!selectedCourse,
   });
   
   // Fetch attendance data
@@ -193,7 +193,7 @@ const TeacherReportsPage = () => {
       if (assignmentsError) throw assignmentsError;
       
       // Filter assignments for the selected course if one is selected
-      const filteredAssignments = selectedCourse && selectedCourse !== "all" 
+      const filteredAssignments = selectedCourse 
         ? assignments.filter(a => a.subjects?.course_id === selectedCourse)
         : assignments;
       
@@ -238,7 +238,7 @@ const TeacherReportsPage = () => {
   const { data: studentPerformance = {}, isLoading: studentDataLoading } = useQuery({
     queryKey: ['studentPerformance', selectedStudent],
     queryFn: async () => {
-      if (!selectedStudent || selectedStudent === "all") return {};
+      if (!selectedStudent) return {};
       
       // Get assignment submissions for this student
       const { data: submissions, error } = await supabase
@@ -294,7 +294,7 @@ const TeacherReportsPage = () => {
         grades: gradeDistribution
       };
     },
-    enabled: !!selectedStudent && selectedStudent !== "all" && !!teacherData?.id,
+    enabled: !!selectedStudent && !!teacherData?.id,
   });
   
   // Calculate grade distribution based on percentage scores
@@ -362,25 +362,25 @@ const TeacherReportsPage = () => {
       doc.text(`Employee ID: ${teacherData?.employee_id || 'N/A'}`, 20, 50);
       
       // Add course info if selected
-      if (selectedCourse && selectedCourse !== "all") {
+      if (selectedCourse) {
         const course = courses.find(c => c.id === selectedCourse);
         doc.text(`Course: ${course?.name || 'N/A'}`, 20, 60);
       }
       
       // Add student info if selected
-      if (selectedStudent && selectedStudent !== "all") {
+      if (selectedStudent) {
         const student = students.find(s => s.id === selectedStudent);
         doc.text(`Student: ${student?.name || 'N/A'}`, 20, 70);
         doc.text(`Enrollment: ${student?.enrollment || 'N/A'}`, 20, 80);
       }
       
       // Add report data based on type
-      const yStart = (selectedStudent && selectedStudent !== "all") ? 90 : 70;
+      const yStart = selectedStudent ? 90 : 70;
       
       if (reportType === 'attendance') {
         doc.text('Attendance Summary:', 20, yStart);
         
-        if (selectedStudent && selectedStudent !== "all") {
+        if (selectedStudent) {
           // Student-specific attendance
           doc.text(`Total Classes: ${studentPerformance.attendance?.total || 0}`, 20, yStart + 10);
           doc.text(`Present: ${studentPerformance.attendance?.present || 0}`, 20, yStart + 20);
@@ -394,7 +394,7 @@ const TeacherReportsPage = () => {
       } else if (reportType === 'performance') {
         doc.text('Performance Summary:', 20, yStart);
         
-        if (selectedStudent && selectedStudent !== "all") {
+        if (selectedStudent) {
           // Student-specific performance
           doc.text('Assignment Scores:', 20, yStart + 10);
           
@@ -412,7 +412,7 @@ const TeacherReportsPage = () => {
       } else if (reportType === 'grades') {
         doc.text('Grade Distribution:', 20, yStart);
         
-        const grades = (selectedStudent && selectedStudent !== "all") ? studentPerformance.grades : getOverallGradeDistribution();
+        const grades = selectedStudent ? studentPerformance.grades : getOverallGradeDistribution();
         
         grades.forEach((grade, index) => {
           doc.text(`${grade.name}: ${grade.value} students`, 20, yStart + 10 + (index * 10));
@@ -456,7 +456,7 @@ const TeacherReportsPage = () => {
               <SelectValue placeholder="Select Course" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Courses</SelectItem>
+              <SelectItem value="">All Courses</SelectItem>
               {courses.map(course => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.name} ({course.code})
@@ -466,14 +466,14 @@ const TeacherReportsPage = () => {
           </Select>
         </div>
         
-        {selectedCourse && selectedCourse !== "all" && (
+        {selectedCourse && (
           <div className="w-64">
             <Select value={selectedStudent} onValueChange={setSelectedStudent}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Student" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Students</SelectItem>
+                <SelectItem value="">All Students</SelectItem>
                 {students.map(student => (
                   <SelectItem key={student.id} value={student.id}>
                     {student.name} ({student.enrollment})
@@ -485,29 +485,29 @@ const TeacherReportsPage = () => {
         )}
       </div>
       
-      <div ref={chartRef}>
-        <Tabs defaultValue="attendance" className="mt-6">
-          <TabsList>
-            <TabsTrigger value="attendance" className="flex items-center">
-              <Users className="mr-2 h-4 w-4" />
-              Attendance Reports
+      <Tabs defaultValue="attendance" className="mt-6">
+        <TabsList>
+          <TabsTrigger value="attendance" className="flex items-center">
+            <Users className="mr-2 h-4 w-4" />
+            Attendance Reports
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center">
+            <BarChartIcon className="mr-2 h-4 w-4" />
+            Performance Analysis
+          </TabsTrigger>
+          <TabsTrigger value="grades" className="flex items-center">
+            <PieChartIcon className="mr-2 h-4 w-4" />
+            Grade Distribution
+          </TabsTrigger>
+          {selectedStudent && (
+            <TabsTrigger value="student" className="flex items-center">
+              <UserCircle className="mr-2 h-4 w-4" />
+              Student Overview
             </TabsTrigger>
-            <TabsTrigger value="performance" className="flex items-center">
-              <BarChartIcon className="mr-2 h-4 w-4" />
-              Performance Analysis
-            </TabsTrigger>
-            <TabsTrigger value="grades" className="flex items-center">
-              <PieChartIcon className="mr-2 h-4 w-4" />
-              Grade Distribution
-            </TabsTrigger>
-            {selectedStudent && selectedStudent !== "all" && (
-              <TabsTrigger value="student" className="flex items-center">
-                <UserCircle className="mr-2 h-4 w-4" />
-                Student Overview
-              </TabsTrigger>
-            )}
-          </TabsList>
-          
+          )}
+        </TabsList>
+        
+        <div ref={chartRef}>
           <TabsContent value="attendance" className="mt-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -708,7 +708,7 @@ const TeacherReportsPage = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={selectedStudent && selectedStudent !== "all" ? studentPerformance.grades : getOverallGradeDistribution()}
+                            data={selectedStudent ? studentPerformance.grades : getOverallGradeDistribution()}
                             cx="50%"
                             cy="50%"
                             labelLine={true}
@@ -809,7 +809,7 @@ const TeacherReportsPage = () => {
             </div>
           </TabsContent>
           
-          {selectedStudent && selectedStudent !== "all" && (
+          {selectedStudent && (
             <TabsContent value="student" className="mt-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -848,22 +848,22 @@ const TeacherReportsPage = () => {
                         <h3 className="text-lg font-medium mb-4">Assignment Performance</h3>
                         {studentPerformance.assignments?.length > 0 ? (
                           <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white">
+                            <table className="w-full">
                               <thead>
-                                <tr className="bg-gray-50 border-b">
-                                  <th className="py-2 px-4 text-left">Assignment</th>
-                                  <th className="py-2 px-4 text-left">Score</th>
-                                  <th className="py-2 px-4 text-left">Max Score</th>
-                                  <th className="py-2 px-4 text-left">Percentage</th>
+                                <tr className="border-b">
+                                  <th className="text-left py-2">Assignment</th>
+                                  <th className="text-left py-2">Score</th>
+                                  <th className="text-left py-2">Max Score</th>
+                                  <th className="text-left py-2">Percentage</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {studentPerformance.assignments.map((assignment, index) => (
+                                {studentPerformance.assignments?.map((assignment, index) => (
                                   <tr key={index} className="border-b">
-                                    <td className="py-2 px-4">{assignment.title}</td>
-                                    <td className="py-2 px-4">{assignment.score}</td>
-                                    <td className="py-2 px-4">{assignment.maxScore}</td>
-                                    <td className="py-2 px-4">{assignment.percentage.toFixed(1)}%</td>
+                                    <td className="py-2">{assignment.title}</td>
+                                    <td className="py-2">{assignment.score}</td>
+                                    <td className="py-2">{assignment.maxScore}</td>
+                                    <td className="py-2">{assignment.percentage.toFixed(1)}%</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -871,9 +871,35 @@ const TeacherReportsPage = () => {
                           </div>
                         ) : (
                           <div className="text-center py-4 text-gray-500">
-                            No assignment data available for this student
+                            No assignment data available
                           </div>
                         )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-4">Grade Distribution</h3>
+                        <div className="h-[300px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={studentPerformance.grades || []}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={true}
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={({ name, value }) => `${name}: ${value}`}
+                              >
+                                {studentPerformance.grades?.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                              <Legend />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -881,8 +907,8 @@ const TeacherReportsPage = () => {
               </Card>
             </TabsContent>
           )}
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
     </div>
   );
 };
