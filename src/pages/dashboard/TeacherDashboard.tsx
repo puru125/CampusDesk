@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { School, Users, BookOpen, Calendar, CheckSquare, Clock } from "lucide-react";
+import { School, Users, BookOpen, Calendar, CheckSquare, Clock, FileBarChart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +31,6 @@ const TeacherDashboard = () => {
       try {
         if (!user) return;
 
-        // Get teacher profile
         const { data: teacherProfile, error: teacherError } = await supabase
           .from('teachers')
           .select('*')
@@ -43,7 +41,6 @@ const TeacherDashboard = () => {
         
         setTeacherData(teacherProfile);
         
-        // Get assigned subjects
         const { data: teacherSubjects, error: subjectsError } = await supabase
           .from('teacher_subjects')
           .select(`
@@ -59,26 +56,21 @@ const TeacherDashboard = () => {
         
         if (subjectsError) throw subjectsError;
         
-        // Get subject IDs
         const subjectIds = teacherSubjects?.map(ts => ts.subject_id) || [];
         
-        // Get course IDs
         const courseIds = [...new Set(
           teacherSubjects?.map(ts => ts.subjects?.course_id) || []
         )].filter(Boolean);
         
-        // Count students in teacher's courses
-        const { data: studentCountData, error: studentError } = await supabase
-          .from('student_course_enrollments')
-          .select('count', { count: 'exact' })
-          .in('course_id', courseIds)
-          .eq('status', 'approved');
+        const { count: teacherStudentsCount, error: studentCountError } = await supabase
+          .from('teacher_students')
+          .select('*', { count: 'exact', head: true })
+          .eq('teacher_id', teacherProfile.id);
           
-        if (studentError) throw studentError;
+        if (studentCountError) throw studentCountError;
         
-        // Get timetable entries
         const today = new Date();
-        const currentDay = today.getDay() === 0 ? 7 : today.getDay(); // Convert Sunday (0) to 7 to match our day_of_week format
+        const currentDay = today.getDay() === 0 ? 7 : today.getDay();
         
         const { data: timetableEntries, error: timetableError } = await supabase
           .from('timetable_entries')
@@ -95,18 +87,13 @@ const TeacherDashboard = () => {
           
         if (timetableError) throw timetableError;
         
-        // Calculate stats
-        // Fix: Access student count properly, as it's returned as count property in the metadata, not in the data
-        const studentCount = studentCountData || 0;
-        
         setStats({
           classes: timetableEntries?.filter(te => te.day_of_week === currentDay).length || 0,
-          students: typeof studentCountData === 'number' ? studentCountData : 0,
+          students: typeof teacherStudentsCount === 'number' ? teacherStudentsCount : 0,
           courses: courseIds.length,
           upcomingClasses: timetableEntries?.length || 0
         });
         
-        // Format upcoming classes
         setUpcomingClasses(timetableEntries?.map(entry => ({
           id: entry.id,
           subject: entry.subjects?.name || 'Unknown Subject',
@@ -117,7 +104,6 @@ const TeacherDashboard = () => {
           today: entry.day_of_week === currentDay
         })) || []);
         
-        // Fetch recent activities
         const { data: activities, error: activitiesError } = await supabase
           .from('student_course_enrollments')
           .select(`
@@ -132,7 +118,6 @@ const TeacherDashboard = () => {
           
         if (activitiesError) throw activitiesError;
         
-        // Format activities
         setRecentActivities(activities?.map(activity => ({
           id: activity.id,
           title: "Student Enrollment",
@@ -157,7 +142,6 @@ const TeacherDashboard = () => {
     fetchTeacherData();
   }, [user, toast]);
 
-  // Helper functions
   const getDayName = (dayNumber: number) => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     return days[dayNumber - 1] || 'Unknown';
@@ -170,7 +154,6 @@ const TeacherDashboard = () => {
       someDate.getFullYear() === today.getFullYear();
   };
   
-  // Default mock activities if none are found
   if (recentActivities.length === 0) {
     setRecentActivities([
       {
@@ -192,7 +175,6 @@ const TeacherDashboard = () => {
     ]);
   }
 
-  // Stats cards data
   const statCards = [
     { title: "My Classes", value: stats.classes, icon: School, trendText: "Today" },
     { title: "My Students", value: stats.students, icon: Users },
@@ -206,6 +188,10 @@ const TeacherDashboard = () => {
         title={`Welcome, ${user?.full_name || 'Teacher'}`}
         description="Manage your classes, assignments, and students"
       >
+        <Button onClick={() => navigate("/teacher/reports")} variant="outline">
+          <FileBarChart className="h-4 w-4 mr-2" />
+          View Reports
+        </Button>
         <Button onClick={() => navigate("/assignments/new")}>Create Assignment</Button>
       </PageHeader>
       

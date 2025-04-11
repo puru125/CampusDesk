@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Users, 
@@ -6,7 +5,8 @@ import {
   BookOpen, 
   Calendar,
   AlertTriangle,
-  CreditCard
+  CreditCard,
+  BarChart3
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,6 @@ import PageHeader from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Mock data for recent activities and pending tasks
 const recentActivities = [
   {
     id: "1",
@@ -75,7 +74,6 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       
-      // Using a regular query on the 'admin_dashboard_stats_view' view
       const { data, error } = await supabase
         .from('admin_dashboard_stats_view')
         .select('*')
@@ -110,7 +108,6 @@ const AdminDashboard = () => {
     }
   };
   
-  // Create stat cards based on API data or fallback to defaults
   const statCards = [
     { 
       title: "Total Students", 
@@ -167,6 +164,10 @@ const AdminDashboard = () => {
         title="Admin Dashboard"
         description="Welcome to the Institute Management System"
       >
+        <Button onClick={() => navigate("/admin/analytics")} variant="outline">
+          <BarChart3 className="h-4 w-4 mr-2" />
+          View Analytics
+        </Button>
         <Button onClick={() => navigate("/students/new")}>Add Student</Button>
         <Button onClick={() => navigate("/teachers/new")}>Add Teacher</Button>
       </PageHeader>
