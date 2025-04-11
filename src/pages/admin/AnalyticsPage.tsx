@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -304,7 +305,7 @@ const AnalyticsPage = () => {
       
       <div className="flex items-center justify-between mt-6 mb-6">
         <div className="w-64">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <Select value={selectedYear} onValueChange={(value: string) => setSelectedYear(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select Year" />
             </SelectTrigger>
