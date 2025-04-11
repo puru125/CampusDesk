@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,8 +23,8 @@ import "jspdf/dist/polyfills.es.js";
 const TeacherReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedCourse, setSelectedCourse] = useState<string>("");
-  const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [selectedStudent, setSelectedStudent] = useState<string>("all");
   const chartRef = useRef<HTMLDivElement>(null);
   
   // Fetch teacher data
@@ -106,7 +107,7 @@ const TeacherReportsPage = () => {
         enrollment: item.students?.enrollment_number
       }));
     },
-    enabled: !!selectedCourse,
+    enabled: !!selectedCourse && selectedCourse !== "all",
   });
   
   // Fetch attendance data
@@ -192,7 +193,7 @@ const TeacherReportsPage = () => {
       if (assignmentsError) throw assignmentsError;
       
       // Filter assignments for the selected course if one is selected
-      const filteredAssignments = selectedCourse 
+      const filteredAssignments = selectedCourse && selectedCourse !== "all" 
         ? assignments.filter(a => a.subjects?.course_id === selectedCourse)
         : assignments;
       
@@ -237,7 +238,7 @@ const TeacherReportsPage = () => {
   const { data: studentPerformance = {}, isLoading: studentDataLoading } = useQuery({
     queryKey: ['studentPerformance', selectedStudent],
     queryFn: async () => {
-      if (!selectedStudent) return {};
+      if (!selectedStudent || selectedStudent === "all") return {};
       
       // Get assignment submissions for this student
       const { data: submissions, error } = await supabase
@@ -293,7 +294,7 @@ const TeacherReportsPage = () => {
         grades: gradeDistribution
       };
     },
-    enabled: !!selectedStudent && !!teacherData?.id,
+    enabled: !!selectedStudent && selectedStudent !== "all" && !!teacherData?.id,
   });
   
   // Calculate grade distribution based on percentage scores
@@ -361,25 +362,25 @@ const TeacherReportsPage = () => {
       doc.text(`Employee ID: ${teacherData?.employee_id || 'N/A'}`, 20, 50);
       
       // Add course info if selected
-      if (selectedCourse) {
+      if (selectedCourse && selectedCourse !== "all") {
         const course = courses.find(c => c.id === selectedCourse);
         doc.text(`Course: ${course?.name || 'N/A'}`, 20, 60);
       }
       
       // Add student info if selected
-      if (selectedStudent) {
+      if (selectedStudent && selectedStudent !== "all") {
         const student = students.find(s => s.id === selectedStudent);
         doc.text(`Student: ${student?.name || 'N/A'}`, 20, 70);
         doc.text(`Enrollment: ${student?.enrollment || 'N/A'}`, 20, 80);
       }
       
       // Add report data based on type
-      const yStart = selectedStudent ? 90 : 70;
+      const yStart = (selectedStudent && selectedStudent !== "all") ? 90 : 70;
       
       if (reportType === 'attendance') {
         doc.text('Attendance Summary:', 20, yStart);
         
-        if (selectedStudent) {
+        if (selectedStudent && selectedStudent !== "all") {
           // Student-specific attendance
           doc.text(`Total Classes: ${studentPerformance.attendance?.total || 0}`, 20, yStart + 10);
           doc.text(`Present: ${studentPerformance.attendance?.present || 0}`, 20, yStart + 20);
@@ -393,7 +394,7 @@ const TeacherReportsPage = () => {
       } else if (reportType === 'performance') {
         doc.text('Performance Summary:', 20, yStart);
         
-        if (selectedStudent) {
+        if (selectedStudent && selectedStudent !== "all") {
           // Student-specific performance
           doc.text('Assignment Scores:', 20, yStart + 10);
           
@@ -411,7 +412,7 @@ const TeacherReportsPage = () => {
       } else if (reportType === 'grades') {
         doc.text('Grade Distribution:', 20, yStart);
         
-        const grades = selectedStudent ? studentPerformance.grades : getOverallGradeDistribution();
+        const grades = (selectedStudent && selectedStudent !== "all") ? studentPerformance.grades : getOverallGradeDistribution();
         
         grades.forEach((grade, index) => {
           doc.text(`${grade.name}: ${grade.value} students`, 20, yStart + 10 + (index * 10));
@@ -455,7 +456,6 @@ const TeacherReportsPage = () => {
               <SelectValue placeholder="Select Course" />
             </SelectTrigger>
             <SelectContent>
-              {/* Changed the empty string to "all" to fix the error */}
               <SelectItem value="all">All Courses</SelectItem>
               {courses.map(course => (
                 <SelectItem key={course.id} value={course.id}>
@@ -473,7 +473,6 @@ const TeacherReportsPage = () => {
                 <SelectValue placeholder="Select Student" />
               </SelectTrigger>
               <SelectContent>
-                {/* Changed the empty string to "all" to fix the error */}
                 <SelectItem value="all">All Students</SelectItem>
                 {students.map(student => (
                   <SelectItem key={student.id} value={student.id}>
@@ -486,29 +485,28 @@ const TeacherReportsPage = () => {
         )}
       </div>
       
-      <Tabs defaultValue="attendance" className="mt-6">
-        <TabsList>
-          <TabsTrigger value="attendance" className="flex items-center">
-            <Users className="mr-2 h-4 w-4" />
-            Attendance Reports
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center">
-            <BarChartIcon className="mr-2 h-4 w-4" />
-            Performance Analysis
-          </TabsTrigger>
-          <TabsTrigger value="grades" className="flex items-center">
-            <PieChartIcon className="mr-2 h-4 w-4" />
-            Grade Distribution
-          </TabsTrigger>
-          {selectedStudent && selectedStudent !== "all" && (
-            <TabsTrigger value="student" className="flex items-center">
-              <UserCircle className="mr-2 h-4 w-4" />
-              Student Overview
+      <div ref={chartRef}>
+        <Tabs defaultValue="attendance" className="mt-6">
+          <TabsList>
+            <TabsTrigger value="attendance" className="flex items-center">
+              <Users className="mr-2 h-4 w-4" />
+              Attendance Reports
             </TabsTrigger>
-          )}
-        </TabsList>
-        
-        <div ref={chartRef}>
+            <TabsTrigger value="performance" className="flex items-center">
+              <BarChartIcon className="mr-2 h-4 w-4" />
+              Performance Analysis
+            </TabsTrigger>
+            <TabsTrigger value="grades" className="flex items-center">
+              <PieChartIcon className="mr-2 h-4 w-4" />
+              Grade Distribution
+            </TabsTrigger>
+            {selectedStudent && selectedStudent !== "all" && (
+              <TabsTrigger value="student" className="flex items-center">
+                <UserCircle className="mr-2 h-4 w-4" />
+                Student Overview
+              </TabsTrigger>
+            )}
+          </TabsList>
           
           <TabsContent value="attendance" className="mt-6">
             <Card>
@@ -849,4 +847,44 @@ const TeacherReportsPage = () => {
                       <div>
                         <h3 className="text-lg font-medium mb-4">Assignment Performance</h3>
                         {studentPerformance.assignments?.length > 0 ? (
-                          <div className="overflow
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full bg-white">
+                              <thead>
+                                <tr className="bg-gray-50 border-b">
+                                  <th className="py-2 px-4 text-left">Assignment</th>
+                                  <th className="py-2 px-4 text-left">Score</th>
+                                  <th className="py-2 px-4 text-left">Max Score</th>
+                                  <th className="py-2 px-4 text-left">Percentage</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {studentPerformance.assignments.map((assignment, index) => (
+                                  <tr key={index} className="border-b">
+                                    <td className="py-2 px-4">{assignment.title}</td>
+                                    <td className="py-2 px-4">{assignment.score}</td>
+                                    <td className="py-2 px-4">{assignment.maxScore}</td>
+                                    <td className="py-2 px-4">{assignment.percentage.toFixed(1)}%</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-gray-500">
+                            No assignment data available for this student
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default TeacherReportsPage;
