@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -845,46 +844,4 @@ const TeacherReportsPage = () => {
                       </div>
                       
                       <div>
-                        <h3 className="text-lg font-medium mb-4">Assignment Performance</h3>
-                        {studentPerformance.assignments?.length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full bg-white">
-                              <thead>
-                                <tr className="bg-gray-50 border-b">
-                                  <th className="py-2 px-4 text-left">Assignment</th>
-                                  <th className="py-2 px-4 text-left">Score</th>
-                                  <th className="py-2 px-4 text-left">Max Score</th>
-                                  <th className="py-2 px-4 text-left">Percentage</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {studentPerformance.assignments.map((assignment, index) => (
-                                  <tr key={index} className="border-b">
-                                    <td className="py-2 px-4">{assignment.title}</td>
-                                    <td className="py-2 px-4">{assignment.score}</td>
-                                    <td className="py-2 px-4">{assignment.maxScore}</td>
-                                    <td className="py-2 px-4">{assignment.percentage.toFixed(1)}%</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-gray-500">
-                            No assignment data available for this student
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-        </Tabs>
-      </div>
-    </div>
-  );
-};
-
-export default TeacherReportsPage;
+                        <h3 className="text-
