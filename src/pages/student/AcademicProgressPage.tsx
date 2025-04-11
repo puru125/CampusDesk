@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,9 +10,10 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, TooltipProps } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 
 interface AcademicRecord {
   id: string;
@@ -147,6 +147,13 @@ const AcademicProgressPage = () => {
     });
   };
 
+  const customTooltipFormatter = (value: ValueType, name: NameType) => {
+    if (typeof value === 'number') {
+      return [`${value.toFixed(1)}%`, name];
+    }
+    return [value, name];
+  };
+
   if (loading) {
     return (
       <div className="container py-6">
@@ -206,7 +213,7 @@ const AcademicProgressPage = () => {
                         <XAxis dataKey="subject_code" />
                         <YAxis domain={[0, 100]} />
                         <Tooltip 
-                          formatter={(value, name) => [`${value.toFixed(1)}%`, name]}
+                          formatter={customTooltipFormatter}
                           labelFormatter={(value) => {
                             const subject = subjectSummaries.find(s => s.subject_code === value);
                             return subject ? subject.subject_name : value;
