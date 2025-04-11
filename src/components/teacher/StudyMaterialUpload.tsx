@@ -138,7 +138,7 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
       const filePath = `study-materials/${fileName}`;
       
       // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('study-materials')
         .upload(filePath, file);
       
