@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -456,7 +455,7 @@ const TeacherReportsPage = () => {
               <SelectValue placeholder="Select Course" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Courses</SelectItem>
+              <SelectItem value="all-courses">All Courses</SelectItem>
               {courses.map(course => (
                 <SelectItem key={course.id} value={course.id}>
                   {course.name} ({course.code})
@@ -466,14 +465,14 @@ const TeacherReportsPage = () => {
           </Select>
         </div>
         
-        {selectedCourse && (
+        {selectedCourse && selectedCourse !== "all-courses" && (
           <div className="w-64">
             <Select value={selectedStudent} onValueChange={setSelectedStudent}>
               <SelectTrigger>
                 <SelectValue placeholder="Select Student" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Students</SelectItem>
+                <SelectItem value="all-students">All Students</SelectItem>
                 {students.map(student => (
                   <SelectItem key={student.id} value={student.id}>
                     {student.name} ({student.enrollment})
