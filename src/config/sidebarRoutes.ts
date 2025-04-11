@@ -18,7 +18,10 @@ import {
   IdCard,
   CheckCircle,
   BookOpen,
-  BarChart3
+  BarChart3,
+  FileBarChart,
+  FileLineChart,
+  FileSpreadsheet
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -111,6 +114,11 @@ export const teacherRoutes: Route[] = [
     title: "Assignments",
     icon: FileText,
     href: "/assignments",
+  },
+  {
+    title: "Reports",
+    icon: FileBarChart,
+    href: "/teacher/reports",
   },
   {
     title: "Announcements",
