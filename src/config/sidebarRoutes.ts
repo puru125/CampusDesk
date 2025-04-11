@@ -18,6 +18,7 @@ import {
   IdCard,
   CheckCircle,
   BookOpen,
+  BarChart3
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -57,6 +58,11 @@ export const adminRoutes: Route[] = [
     title: "Fees",
     icon: CreditCard,
     href: "/fees",
+  },
+  {
+    title: "Analytics",
+    icon: BarChart3,
+    href: "/admin/analytics",
   },
   {
     title: "Announcements",

@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -57,6 +56,7 @@ import EnrollmentApprovalPage from "@/pages/settings/EnrollmentApprovalPage";
 import AdminProfilePage from "@/pages/admin/AdminProfilePage";
 import ValidationRulesPage from "@/pages/admin/ValidationRulesPage";
 import AdminFeedbackPage from "@/pages/admin/AdminFeedbackPage";
+import AnalyticsPage from "@/pages/admin/AnalyticsPage";
 
 // Announcements
 import AnnouncementsPage from "@/pages/announcements/AnnouncementsPage";
@@ -123,6 +123,7 @@ function App() {
                     <Route path="admin/profile" element={<AdminProfilePage />} />
                     <Route path="admin/validation-rules" element={<ValidationRulesPage />} />
                     <Route path="admin/feedback" element={<AdminFeedbackPage />} />
+                    <Route path="admin/analytics" element={<AnalyticsPage />} />
                     
                     {/* Shared Routes - accessible by both admin and teacher */}
                     <Route path="students" element={<StudentsPage />} />
