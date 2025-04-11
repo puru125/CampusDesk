@@ -44,6 +44,8 @@ const StudentStudyMaterialsPage = () => {
     try {
       if (!user) return;
       
+      setLoading(true);
+      
       // Get student profile
       const { data: studentProfile, error: studentError } = await supabase
         .from('students')

@@ -163,13 +163,14 @@ const StudyMaterialUpload = ({ teacherId, classes }: StudyMaterialUploadProps) =
           file_type: file.type,
           file_url: urlData.publicUrl
         })
-        .select()
-        .single();
+        .select();
       
       if (insertError) throw insertError;
       
       // Update local state
-      setMaterials([materialData, ...materials]);
+      if (materialData && materialData.length > 0) {
+        setMaterials([materialData[0], ...materials]);
+      }
       
       // Reset form
       setTitle("");

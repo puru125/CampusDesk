@@ -17,6 +17,7 @@ import {
   UserCircle,
   IdCard,
   CheckCircle,
+  BookOpen,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -152,6 +153,11 @@ export const studentRoutes: Route[] = [
     title: "Assignments",
     icon: FileText,
     href: "/student/assignments",
+  },
+  {
+    title: "Study Materials",
+    icon: BookOpen,
+    href: "/student/study-materials",
   },
   {
     title: "Submit Feedback",
