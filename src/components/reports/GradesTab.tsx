@@ -1,6 +1,7 @@
 
 import { useRef } from "react";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Loader2 } from "lucide-react";
 import ChartContainer from "./ChartContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
