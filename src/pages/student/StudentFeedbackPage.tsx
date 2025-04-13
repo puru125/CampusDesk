@@ -55,7 +55,7 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
-      // Convert 5-scale to 10-scale for database compatibility
+      // Convert 5-scale to 10-scale for database compatibility (ensure it's 1-10 range)
       const validRating = rating * 2;
       
       const { error } = await extendedSupabase

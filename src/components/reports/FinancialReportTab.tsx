@@ -1,5 +1,5 @@
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, DollarSign, CreditCard, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,12 @@ interface FinancialReportProps {
 
 const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selectedSession }: FinancialReportProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const [chartKey, setChartKey] = useState(0);
+  
+  // Force recharts to re-render when component mounts or filters change
+  useEffect(() => {
+    setChartKey(prevKey => prevKey + 1);
+  }, [selectedYear, selectedSession]);
   
   // Default data for demonstration if no data is provided
   const defaultData = {
@@ -110,7 +116,7 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
         hasData={reportData.monthlySummary.length > 0}
       >
         <div className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" key={`chart-${chartKey}`}>
             <BarChart
               data={reportData.monthlySummary}
               margin={{
@@ -124,7 +130,7 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(value) => `₹${value/1000}K`} />
               <Tooltip 
-                formatter={(value) => [`₹${value}`, ""]}
+                formatter={(value: any) => [`₹${value}`, ""]}
                 contentStyle={{ backgroundColor: '#fff', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}
               />
               <Legend />

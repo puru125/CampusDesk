@@ -1,5 +1,5 @@
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
@@ -20,6 +20,7 @@ const AnalyticsPage = () => {
   const { toast } = useToast();
   const chartRef = useRef<HTMLDivElement>(null);
   const [selectedFilters, setSelectedFilters] = useState<ReportFilters>({});
+  const [isLoading, setIsLoading] = useState(false);
   
   const {
     // Selections
@@ -42,11 +43,24 @@ const AnalyticsPage = () => {
     assignmentsLoading,
   } = useTeacherReportData();
   
+  useEffect(() => {
+    // Log data for debugging
+    console.log("Admin Analytics Data:", {
+      courses,
+      students,
+      attendanceData,
+      assignmentData,
+      selectedCourse,
+      selectedStudent
+    });
+  }, [courses, students, attendanceData, assignmentData, selectedCourse, selectedStudent]);
+  
   // Handle downloading the report as PDF
   const handleDownloadReport = (reportType: string) => {
     if (!chartRef.current) return;
     
     try {
+      setIsLoading(true);
       // Find course and student info if selected
       const courseInfo = selectedCourse && selectedCourse !== "all" 
         ? courses.find(c => c.id === selectedCourse) 
@@ -95,6 +109,8 @@ const AnalyticsPage = () => {
         description: "There was an error generating the report PDF.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -103,7 +119,7 @@ const AnalyticsPage = () => {
     setSelectedFilters(filters);
   };
   
-  // Define tabs with admin set to true to show financial reports and hide grade distribution
+  // Define tabs with admin set to true to show financial reports
   const reportTabs = getDefaultReportTabs(true);
   
   return (
@@ -138,7 +154,7 @@ const AnalyticsPage = () => {
         <TabsContent value="attendance" className="mt-6">
           <AttendanceTab
             data={attendanceData}
-            isLoading={attendanceLoading}
+            isLoading={attendanceLoading || isLoading}
             onDownload={() => handleDownloadReport('attendance')}
           />
         </TabsContent>
@@ -146,14 +162,14 @@ const AnalyticsPage = () => {
         <TabsContent value="performance" className="mt-6">
           <PerformanceTab
             data={assignmentData}
-            isLoading={assignmentsLoading}
+            isLoading={assignmentsLoading || isLoading}
             onDownload={() => handleDownloadReport('performance')}
           />
         </TabsContent>
         
         <TabsContent value="financial" className="mt-6">
           <FinancialReportTab
-            isLoading={false}
+            isLoading={isLoading}
             onDownload={() => handleDownloadReport('financial')}
             selectedYear={selectedFilters.year}
             selectedSession={selectedFilters.session}
