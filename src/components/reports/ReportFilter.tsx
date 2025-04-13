@@ -28,7 +28,10 @@ const ReportFilter = ({ onFilterChange }: ReportFilterProps) => {
   
   return (
     <div className="flex justify-between items-center mb-6">
-      <YearSessionFilter onFilterChange={handleYearSessionChange} />
+      <YearSessionFilter 
+        onFilterChange={handleYearSessionChange} 
+        defaultYear={new Date().getFullYear().toString()}
+      />
     </div>
   );
 };

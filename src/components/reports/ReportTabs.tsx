@@ -17,17 +17,23 @@ interface ReportTabsProps {
 }
 
 const ReportTabs = ({ tabs, defaultValue = "attendance", children }: ReportTabsProps) => {
+  // Filter out tabs with condition set to false before rendering
+  const filteredTabs = tabs.filter(tab => tab.condition !== false);
+  
+  // Set a valid default value (first tab if the provided default isn't in filtered tabs)
+  const validDefaultValue = filteredTabs.some(tab => tab.value === defaultValue) 
+    ? defaultValue 
+    : filteredTabs.length > 0 ? filteredTabs[0].value : "";
+
   return (
-    <Tabs defaultValue={defaultValue} className="mt-6">
-      <TabsList>
-        {tabs.map((tab) => 
-          (!tab.condition || tab.condition === true) && (
-            <TabsTrigger key={tab.value} value={tab.value} className="flex items-center">
-              {tab.icon}
-              {tab.label}
-            </TabsTrigger>
-          )
-        )}
+    <Tabs defaultValue={validDefaultValue} className="mt-6">
+      <TabsList className="flex flex-wrap gap-1">
+        {filteredTabs.map((tab) => (
+          <TabsTrigger key={tab.value} value={tab.value} className="flex items-center">
+            {tab.icon}
+            {tab.label}
+          </TabsTrigger>
+        ))}
       </TabsList>
       {children}
     </Tabs>
@@ -53,16 +59,17 @@ export const getDefaultReportTabs = (isAdmin: boolean = false) => [
     icon: <DollarSign className="mr-2 h-4 w-4" />,
     condition: isAdmin
   },
-  {
-    value: "grades",
-    label: "Grade Distribution",
-    icon: <PieChart className="mr-2 h-4 w-4" />,
-    condition: !isAdmin
-  },
-  {
-    value: "student",
-    label: "Student Overview",
-    icon: <UserCircle className="mr-2 h-4 w-4" />,
-    condition: false
-  }
+  // Remove these tabs as requested
+  // {
+  //   value: "grades",
+  //   label: "Grade Distribution",
+  //   icon: <PieChart className="mr-2 h-4 w-4" />,
+  //   condition: !isAdmin
+  // },
+  // {
+  //   value: "student",
+  //   label: "Student Overview",
+  //   icon: <UserCircle className="mr-2 h-4 w-4" />,
+  //   condition: false
+  // }
 ];

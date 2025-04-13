@@ -15,7 +15,6 @@ import PerformanceTab from "@/components/reports/PerformanceTab";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import ReportFilter, { ReportFilters } from "@/components/reports/ReportFilter";
 
-// Reusing the same components as TeacherReportsPage for consistency
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -41,9 +40,6 @@ const AnalyticsPage = () => {
     studentsLoading,
     attendanceLoading,
     assignmentsLoading,
-    
-    // Helper functions
-    getOverallGradeDistribution
   } = useTeacherReportData();
   
   // Handle downloading the report as PDF
@@ -60,14 +56,29 @@ const AnalyticsPage = () => {
         ? students.find(s => s.id === selectedStudent) 
         : null;
       
-      const doc = generateReportPDF(
-        reportType,
-        { name: user?.full_name || 'N/A', employeeId: teacherData?.employee_id || 'N/A' },
-        courseInfo,
-        studentInfo,
-        attendanceData,
-        assignmentData
-      );
+      // Generate different reports based on report type
+      let doc;
+      if (reportType === 'financial') {
+        doc = generateReportPDF(
+          reportType,
+          { name: user?.full_name || 'N/A', employeeId: teacherData?.employee_id || 'N/A' },
+          courseInfo,
+          studentInfo,
+          undefined,
+          undefined,
+          undefined,
+          { year: selectedFilters.year, session: selectedFilters.session }
+        );
+      } else {
+        doc = generateReportPDF(
+          reportType,
+          { name: user?.full_name || 'N/A', employeeId: teacherData?.employee_id || 'N/A' },
+          courseInfo,
+          studentInfo,
+          attendanceData,
+          assignmentData
+        );
+      }
       
       // Save the PDF
       const fileName = `admin_${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -88,10 +99,12 @@ const AnalyticsPage = () => {
   };
   
   const handleFilterChange = (filters: ReportFilters) => {
-    setSelectedFilters(filters);
-    // In a real app, you would use these filters to fetch filtered data
     console.log("Applied filters:", filters);
+    setSelectedFilters(filters);
   };
+  
+  // Define tabs with admin set to true to show financial reports and hide grade distribution
+  const reportTabs = getDefaultReportTabs(true);
   
   return (
     <div>
@@ -119,8 +132,8 @@ const AnalyticsPage = () => {
       />
       
       <ReportTabs 
-        tabs={getDefaultReportTabs(true)}
-        defaultValue="attendance"
+        tabs={reportTabs}
+        defaultValue="financial"
       >
         <TabsContent value="attendance" className="mt-6">
           <AttendanceTab
@@ -142,6 +155,8 @@ const AnalyticsPage = () => {
           <FinancialReportTab
             isLoading={false}
             onDownload={() => handleDownloadReport('financial')}
+            selectedYear={selectedFilters.year}
+            selectedSession={selectedFilters.session}
           />
         </TabsContent>
       </ReportTabs>

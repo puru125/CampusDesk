@@ -2,13 +2,16 @@
 import { useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, DollarSign, CreditCard, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import ChartContainer from "./ChartContainer";
 import StatCard from "./StatCard";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 interface FinancialReportProps {
   isLoading: boolean;
   onDownload: () => void;
+  selectedYear?: string;
+  selectedSession?: string;
   data?: {
     monthlySummary: {
       month: string;
@@ -31,7 +34,7 @@ interface FinancialReportProps {
   };
 }
 
-const FinancialReportTab = ({ data, isLoading, onDownload }: FinancialReportProps) => {
+const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selectedSession }: FinancialReportProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   
   // Default data for demonstration if no data is provided
@@ -65,8 +68,20 @@ const FinancialReportTab = ({ data, isLoading, onDownload }: FinancialReportProp
     return `₹${(value/1000).toFixed(1)}K`;
   };
 
+  // Filter message to show selected filters
+  const filterMessage = (selectedYear || selectedSession) 
+    ? `Showing data for ${selectedYear || 'All Years'}${selectedSession ? ` - ${selectedSession}` : ''}`
+    : "";
+
   return (
     <div className="space-y-6">
+      {/* Filter message */}
+      {filterMessage && (
+        <div className="text-sm text-muted-foreground mb-4">
+          {filterMessage}
+        </div>
+      )}
+      
       {/* Financial Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
@@ -108,7 +123,10 @@ const FinancialReportTab = ({ data, isLoading, onDownload }: FinancialReportProp
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(value) => `₹${value/1000}K`} />
-              <Tooltip formatter={(value) => [`₹${value}`, ""]} />
+              <Tooltip 
+                formatter={(value) => [`₹${value}`, ""]}
+                contentStyle={{ backgroundColor: '#fff', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)' }}
+              />
               <Legend />
               <Bar dataKey="income" name="Revenue" fill="#4CAF50" />
               <Bar dataKey="expenses" name="Expenses" fill="#FF5722" />
@@ -170,5 +188,3 @@ const FinancialReportTab = ({ data, isLoading, onDownload }: FinancialReportProp
 };
 
 export default FinancialReportTab;
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
