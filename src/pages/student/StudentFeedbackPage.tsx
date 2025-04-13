@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Star } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HelpCircle, CheckCircle } from "lucide-react";
 
@@ -21,7 +21,7 @@ const StudentFeedbackPage = () => {
 
   const [subject, setSubject] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
-  const [rating, setRating] = useState(5);
+  const [rating, setRating] = useState(3);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
@@ -35,7 +35,6 @@ const StudentFeedbackPage = () => {
         throw new Error("User not authenticated");
       }
 
-      // Validate the form fields
       if (!subject.trim()) {
         throw new Error("Please enter a subject for your feedback");
       }
@@ -44,11 +43,10 @@ const StudentFeedbackPage = () => {
         throw new Error("Please enter your feedback message");
       }
       
-      if (rating < 1 || rating > 10) {
-        throw new Error("Rating must be between 1 and 10");
+      if (rating < 1 || rating > 5) {
+        throw new Error("Rating must be between 1 and 5 stars");
       }
 
-      // Get student ID
       const { data: studentData, error: studentError } = await extendedSupabase
         .from('students')
         .select('id')
@@ -57,10 +55,8 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
-      // Ensure rating is within valid range (1-10)
-      const validRating = Math.min(10, Math.max(1, rating));
+      const validRating = rating * 2;
       
-      // Create a new feedback entry in the student_feedback table
       const { error } = await extendedSupabase
         .from('student_feedback')
         .insert([
@@ -80,7 +76,6 @@ const StudentFeedbackPage = () => {
         description: "Thank you for your feedback!",
       });
 
-      // Redirect to a success page
       navigate("/student/feedback/success");
     } catch (error: any) {
       console.error("Feedback submission error:", error);
@@ -93,6 +88,16 @@ const StudentFeedbackPage = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const renderStars = (currentRating: number) => {
+    return Array(5).fill(0).map((_, index) => (
+      <Star 
+        key={index} 
+        className={`h-8 w-8 cursor-pointer ${index < currentRating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
+        onClick={() => setRating(index + 1)}
+      />
+    ));
   };
 
   return (
@@ -131,17 +136,12 @@ const StudentFeedbackPage = () => {
               </div>
 
               <div>
-                <Label htmlFor="rating">Rating (1-10)</Label>
-                <Slider
-                  id="rating"
-                  defaultValue={[rating]}
-                  min={1} 
-                  max={10}
-                  step={1}
-                  onValueChange={(value) => setRating(value[0])}
-                />
+                <Label htmlFor="rating">Rating (1-5 stars)</Label>
+                <div className="flex items-center space-x-2">
+                  {renderStars(rating)}
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  Selected Rating: {rating} / 10
+                  Selected Rating: {rating} / 5
                 </p>
               </div>
 
