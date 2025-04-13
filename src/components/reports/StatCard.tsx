@@ -7,13 +7,17 @@ interface StatCardProps {
   title: string;
   isLoading?: boolean;
   value: ReactNode;
+  icon?: ReactNode;
 }
 
-const StatCard = ({ title, isLoading, value }: StatCardProps) => {
+const StatCard = ({ title, isLoading, value, icon }: StatCardProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm">{title}</CardTitle>
+        <CardTitle className="text-sm flex items-center">
+          {icon && <span className="mr-2 text-institute-600">{icon}</span>}
+          {title}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-center">

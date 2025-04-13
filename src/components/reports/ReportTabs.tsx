@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BarChart, PieChart, UserCircle } from "lucide-react";
+import { Users, BarChart, PieChart, UserCircle, DollarSign } from "lucide-react";
 
 interface ReportTabItem {
   value: string;
@@ -36,7 +36,7 @@ const ReportTabs = ({ tabs, defaultValue = "attendance", children }: ReportTabsP
 
 export default ReportTabs;
 
-export const getDefaultReportTabs = (hasStudentSelected: boolean = false) => [
+export const getDefaultReportTabs = (isAdmin: boolean = false) => [
   {
     value: "attendance",
     label: "Attendance Reports",
@@ -48,14 +48,21 @@ export const getDefaultReportTabs = (hasStudentSelected: boolean = false) => [
     icon: <BarChart className="mr-2 h-4 w-4" />
   },
   {
+    value: "financial",
+    label: "Financial Reports",
+    icon: <DollarSign className="mr-2 h-4 w-4" />,
+    condition: isAdmin
+  },
+  {
     value: "grades",
     label: "Grade Distribution",
-    icon: <PieChart className="mr-2 h-4 w-4" />
+    icon: <PieChart className="mr-2 h-4 w-4" />,
+    condition: !isAdmin
   },
   {
     value: "student",
     label: "Student Overview",
     icon: <UserCircle className="mr-2 h-4 w-4" />,
-    condition: hasStudentSelected
+    condition: false
   }
 ];

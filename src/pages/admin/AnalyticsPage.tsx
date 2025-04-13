@@ -1,5 +1,5 @@
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
@@ -12,14 +12,15 @@ import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import AttendanceTab from "@/components/reports/AttendanceTab";
 import PerformanceTab from "@/components/reports/PerformanceTab";
-import GradesTab from "@/components/reports/GradesTab";
-import StudentOverview from "@/components/reports/StudentOverview";
+import FinancialReportTab from "@/components/reports/FinancialReportTab";
+import ReportFilter, { ReportFilters } from "@/components/reports/ReportFilter";
 
 // Reusing the same components as TeacherReportsPage for consistency
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const chartRef = useRef<HTMLDivElement>(null);
+  const [selectedFilters, setSelectedFilters] = useState<ReportFilters>({});
   
   const {
     // Selections
@@ -34,14 +35,12 @@ const AnalyticsPage = () => {
     students,
     attendanceData,
     assignmentData,
-    studentPerformance,
     
     // Loading states
     coursesLoading,
     studentsLoading,
     attendanceLoading,
     assignmentsLoading,
-    studentDataLoading,
     
     // Helper functions
     getOverallGradeDistribution
@@ -67,8 +66,7 @@ const AnalyticsPage = () => {
         courseInfo,
         studentInfo,
         attendanceData,
-        assignmentData,
-        studentPerformance
+        assignmentData
       );
       
       // Save the PDF
@@ -89,6 +87,12 @@ const AnalyticsPage = () => {
     }
   };
   
+  const handleFilterChange = (filters: ReportFilters) => {
+    setSelectedFilters(filters);
+    // In a real app, you would use these filters to fetch filtered data
+    console.log("Applied filters:", filters);
+  };
+  
   return (
     <div>
       <PageHeader
@@ -100,6 +104,8 @@ const AnalyticsPage = () => {
           Back
         </Button>
       </PageHeader>
+      
+      <ReportFilter onFilterChange={handleFilterChange} />
       
       <ReportSelectors
         courses={courses}
@@ -113,7 +119,7 @@ const AnalyticsPage = () => {
       />
       
       <ReportTabs 
-        tabs={getDefaultReportTabs(!!selectedStudent && selectedStudent !== "all")}
+        tabs={getDefaultReportTabs(true)}
         defaultValue="attendance"
       >
         <TabsContent value="attendance" className="mt-6">
@@ -132,25 +138,12 @@ const AnalyticsPage = () => {
           />
         </TabsContent>
         
-        <TabsContent value="grades" className="mt-6">
-          <GradesTab
-            data={selectedStudent && selectedStudent !== "all" 
-              ? studentPerformance.grades || [] 
-              : getOverallGradeDistribution()}
-            isLoading={assignmentsLoading}
-            onDownload={() => handleDownloadReport('grades')}
+        <TabsContent value="financial" className="mt-6">
+          <FinancialReportTab
+            isLoading={false}
+            onDownload={() => handleDownloadReport('financial')}
           />
         </TabsContent>
-        
-        {selectedStudent && selectedStudent !== "all" && (
-          <TabsContent value="student" className="mt-6">
-            <StudentOverview
-              performance={studentPerformance}
-              isLoading={studentDataLoading}
-              onDownload={() => handleDownloadReport('student')}
-            />
-          </TabsContent>
-        )}
       </ReportTabs>
     </div>
   );
