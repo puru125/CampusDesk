@@ -42,7 +42,7 @@ const ReportTabs = ({ tabs, defaultValue = "attendance", children }: ReportTabsP
 
 export default ReportTabs;
 
-export const getDefaultReportTabs = (isAdmin: boolean = false) => [
+export const getDefaultReportTabs = (isAdmin: boolean = false, showStudentOverview: boolean = false) => [
   {
     value: "attendance",
     label: "Attendance Reports",
@@ -59,17 +59,10 @@ export const getDefaultReportTabs = (isAdmin: boolean = false) => [
     icon: <DollarSign className="mr-2 h-4 w-4" />,
     condition: isAdmin
   },
-  // Remove these tabs as requested
-  // {
-  //   value: "grades",
-  //   label: "Grade Distribution",
-  //   icon: <PieChart className="mr-2 h-4 w-4" />,
-  //   condition: !isAdmin
-  // },
-  // {
-  //   value: "student",
-  //   label: "Student Overview",
-  //   icon: <UserCircle className="mr-2 h-4 w-4" />,
-  //   condition: false
-  // }
+  {
+    value: "student",
+    label: "Student Overview",
+    icon: <UserCircle className="mr-2 h-4 w-4" />,
+    condition: showStudentOverview
+  }
 ];

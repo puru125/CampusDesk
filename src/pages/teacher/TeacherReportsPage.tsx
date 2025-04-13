@@ -46,6 +46,9 @@ const TeacherReportsPage = () => {
     getOverallGradeDistribution
   } = useTeacherReportData();
   
+  // Check if a specific student is selected
+  const isStudentSelected = !!selectedStudent && selectedStudent !== "all";
+  
   // Handle downloading the report as PDF
   const handleDownloadReport = (reportType: string) => {
     if (!chartRef.current) return;
@@ -112,7 +115,7 @@ const TeacherReportsPage = () => {
       />
       
       <ReportTabs 
-        tabs={getDefaultReportTabs(!!selectedStudent && selectedStudent !== "all")}
+        tabs={getDefaultReportTabs(false, isStudentSelected)}
         defaultValue="attendance"
       >
         <TabsContent value="attendance" className="mt-6">
@@ -141,7 +144,7 @@ const TeacherReportsPage = () => {
           />
         </TabsContent>
         
-        {selectedStudent && selectedStudent !== "all" && (
+        {isStudentSelected && (
           <TabsContent value="student" className="mt-6">
             <StudentOverview
               performance={studentPerformance}

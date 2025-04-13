@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Star } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { HelpCircle, CheckCircle } from "lucide-react";
 
@@ -44,7 +44,7 @@ const StudentFeedbackPage = () => {
       }
       
       if (rating < 1 || rating > 5) {
-        throw new Error("Rating must be between 1 and 5 stars");
+        throw new Error("Rating must be between 1 and 5");
       }
 
       const { data: studentData, error: studentError } = await extendedSupabase
@@ -55,6 +55,7 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
+      // Convert 5-scale to 10-scale for database compatibility
       const validRating = rating * 2;
       
       const { error } = await extendedSupabase
@@ -88,16 +89,6 @@ const StudentFeedbackPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const renderStars = (currentRating: number) => {
-    return Array(5).fill(0).map((_, index) => (
-      <Star 
-        key={index} 
-        className={`h-8 w-8 cursor-pointer ${index < currentRating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-        onClick={() => setRating(index + 1)}
-      />
-    ));
   };
 
   return (
@@ -136,10 +127,15 @@ const StudentFeedbackPage = () => {
               </div>
 
               <div>
-                <Label htmlFor="rating">Rating (1-5 stars)</Label>
-                <div className="flex items-center space-x-2">
-                  {renderStars(rating)}
-                </div>
+                <Label htmlFor="rating">Rating (1-5)</Label>
+                <Slider
+                  id="rating"
+                  defaultValue={[rating]}
+                  min={1} 
+                  max={5}
+                  step={1}
+                  onValueChange={(value) => setRating(value[0])}
+                />
                 <p className="text-sm text-gray-500 mt-1">
                   Selected Rating: {rating} / 5
                 </p>
