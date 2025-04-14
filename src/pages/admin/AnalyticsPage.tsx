@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -102,7 +103,18 @@ const AnalyticsPage = () => {
         setFinancialData([]);
       } else {
         console.log("Financial data retrieved:", data);
-        setFinancialData(data || []);
+        // Transform the data to match the FinancialTransaction interface
+        const formattedData: FinancialTransaction[] = data?.map((item: any) => ({
+          id: item.id,
+          amount: item.amount,
+          payment_date: item.payment_date,
+          payment_method: item.payment_method,
+          status: item.status,
+          students: item.students,
+          fee_structures: item.fee_structures
+        })) || [];
+        
+        setFinancialData(formattedData);
       }
     } catch (err) {
       console.error('Exception fetching financial data:', err);

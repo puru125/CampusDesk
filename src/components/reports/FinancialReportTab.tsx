@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Loader2, DollarSign, CreditCard, TrendingUp } from "lucide-react";
@@ -58,31 +57,25 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
   const [chartKey, setChartKey] = useState(0);
   const [processedData, setProcessedData] = useState<any>(null);
   
-  // Force recharts to re-render when component mounts or filters change
   useEffect(() => {
     setChartKey(prevKey => prevKey + 1);
     
-    // Process real financial data if available
     if (financialData && financialData.length > 0) {
       processFinancialData();
     }
   }, [selectedYear, selectedSession, financialData]);
   
-  // Process financial data into chart format
   const processFinancialData = () => {
     if (!financialData || financialData.length === 0) return;
     
     try {
-      // Group by month for monthly summary
       const monthlyData = new Map();
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       
-      // Initialize months with zero values
       months.forEach(month => {
         monthlyData.set(month, { month, income: 0, expenses: 0 });
       });
       
-      // Aggregate real data by month
       financialData.forEach(transaction => {
         if (transaction.status === 'completed') {
           const date = new Date(transaction.payment_date);
@@ -93,17 +86,14 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
         }
       });
       
-      // Calculate total revenue
       const totalRevenue = financialData.reduce((sum, transaction) => {
         return sum + Number(transaction.amount);
       }, 0);
       
-      // Add some mock data for expenses (since we don't have real expense data)
       monthlyData.forEach(data => {
-        data.expenses = data.income * 0.65; // Simulate expenses as 65% of income
+        data.expenses = data.income * 0.65;
       });
       
-      // Format transactions for the table
       const recentTransactions = financialData.slice(0, 5).map(transaction => {
         return {
           id: transaction.id,
@@ -119,14 +109,13 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
         };
       });
       
-      // Set the processed data
       setProcessedData({
         monthlySummary: Array.from(monthlyData.values()),
         recentTransactions,
         stats: {
           totalRevenue,
-          pendingPayments: totalRevenue * 0.15, // Mock data - 15% of revenue as pending
-          revenueGrowth: 12.5 // Mock data
+          pendingPayments: totalRevenue * 0.15,
+          revenueGrowth: 12.5
         }
       });
     } catch (error) {
@@ -134,7 +123,6 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
     }
   };
 
-  // Default data for demonstration if no data is provided
   const defaultData = {
     monthlySummary: [
       { month: "Jan", income: 50000, expenses: 35000 },
@@ -158,28 +146,24 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
     }
   };
 
-  // Use processed data from real financial data if available, otherwise use data prop or default
   const reportData = processedData || data || defaultData;
   
   const formatCurrency = (value: number) => {
     return `₹${(value/1000).toFixed(1)}K`;
   };
 
-  // Filter message to show selected filters
   const filterMessage = (selectedYear || selectedSession) 
     ? `Showing data for ${selectedYear || 'All Years'}${selectedSession ? ` - ${selectedSession}` : ''}`
     : "";
 
   return (
     <div className="space-y-6">
-      {/* Filter message */}
       {filterMessage && (
         <div className="text-sm text-muted-foreground mb-4">
           {filterMessage}
         </div>
       )}
       
-      {/* Financial Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
           title="Total Revenue"
@@ -198,7 +182,6 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
         />
       </div>
       
-      {/* Monthly Revenue Chart */}
       <ChartContainer
         ref={chartRef}
         title="Monthly Financial Summary"
@@ -232,7 +215,6 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
         </div>
       </ChartContainer>
       
-      {/* Recent Transactions */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Recent Transactions</CardTitle>

@@ -1,6 +1,24 @@
+
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { format } from "date-fns";
+import { UserTable } from "jspdf-autotable";
+
+// Extend jsPDF with autoTable
+declare module "jspdf" {
+  interface jsPDF {
+    autoTable: (options: any) => UserTable;
+    lastAutoTable: { finalY: number };
+    internal: {
+      pageSize: {
+        getWidth: () => number;
+        getHeight: () => number;
+      };
+      pages: any[];
+      getCurrentPageInfo: () => any;
+    };
+  }
+}
 
 // Define interfaces for report data
 interface TeacherInfo {
@@ -38,7 +56,23 @@ interface PerformanceData {
 export interface FinancialData {
   year?: string;
   session?: string;
-  financialData?: any[];
+  financialData?: Array<{
+    id: string;
+    amount: number;
+    payment_date: string;
+    payment_method: string;
+    status: string;
+    students?: {
+      enrollment_number: string;
+      users?: {
+        full_name: string;
+      };
+    };
+    fee_structures?: {
+      fee_type: string;
+      description?: string;
+    };
+  }>;
 }
 
 // Main function to generate PDF reports
@@ -118,7 +152,7 @@ export const generateReportPDF = (
   }
   
   // Add footer
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = doc.internal.pages.length - 1;
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);
@@ -164,7 +198,7 @@ const addAttendanceReport = (doc: jsPDF, data: AttendanceData[], startY: number)
   ]);
   
   // Add table
-  (doc as any).autoTable({
+  doc.autoTable({
     startY: startY + 10,
     head: [['Period', 'Present', 'Absent', 'Total Classes', 'Attendance %']],
     body: tableData,
@@ -180,7 +214,7 @@ const addAttendanceReport = (doc: jsPDF, data: AttendanceData[], startY: number)
     ? ((totalPresent / totalClasses) * 100).toFixed(1) 
     : '0';
   
-  const tableEnd = (doc as any).lastAutoTable.finalY + 10;
+  const tableEnd = doc.lastAutoTable.finalY + 10;
   doc.text(`Overall Attendance: ${overallAttendance}%`, 15, tableEnd);
   
   // Add recommendations based on attendance
@@ -216,7 +250,7 @@ const addPerformanceReport = (doc: jsPDF, data: PerformanceData[], startY: numbe
   ]);
   
   // Add table
-  (doc as any).autoTable({
+  doc.autoTable({
     startY: startY + 10,
     head: [['Assignment', 'Average Score', 'Highest', 'Lowest', 'Max Score', 'Performance %']],
     body: tableData,
@@ -231,7 +265,7 @@ const addPerformanceReport = (doc: jsPDF, data: PerformanceData[], startY: numbe
     ? (averageScores.reduce((a, b) => a + b, 0) / averageScores.length).toFixed(1)
     : '0';
   
-  const tableEnd = (doc as any).lastAutoTable.finalY + 10;
+  const tableEnd = doc.lastAutoTable.finalY + 10;
   doc.text(`Overall Performance: ${overallPerformance}%`, 15, tableEnd);
   
   // Add recommendations based on performance
@@ -286,7 +320,7 @@ const addFinancialReport = (doc: jsPDF, data: FinancialData, startY: number) => 
       ]);
     
     // Add monthly summary table
-    (doc as any).autoTable({
+    doc.autoTable({
       startY: startY + 10,
       head: [['Month', 'Transactions', 'Revenue']],
       body: tableData,
@@ -301,7 +335,7 @@ const addFinancialReport = (doc: jsPDF, data: FinancialData, startY: number) => 
     const totalTransactions = Array.from(monthlyData.values())
       .reduce((sum, data) => sum + data.count, 0);
     
-    const tableEnd = (doc as any).lastAutoTable.finalY + 10;
+    const tableEnd = doc.lastAutoTable.finalY + 10;
     doc.text(`Total Revenue: ₹${totalRevenue.toLocaleString('en-IN')}`, 15, tableEnd);
     doc.text(`Total Transactions: ${totalTransactions}`, 15, tableEnd + 7);
     
@@ -324,7 +358,7 @@ const addFinancialReport = (doc: jsPDF, data: FinancialData, startY: number) => 
       ]);
       
       // Add transactions table
-      (doc as any).autoTable({
+      doc.autoTable({
         startY: tableEnd + 30,
         head: [['ID', 'Date', 'Student', 'Amount', 'Method', 'Status']],
         body: transactionTableData,
@@ -364,7 +398,7 @@ const addStudentReport = (doc: jsPDF, data: any, studentInfo: StudentInfo | null
     ]);
     
     // Add assignments table
-    (doc as any).autoTable({
+    doc.autoTable({
       startY: startY + 50,
       head: [['Assignment', 'Score', 'Max Score', 'Percentage']],
       body: assignmentData,
@@ -377,7 +411,7 @@ const addStudentReport = (doc: jsPDF, data: any, studentInfo: StudentInfo | null
     const averagePerformance = data.assignments
       .reduce((sum: number, assignment: any) => sum + assignment.percentage, 0) / data.assignments.length;
     
-    const tableEnd = (doc as any).lastAutoTable.finalY + 10;
+    const tableEnd = doc.lastAutoTable.finalY + 10;
     doc.text(`Average Performance: ${averagePerformance.toFixed(1)}%`, 15, tableEnd);
     
     // Add overall assessment
