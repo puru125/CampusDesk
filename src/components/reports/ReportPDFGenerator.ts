@@ -1,6 +1,5 @@
-
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import 'jspdf-autotable';
 import { format } from "date-fns";
 import { UserTable } from "jspdf-autotable";
 
