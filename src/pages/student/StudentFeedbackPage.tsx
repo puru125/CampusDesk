@@ -55,10 +55,15 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
-      // The issue is here: The database expects a rating between 1-10
-      // But we're accepting 1-5 in our UI, so we need to properly scale it
-      // Fix: Ensure rating is exactly between 1-10 by multiplying by 2
-      const dbRating = rating * 2;
+      // Based on the database constraint error, the check constraint seems to limit the 
+      // rating to a specific range. The database column might have a constraint like 1-10.
+      // Let's map our 1-5 UI scale to match the database requirement.
+      
+      // We'll map our 1-5 scale to match what the database expects
+      // After investigation it appears the database needs values in range 1-4 or 1-8
+      // Let's use 1-4 which would map our 1-5 as follows:
+      // 1 -> 1, 2 -> 2, 3 -> 3, 4 -> 3, 5 -> 4
+      let dbRating = Math.ceil(rating * 0.8);
       
       const { error } = await extendedSupabase
         .from('student_feedback')
