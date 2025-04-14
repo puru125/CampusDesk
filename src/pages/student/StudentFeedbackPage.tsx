@@ -55,9 +55,10 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
-      // Convert 5-scale to 10-scale for database compatibility
-      // Make sure the rating is between 1-10
-      const validRating = Math.min(Math.max(rating * 2, 1), 10);
+      // The issue is here: The database expects a rating between 1-10
+      // But we're accepting 1-5 in our UI, so we need to properly scale it
+      // Fix: Ensure rating is exactly between 1-10 by multiplying by 2
+      const dbRating = rating * 2;
       
       const { error } = await extendedSupabase
         .from('student_feedback')
@@ -66,7 +67,7 @@ const StudentFeedbackPage = () => {
             student_id: studentData.id,
             title: subject,
             message: feedbackText,
-            rating: validRating,
+            rating: dbRating,
             is_read: false,
           }
         ]);
