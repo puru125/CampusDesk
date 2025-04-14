@@ -14,6 +14,7 @@ import AttendanceTab from "@/components/reports/AttendanceTab";
 import PerformanceTab from "@/components/reports/PerformanceTab";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import ReportFilter, { ReportFilters } from "@/components/reports/ReportFilter";
+import { supabase } from "@/integrations/supabase/client";
 
 const AnalyticsPage = () => {
   const { user } = useAuth();
@@ -22,6 +23,8 @@ const AnalyticsPage = () => {
   const [selectedFilters, setSelectedFilters] = useState<ReportFilters>({});
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("financial");
+  const [financialData, setFinancialData] = useState<any[]>([]);
+  const [finDataLoading, setFinDataLoading] = useState(false);
   
   const {
     // Selections
@@ -54,7 +57,61 @@ const AnalyticsPage = () => {
       selectedCourse,
       selectedStudent
     });
-  }, [courses, students, attendanceData, assignmentData, selectedCourse, selectedStudent]);
+    
+    // Fetch financial data when filters change or on first load
+    fetchFinancialData();
+  }, [selectedFilters]);
+  
+  const fetchFinancialData = async () => {
+    try {
+      setFinDataLoading(true);
+      
+      // Default to current year if not selected
+      const year = selectedFilters.year || new Date().getFullYear().toString();
+      const session = selectedFilters.session || 'all';
+      
+      // Fetch financial data from the appropriate table
+      const { data, error } = await supabase
+        .from('payment_transactions')
+        .select(`
+          id,
+          amount,
+          payment_date,
+          payment_method,
+          status,
+          students(
+            enrollment_number,
+            users(full_name)
+          ),
+          fee_structure_id,
+          fee_structures(
+            fee_type,
+            description
+          )
+        `)
+        .eq('status', 'completed')
+        .gte('payment_date', `${year}-01-01`)
+        .lte('payment_date', `${year}-12-31`);
+      
+      if (error) {
+        console.error('Error fetching financial data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch financial data",
+          variant: "destructive",
+        });
+        setFinancialData([]);
+      } else {
+        console.log("Financial data retrieved:", data);
+        setFinancialData(data || []);
+      }
+    } catch (err) {
+      console.error('Exception fetching financial data:', err);
+      setFinancialData([]);
+    } finally {
+      setFinDataLoading(false);
+    }
+  };
   
   // Handle downloading the report as PDF
   const handleDownloadReport = (reportType: string) => {
@@ -82,7 +139,11 @@ const AnalyticsPage = () => {
           undefined,
           undefined,
           undefined,
-          { year: selectedFilters.year, session: selectedFilters.session }
+          { 
+            year: selectedFilters.year, 
+            session: selectedFilters.session,
+            financialData: financialData 
+          }
         );
       } else {
         doc = generateReportPDF(
@@ -175,10 +236,11 @@ const AnalyticsPage = () => {
         
         <TabsContent value="financial" className="mt-6">
           <FinancialReportTab
-            isLoading={isLoading}
+            isLoading={isLoading || finDataLoading}
             onDownload={() => handleDownloadReport('financial')}
             selectedYear={selectedFilters.year}
             selectedSession={selectedFilters.session}
+            financialData={financialData}
           />
         </TabsContent>
       </ReportTabs>
