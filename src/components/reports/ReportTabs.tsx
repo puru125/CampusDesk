@@ -14,9 +14,10 @@ interface ReportTabsProps {
   tabs: ReportTabItem[];
   defaultValue?: string;
   children: ReactNode;
+  onValueChange?: (value: string) => void;
 }
 
-const ReportTabs = ({ tabs, defaultValue = "attendance", children }: ReportTabsProps) => {
+const ReportTabs = ({ tabs, defaultValue = "attendance", children, onValueChange }: ReportTabsProps) => {
   // Filter out tabs with condition set to false before rendering
   const filteredTabs = tabs.filter(tab => tab.condition !== false);
   
@@ -26,7 +27,7 @@ const ReportTabs = ({ tabs, defaultValue = "attendance", children }: ReportTabsP
     : filteredTabs.length > 0 ? filteredTabs[0].value : "";
 
   return (
-    <Tabs defaultValue={validDefaultValue} className="mt-6">
+    <Tabs defaultValue={validDefaultValue} className="mt-6" onValueChange={onValueChange}>
       <TabsList className="flex flex-wrap gap-1">
         {filteredTabs.map((tab) => (
           <TabsTrigger key={tab.value} value={tab.value} className="flex items-center">
