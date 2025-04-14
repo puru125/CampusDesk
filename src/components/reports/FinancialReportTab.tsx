@@ -7,11 +7,30 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import ChartContainer from "./ChartContainer";
 import StatCard from "./StatCard";
 
-interface FinancialReportProps {
+export interface FinancialTransaction {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  status: string;
+  students?: {
+    enrollment_number: string;
+    users?: {
+      full_name: string;
+    };
+  };
+  fee_structures?: {
+    fee_type: string;
+    description?: string;
+  };
+}
+
+export interface FinancialReportProps {
   isLoading: boolean;
   onDownload: () => void;
   selectedYear?: string;
   selectedSession?: string;
+  financialData?: FinancialTransaction[];
   data?: {
     monthlySummary: {
       month: string;
@@ -34,15 +53,87 @@ interface FinancialReportProps {
   };
 }
 
-const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selectedSession }: FinancialReportProps) => {
+const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selectedSession, financialData = [] }: FinancialReportProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartKey, setChartKey] = useState(0);
+  const [processedData, setProcessedData] = useState<any>(null);
   
   // Force recharts to re-render when component mounts or filters change
   useEffect(() => {
     setChartKey(prevKey => prevKey + 1);
-  }, [selectedYear, selectedSession]);
+    
+    // Process real financial data if available
+    if (financialData && financialData.length > 0) {
+      processFinancialData();
+    }
+  }, [selectedYear, selectedSession, financialData]);
   
+  // Process financial data into chart format
+  const processFinancialData = () => {
+    if (!financialData || financialData.length === 0) return;
+    
+    try {
+      // Group by month for monthly summary
+      const monthlyData = new Map();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      // Initialize months with zero values
+      months.forEach(month => {
+        monthlyData.set(month, { month, income: 0, expenses: 0 });
+      });
+      
+      // Aggregate real data by month
+      financialData.forEach(transaction => {
+        if (transaction.status === 'completed') {
+          const date = new Date(transaction.payment_date);
+          const monthName = months[date.getMonth()];
+          
+          const existing = monthlyData.get(monthName);
+          existing.income += Number(transaction.amount);
+        }
+      });
+      
+      // Calculate total revenue
+      const totalRevenue = financialData.reduce((sum, transaction) => {
+        return sum + Number(transaction.amount);
+      }, 0);
+      
+      // Add some mock data for expenses (since we don't have real expense data)
+      monthlyData.forEach(data => {
+        data.expenses = data.income * 0.65; // Simulate expenses as 65% of income
+      });
+      
+      // Format transactions for the table
+      const recentTransactions = financialData.slice(0, 5).map(transaction => {
+        return {
+          id: transaction.id,
+          date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }),
+          student: transaction.students?.users?.full_name || 'Unknown Student',
+          amount: transaction.amount,
+          paymentMethod: transaction.payment_method,
+          status: transaction.status
+        };
+      });
+      
+      // Set the processed data
+      setProcessedData({
+        monthlySummary: Array.from(monthlyData.values()),
+        recentTransactions,
+        stats: {
+          totalRevenue,
+          pendingPayments: totalRevenue * 0.15, // Mock data - 15% of revenue as pending
+          revenueGrowth: 12.5 // Mock data
+        }
+      });
+    } catch (error) {
+      console.error("Error processing financial data:", error);
+    }
+  };
+
   // Default data for demonstration if no data is provided
   const defaultData = {
     monthlySummary: [
@@ -67,8 +158,8 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
     }
   };
 
-  // Use provided data or default if not available
-  const reportData = data || defaultData;
+  // Use processed data from real financial data if available, otherwise use data prop or default
+  const reportData = processedData || data || defaultData;
   
   const formatCurrency = (value: number) => {
     return `₹${(value/1000).toFixed(1)}K`;
@@ -174,11 +265,11 @@ const FinancialReportTab = ({ data, isLoading, onDownload, selectedYear, selecte
                       <TableCell>{transaction.paymentMethod}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          transaction.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                          transaction.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          transaction.status === 'Completed' || transaction.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          transaction.status === 'Pending' || transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-red-100 text-red-800'
                         }`}>
-                          {transaction.status}
+                          {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                         </span>
                       </TableCell>
                     </TableRow>

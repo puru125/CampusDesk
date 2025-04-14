@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +11,7 @@ import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import AttendanceTab from "@/components/reports/AttendanceTab";
 import PerformanceTab from "@/components/reports/PerformanceTab";
-import FinancialReportTab from "@/components/reports/FinancialReportTab";
+import FinancialReportTab, { FinancialTransaction } from "@/components/reports/FinancialReportTab";
 import ReportFilter, { ReportFilters } from "@/components/reports/ReportFilter";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,7 +22,7 @@ const AnalyticsPage = () => {
   const [selectedFilters, setSelectedFilters] = useState<ReportFilters>({});
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("financial");
-  const [financialData, setFinancialData] = useState<any[]>([]);
+  const [financialData, setFinancialData] = useState<FinancialTransaction[]>([]);
   const [finDataLoading, setFinDataLoading] = useState(false);
   
   const {
@@ -142,7 +141,7 @@ const AnalyticsPage = () => {
           { 
             year: selectedFilters.year, 
             session: selectedFilters.session,
-            financialData: financialData 
+            financialData
           }
         );
       } else {
