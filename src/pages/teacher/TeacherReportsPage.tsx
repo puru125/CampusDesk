@@ -1,5 +1,5 @@
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
@@ -19,6 +19,7 @@ const TeacherReportsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const chartRef = useRef<HTMLDivElement>(null);
+  const [activeTab, setActiveTab] = useState("attendance");
   
   const {
     // Selections
@@ -90,6 +91,10 @@ const TeacherReportsPage = () => {
       });
     }
   };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
   
   return (
     <div>
@@ -116,7 +121,8 @@ const TeacherReportsPage = () => {
       
       <ReportTabs 
         tabs={getDefaultReportTabs(false, isStudentSelected)}
-        defaultValue="attendance"
+        defaultValue={activeTab}
+        onValueChange={handleTabChange}
       >
         <TabsContent value="attendance" className="mt-6">
           <AttendanceTab

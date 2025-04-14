@@ -55,8 +55,9 @@ const StudentFeedbackPage = () => {
 
       if (studentError) throw studentError;
 
-      // Convert 5-scale to 10-scale for database compatibility (ensure it's 1-10 range)
-      const validRating = rating * 2;
+      // Convert 5-scale to 10-scale for database compatibility
+      // Make sure the rating is between 1-10
+      const validRating = Math.min(Math.max(rating * 2, 1), 10);
       
       const { error } = await extendedSupabase
         .from('student_feedback')
@@ -128,14 +129,17 @@ const StudentFeedbackPage = () => {
 
               <div>
                 <Label htmlFor="rating">Rating (1-5)</Label>
-                <Slider
-                  id="rating"
-                  defaultValue={[rating]}
-                  min={1} 
-                  max={5}
-                  step={1}
-                  onValueChange={(value) => setRating(value[0])}
-                />
+                <div className="py-4">
+                  <Slider
+                    id="rating"
+                    defaultValue={[rating]}
+                    value={[rating]}
+                    min={1} 
+                    max={5}
+                    step={1}
+                    onValueChange={(value) => setRating(value[0])}
+                  />
+                </div>
                 <p className="text-sm text-gray-500 mt-1">
                   Selected Rating: {rating} / 5
                 </p>

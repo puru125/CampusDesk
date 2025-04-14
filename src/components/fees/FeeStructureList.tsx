@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Search, Trash, Plus, Filter, AlertTriangle } from "lucide-react";
+import { Edit, Search, Trash, Plus, AlertTriangle } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -108,6 +108,7 @@ const FeeStructureList = () => {
   };
 
   const handleEdit = (id: string) => {
+    // Fix: Navigate to the correct path with the fee structure id
     navigate(`/fees/structure/${id}`);
   };
 

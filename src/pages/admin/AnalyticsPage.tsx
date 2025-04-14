@@ -21,6 +21,7 @@ const AnalyticsPage = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [selectedFilters, setSelectedFilters] = useState<ReportFilters>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("financial");
   
   const {
     // Selections
@@ -118,6 +119,10 @@ const AnalyticsPage = () => {
     console.log("Applied filters:", filters);
     setSelectedFilters(filters);
   };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
   
   // Define tabs with admin set to true to show financial reports
   const reportTabs = getDefaultReportTabs(true);
@@ -149,7 +154,8 @@ const AnalyticsPage = () => {
       
       <ReportTabs 
         tabs={reportTabs}
-        defaultValue="financial"
+        defaultValue={activeTab}
+        onValueChange={handleTabChange}
       >
         <TabsContent value="attendance" className="mt-6">
           <AttendanceTab
