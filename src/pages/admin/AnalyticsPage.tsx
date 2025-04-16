@@ -1,5 +1,5 @@
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
@@ -21,8 +21,13 @@ const AnalyticsPage = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
-  const [financialData, setFinancialData] = useState([]);
+  const [financialData, setFinancialData] = useState<any[]>([]);
   const [finDataLoading, setFinDataLoading] = useState(false);
+  const [processedFinancialData, setProcessedFinancialData] = useState<{
+    monthlySummary: { month: string; income: number; expenses: number }[];
+    recentTransactions: { id: string; date: string; student: string; amount: number; paymentMethod: string; status: string }[];
+    stats: { totalRevenue: number; pendingPayments: number; revenueGrowth: number };
+  } | null>(null);
   
   const {
     // Selections
@@ -45,6 +50,113 @@ const AnalyticsPage = () => {
     assignmentsLoading,
   } = useTeacherReportData();
 
+  // Fetch financial data on mount
+  useEffect(() => {
+    const fetchFinancialData = async () => {
+      setFinDataLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('payments')
+          .select(`
+            id,
+            amount,
+            payment_date,
+            payment_method,
+            status,
+            students(
+              enrollment_number,
+              users(
+                full_name
+              )
+            ),
+            fee_structures(
+              fee_type,
+              description
+            )
+          `)
+          .order('payment_date', { ascending: false });
+          
+        if (error) throw error;
+        setFinancialData(data || []);
+      } catch (error) {
+        console.error("Error fetching financial data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch financial data",
+          variant: "destructive",
+        });
+      } finally {
+        setFinDataLoading(false);
+      }
+    };
+    
+    fetchFinancialData();
+  }, [toast]);
+
+  // Process financial data whenever it changes
+  useEffect(() => {
+    if (financialData && financialData.length > 0) {
+      processFinancialData();
+    }
+  }, [financialData]);
+
+  // Process financial data for the chart
+  const processFinancialData = () => {
+    if (!financialData || financialData.length === 0) return;
+    
+    try {
+      // Group by month
+      const monthlyData = new Map();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      months.forEach(month => {
+        monthlyData.set(month, { month, income: 0, expenses: 0 });
+      });
+      
+      financialData.forEach(transaction => {
+        const date = new Date(transaction.payment_date);
+        const monthName = months[date.getMonth()];
+        
+        const existing = monthlyData.get(monthName);
+        existing.income += Number(transaction.amount);
+        // Simulate expenses as a percentage of income for demo
+        existing.expenses = existing.income * 0.65;
+      });
+      
+      const totalRevenue = financialData.reduce((sum, transaction) => {
+        return sum + Number(transaction.amount);
+      }, 0);
+      
+      // Format recent transactions
+      const recentTransactions = financialData.slice(0, 5).map(transaction => {
+        return {
+          id: transaction.id,
+          date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }),
+          student: transaction.students?.users?.full_name || 'Unknown Student',
+          amount: transaction.amount,
+          paymentMethod: transaction.payment_method,
+          status: transaction.status
+        };
+      });
+      
+      setProcessedFinancialData({
+        monthlySummary: Array.from(monthlyData.values()),
+        recentTransactions,
+        stats: {
+          totalRevenue,
+          pendingPayments: totalRevenue * 0.15, // Mock data
+          revenueGrowth: 12.5 // Mock data
+        }
+      });
+    } catch (error) {
+      console.error("Error processing financial data:", error);
+    }
+  };
+
   // Handle downloading the report as PDF
   const handleDownloadReport = (reportType: string) => {
     if (!chartRef.current) return;
@@ -66,7 +178,9 @@ const AnalyticsPage = () => {
         courseInfo,
         studentInfo,
         attendanceData,
-        assignmentData
+        assignmentData,
+        undefined,
+        { financialData }
       );
       
       // Save the PDF
@@ -141,7 +255,15 @@ const AnalyticsPage = () => {
           <FinancialReportTab
             isLoading={isLoading || finDataLoading}
             onDownload={() => handleDownloadReport('financial')}
-            data={financialData}
+            data={processedFinancialData || {
+              monthlySummary: [],
+              recentTransactions: [],
+              stats: {
+                totalRevenue: 0,
+                pendingPayments: 0,
+                revenueGrowth: 0
+              }
+            }}
           />
         </TabsContent>
       </ReportTabs>
