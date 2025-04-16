@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +20,19 @@ const AnalyticsPage = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
-  const [financialData, setFinancialData] = useState([]);
+  const [financialData, setFinancialData] = useState<{
+    monthlySummary: { month: string; income: number; expenses: number; }[];
+    recentTransactions: { id: string; date: string; student: string; amount: number; paymentMethod: string; status: string; }[];
+    stats: { totalRevenue: number; pendingPayments: number; revenueGrowth: number; };
+  }>({
+    monthlySummary: [],
+    recentTransactions: [],
+    stats: {
+      totalRevenue: 0,
+      pendingPayments: 0,
+      revenueGrowth: 0
+    }
+  });
   const [finDataLoading, setFinDataLoading] = useState(false);
   
   const {
