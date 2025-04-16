@@ -13,7 +13,26 @@ import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTab
 import AttendanceTab from "@/components/reports/AttendanceTab";
 import PerformanceTab from "@/components/reports/PerformanceTab";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
-import { supabase } from "@/integrations/supabase/client";
+import { extendedSupabase } from "@/integrations/supabase/extendedClient";
+
+// Define the payment transaction type
+interface PaymentTransaction {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  status: string;
+  students?: {
+    enrollment_number: string;
+    users?: {
+      full_name: string;
+    };
+  };
+  fee_structures?: {
+    fee_type: string;
+    description?: string;
+  };
+}
 
 const AnalyticsPage = () => {
   const { user } = useAuth();
@@ -21,7 +40,7 @@ const AnalyticsPage = () => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("attendance");
-  const [financialData, setFinancialData] = useState<any[]>([]);
+  const [financialData, setFinancialData] = useState<PaymentTransaction[]>([]);
   const [finDataLoading, setFinDataLoading] = useState(false);
   const [processedFinancialData, setProcessedFinancialData] = useState<{
     monthlySummary: { month: string; income: number; expenses: number }[];
@@ -55,8 +74,9 @@ const AnalyticsPage = () => {
     const fetchFinancialData = async () => {
       setFinDataLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('payments')
+        // Use extendedSupabase to properly type the query
+        const { data, error } = await extendedSupabase
+          .from('payment_transactions')
           .select(`
             id,
             amount,
