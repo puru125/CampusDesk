@@ -1,25 +1,19 @@
-
 import jsPDF from "jspdf";
 import 'jspdf-autotable';
 import { format } from "date-fns";
+import { UserTable } from "jspdf-autotable";
 
 // Extend jsPDF with autoTable
 declare module "jspdf" {
   interface jsPDF {
-    autoTable: (options: any) => any;
+    autoTable: (options: any) => UserTable;
     lastAutoTable: { finalY: number };
     internal: {
-      events: any;
-      scaleFactor: number;
-      pageSize: { 
-        width: number;
+      pageSize: {
         getWidth: () => number;
-        height: number;
         getHeight: () => number;
       };
-      pages: number[];
-      getNumberOfPages: () => number;
-      getEncryptor: (objectId: number) => (data: string) => string;
+      pages: any[];
       getCurrentPageInfo: () => any;
     };
   }
@@ -157,7 +151,7 @@ export const generateReportPDF = (
   }
   
   // Add footer
-  const pageCount = doc.internal.getNumberOfPages();
+  const pageCount = doc.internal.pages.length - 1;
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);
