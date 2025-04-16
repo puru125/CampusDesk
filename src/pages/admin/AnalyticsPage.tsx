@@ -1,25 +1,19 @@
 
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { TabsContent } from "@/components/ui/tabs";
 import { BarChart as BarChartIcon } from "lucide-react";
 import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
-import AttendanceTab from "@/components/reports/AttendanceTab";
-import PerformanceTab from "@/components/reports/PerformanceTab";
-import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import { supabase } from "@/integrations/supabase/client";
 import { DatePicker } from "@/components/ui/date-picker";
 import { startOfMonth, endOfMonth } from "date-fns";
-import { generateReportPDF } from "@/components/reports/ReportPDFGenerator";
+import FinancialReportTab from "@/components/reports/FinancialReportTab";
 
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const chartRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("financial");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -32,7 +26,7 @@ const AnalyticsPage = () => {
   const [studentsLoading, setStudentsLoading] = useState(true);
   
   const [financialData, setFinancialData] = useState<{
-    monthlySummary: { month: string; income: number; expenses: number; }[];
+    monthlySummary: { day: string; income: number; expenses: number; }[];
     recentTransactions: { id: string; date: string; student: string; amount: number; paymentMethod: string; status: string; }[];
     stats: { totalRevenue: number; pendingPayments: number; revenueGrowth: number; };
   }>({
@@ -96,69 +90,6 @@ const AnalyticsPage = () => {
     }
   };
 
-  // Handle downloading reports
-  const handleDownloadReport = async (reportType: string) => {
-    if (!chartRef.current) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // Create admin info object
-      const adminInfo = {
-        name: user?.full_name || "Administrator",
-        employeeId: user?.id || "admin-1"
-      };
-      
-      // Get course info if a course is selected
-      const courseInfo = selectedCourse !== "all" 
-        ? courses.find(course => course.id === selectedCourse) || null 
-        : null;
-      
-      // Get student info if a student is selected
-      const studentInfo = selectedStudent !== "all" 
-        ? students.find(student => student.id === selectedStudent) || null 
-        : null;
-      
-      // Generate the appropriate report PDF based on the report type
-      const doc = generateReportPDF(
-        reportType,
-        adminInfo,
-        courseInfo,
-        studentInfo,
-        [],  // attendance data
-        [],  // performance data
-        null, // student performance
-        {
-          year: selectedDate.getFullYear().toString(),
-          session: `${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`,
-          financialData: []
-        }
-      );
-      
-      // Save the PDF with an appropriate name
-      const fileName = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
-      
-      toast({
-        title: "Report Downloaded",
-        description: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report has been downloaded successfully.`,
-      });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast({
-        title: "Download Failed",
-        description: "There was an error generating the report PDF.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
   // Fetch financial data when the date changes
   useEffect(() => {
     if (selectedDate) {
@@ -177,7 +108,7 @@ const AnalyticsPage = () => {
       
       // Construct query for financials with appropriate filters
       let query = supabase
-        .from('payments')
+        .from('payment_transactions')
         .select(`
           id,
           amount,
@@ -189,10 +120,6 @@ const AnalyticsPage = () => {
             users:user_id (
               full_name
             )
-          ),
-          fee_structures:fee_structure_id (
-            fee_type,
-            description
           )
         `)
         .gte('payment_date', startDate.toISOString())
@@ -226,7 +153,7 @@ const AnalyticsPage = () => {
         });
         
         // Aggregate data by day
-        data.forEach(transaction => {
+        data.forEach((transaction: any) => {
           const date = new Date(transaction.payment_date);
           const day = date.getDate().toString();
           
@@ -239,12 +166,12 @@ const AnalyticsPage = () => {
         });
         
         // Calculate totals for stats
-        const totalRevenue = data.reduce((sum, transaction) => {
+        const totalRevenue = data.reduce((sum: number, transaction: any) => {
           return sum + Number(transaction.amount);
         }, 0);
         
         // Format recent transactions
-        const recentTransactions = data.slice(0, 5).map(transaction => {
+        const recentTransactions = data.slice(0, 5).map((transaction: any) => {
           return {
             id: transaction.id,
             date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
@@ -265,7 +192,7 @@ const AnalyticsPage = () => {
           recentTransactions,
           stats: {
             totalRevenue,
-            pendingPayments: data.filter(t => t.status === 'pending').reduce((sum, t) => sum + Number(t.amount), 0),
+            pendingPayments: data.filter((t: any) => t.status === 'pending').reduce((sum: number, t: any) => sum + Number(t.amount), 0),
             revenueGrowth: 12.5 // This would typically be calculated from previous period
           }
         });
@@ -293,17 +220,17 @@ const AnalyticsPage = () => {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
   return (
     <div>
       <PageHeader
         title="Analytics & Reports"
         description="Track institution-wide performance metrics and generate reports"
         icon={BarChartIcon}
-      >
-        <Button variant="outline" onClick={() => window.history.back()}>
-          Back
-        </Button>
-      </PageHeader>
+      />
 
       <div className="flex flex-wrap items-center gap-4 mt-6">
         <div className="w-64">
@@ -339,32 +266,14 @@ const AnalyticsPage = () => {
         defaultValue={activeTab}
         onValueChange={handleTabChange}
       >
-        <TabsContent value="financial" className="mt-6">
-          <FinancialReportTab
-            isLoading={isLoading}
-            onDownload={() => handleDownloadReport('financial')}
-            data={financialData}
-          />
-        </TabsContent>
-        
-        <TabsContent value="attendance" className="mt-6">
-          <AttendanceTab
-            data={[]}
-            isLoading={isLoading}
-            onDownload={() => handleDownloadReport('attendance')}
-          />
-        </TabsContent>
-        
-        <TabsContent value="performance" className="mt-6">
-          <PerformanceTab
-            data={[]}
-            isLoading={isLoading}
-            onDownload={() => handleDownloadReport('performance')}
-          />
-        </TabsContent>
+        <FinancialReportTab
+          isLoading={isLoading}
+          data={financialData}
+        />
       </ReportTabs>
     </div>
   );
 };
 
 export default AnalyticsPage;
+

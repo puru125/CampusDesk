@@ -1,12 +1,10 @@
 
 import { ReactNode, forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface ChartContainerProps {
   title: string;
-  onDownload?: () => void;
   isLoading?: boolean;
   emptyMessage?: string;
   hasData?: boolean;
@@ -14,17 +12,11 @@ interface ChartContainerProps {
 }
 
 const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
-  ({ title, onDownload, isLoading, emptyMessage, hasData = true, children }, ref) => {
+  ({ title, isLoading, emptyMessage, hasData = true, children }, ref) => {
     return (
       <Card ref={ref}>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-lg">{title}</CardTitle>
-          {onDownload && (
-            <Button onClick={onDownload}>
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-            </Button>
-          )}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -47,3 +39,4 @@ const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
 ChartContainer.displayName = "ChartContainer";
 
 export default ChartContainer;
+
