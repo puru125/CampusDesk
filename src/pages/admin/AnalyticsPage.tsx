@@ -188,7 +188,7 @@ const AnalyticsPage = () => {
       // Process the data to create financial summary
       if (data && data.length > 0) {
         // Process for monthly chart display
-        const monthlyData = new Map<string, { day: string; income: number; expenses: number }>();
+        const monthlyData = new Map<string, FinancialSummary>();
         const days = Array.from({ length: 31 }, (_, i) => i + 1);
         
         days.forEach(day => {
@@ -197,8 +197,11 @@ const AnalyticsPage = () => {
           }
         });
         
-        // Aggregate data by day - using explicit typing to avoid deep type instantiation
-        (data as PaymentTransactionData[]).forEach((transaction) => {
+        // Avoid deep type instantiation by using a typed array
+        const typedData = data as PaymentTransactionData[];
+        
+        // Aggregate data by day
+        typedData.forEach((transaction) => {
           const date = new Date(transaction.payment_date);
           const day = date.getDate().toString();
           
@@ -211,12 +214,16 @@ const AnalyticsPage = () => {
         });
         
         // Calculate totals for stats
-        const totalRevenue = (data as PaymentTransactionData[]).reduce((sum, transaction) => {
+        const totalRevenue = typedData.reduce((sum, transaction) => {
           return sum + Number(transaction.amount);
         }, 0);
         
+        const pendingPayments = typedData
+          .filter(t => t.status === 'pending')
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        
         // Format recent transactions
-        const recentTransactions = (data as PaymentTransactionData[]).slice(0, 5).map((transaction) => {
+        const recentTransactions: Transaction[] = typedData.slice(0, 5).map((transaction) => {
           return {
             id: transaction.id,
             date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
@@ -237,7 +244,7 @@ const AnalyticsPage = () => {
           recentTransactions,
           stats: {
             totalRevenue,
-            pendingPayments: (data as PaymentTransactionData[]).filter((t) => t.status === 'pending').reduce((sum, t) => sum + Number(t.amount), 0),
+            pendingPayments,
             revenueGrowth: 12.5 // This would typically be calculated from previous period
           }
         });
