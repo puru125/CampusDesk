@@ -187,56 +187,59 @@ const AnalyticsPage = () => {
       
       // Process the data to create financial summary
       if (data && data.length > 0) {
-        // Process for monthly chart display
-        const monthlyData = new Map<string, FinancialSummary>();
-        const days = Array.from({ length: 31 }, (_, i) => i + 1);
+        // Create a simple month data structure without complex type inference
+        const monthlyData: Map<string, FinancialSummary> = new Map();
         
-        days.forEach(day => {
-          if (day <= endDate.getDate()) {
-            monthlyData.set(day.toString(), { day: day.toString(), income: 0, expenses: 0 });
+        // Initialize days data
+        for (let day = 1; day <= endDate.getDate(); day++) {
+          monthlyData.set(day.toString(), { 
+            day: day.toString(), 
+            income: 0, 
+            expenses: 0 
+          });
+        }
+        
+        // Use simple typed data with explicit casting
+        const transactions = data as unknown as PaymentTransactionData[];
+        let totalRevenue = 0;
+        let pendingPayments = 0;
+        
+        // Process transaction data
+        for (const transaction of transactions) {
+          // Calculate revenue
+          const amount = Number(transaction.amount);
+          totalRevenue += amount;
+          
+          // Check for pending payments
+          if (transaction.status === 'pending') {
+            pendingPayments += amount;
           }
-        });
-        
-        // Avoid deep type instantiation by using a typed array
-        const typedData = data as PaymentTransactionData[];
-        
-        // Aggregate data by day
-        typedData.forEach((transaction) => {
+          
+          // Update daily summary
           const date = new Date(transaction.payment_date);
           const day = date.getDate().toString();
           
           if (monthlyData.has(day)) {
             const dayData = monthlyData.get(day)!;
-            dayData.income += Number(transaction.amount);
-            // For expenses, we could use actual expense data or estimate as a percentage of income
-            dayData.expenses += Number(transaction.amount) * 0.65; // Example: expenses as 65% of income
+            dayData.income += amount;
+            // For expenses, estimate as a percentage of income
+            dayData.expenses += amount * 0.65;
           }
-        });
-        
-        // Calculate totals for stats
-        const totalRevenue = typedData.reduce((sum, transaction) => {
-          return sum + Number(transaction.amount);
-        }, 0);
-        
-        const pendingPayments = typedData
-          .filter(t => t.status === 'pending')
-          .reduce((sum, t) => sum + Number(t.amount), 0);
+        }
         
         // Format recent transactions
-        const recentTransactions: Transaction[] = typedData.slice(0, 5).map((transaction) => {
-          return {
-            id: transaction.id,
-            date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric'
-            }),
-            student: transaction.students?.users?.full_name || 'Unknown Student',
-            amount: transaction.amount,
-            paymentMethod: transaction.payment_method,
-            status: transaction.status
-          };
-        });
+        const recentTransactions: Transaction[] = transactions.slice(0, 5).map(transaction => ({
+          id: transaction.id,
+          date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }),
+          student: transaction.students?.users?.full_name || 'Unknown Student',
+          amount: transaction.amount,
+          paymentMethod: transaction.payment_method,
+          status: transaction.status
+        }));
         
         // Set financial data state
         setFinancialData({
@@ -245,7 +248,7 @@ const AnalyticsPage = () => {
           stats: {
             totalRevenue,
             pendingPayments,
-            revenueGrowth: 12.5 // This would typically be calculated from previous period
+            revenueGrowth: 12.5 // Example value
           }
         });
       } else {
