@@ -1,21 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import PageHeader from "@/components/ui/page-header";
-import { BarChart as BarChartIcon, Download } from "lucide-react";
-import ReportSelectors from "@/components/reports/ReportSelectors";
-import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
-import { supabase } from "@/integrations/supabase/client";
-import { DatePicker } from "@/components/ui/date-picker";
-import { startOfMonth, endOfMonth } from "date-fns";
-import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import { TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
+import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import AttendanceTab from "@/components/reports/AttendanceTab";
 import PerformanceTab from "@/components/reports/PerformanceTab";
+import { supabase } from "@/integrations/supabase/client";
+import { startOfMonth, endOfMonth } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
-// Define types outside of component to avoid excessive type instantiation
+// Interfaces for financial data
 interface Transaction {
   id: string;
   date: string;
@@ -43,7 +37,7 @@ interface FinancialData {
   stats: FinancialStats;
 }
 
-// Define the structure of payment transaction data from database
+// Database type for payments
 interface PaymentTransactionData {
   id: string;
   amount: number;
@@ -75,20 +69,24 @@ interface AssignmentDataItem {
   maxScore?: number;
 }
 
-const AnalyticsPage = () => {
-  const { user } = useAuth();
+interface AdminReportsPanelProps {
+  activeTab: string;
+  onTabChange: (value: string) => void;
+  selectedDate: Date;
+  selectedCourse: string;
+  selectedStudent: string;
+}
+
+const AdminReportsPanel = ({
+  activeTab,
+  onTabChange,
+  selectedDate,
+  selectedCourse,
+  selectedStudent
+}: AdminReportsPanelProps) => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("financial");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
-  const [selectedStudent, setSelectedStudent] = useState<string>("all");
-  const [courses, setCourses] = useState<Array<{id: string, name: string, code: string}>>([]);
-  const [students, setStudents] = useState<Array<{id: string, name: string, enrollment: string}>>([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
-  const [studentsLoading, setStudentsLoading] = useState(true);
-  
+  // State for data and loading
   const [financialData, setFinancialData] = useState<FinancialData>({
     monthlySummary: [],
     recentTransactions: [],
@@ -99,88 +97,28 @@ const AnalyticsPage = () => {
     }
   });
   
-  // New states for attendance and performance data
   const [attendanceData, setAttendanceData] = useState<AttendanceDataItem[]>([]);
-  const [attendanceLoading, setAttendanceLoading] = useState(false);
-  
   const [performanceData, setPerformanceData] = useState<AssignmentDataItem[]>([]);
-  const [performanceLoading, setPerformanceLoading] = useState(false);
-
-  // Fetch data when component mounts
-  useEffect(() => {
-    fetchCourses();
-    fetchStudents();
-  }, []);
-
-  // Fetch courses
-  const fetchCourses = async () => {
-    try {
-      setCoursesLoading(true);
-      const { data, error } = await supabase
-        .from('courses')
-        .select('id, name, code')
-        .eq('is_active', true);
-
-      if (error) throw error;
-      setCourses(data || []);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch courses",
-        variant: "destructive",
-      });
-    } finally {
-      setCoursesLoading(false);
-    }
-  };
-
-  // Fetch students
-  const fetchStudents = async () => {
-    try {
-      setStudentsLoading(true);
-      const { data, error } = await supabase
-        .from('students_view')
-        .select('id, full_name, enrollment_number');
-
-      if (error) throw error;
-      setStudents(data ? data.map(student => ({
-        id: student.id,
-        name: student.full_name,
-        enrollment: student.enrollment_number
-      })) : []);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch students",
-        variant: "destructive",
-      });
-    } finally {
-      setStudentsLoading(false);
-    }
-  };
-
-  // Fetch financial data when the date changes
-  useEffect(() => {
-    if (selectedDate) {
-      fetchFinancialData();
-    }
-  }, [selectedDate, selectedCourse, selectedStudent]);
   
-  // Fetch attendance and performance data when tab changes or filters change
+  const [financialLoading, setFinancialLoading] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [performanceLoading, setPerformanceLoading] = useState(false);
+  
+  // Load data when tab changes or filters change
   useEffect(() => {
-    if (activeTab === "attendance") {
+    if (activeTab === "financial") {
+      fetchFinancialData();
+    } else if (activeTab === "attendance") {
       fetchAttendanceData();
     } else if (activeTab === "performance") {
       fetchPerformanceData();
     }
   }, [activeTab, selectedCourse, selectedStudent, selectedDate]);
-
+  
   // Fetch financial data
   const fetchFinancialData = async () => {
     try {
-      setIsLoading(true);
+      setFinancialLoading(true);
       
       // Define date range for the selected month
       const startDate = startOfMonth(selectedDate);
@@ -306,7 +244,7 @@ const AnalyticsPage = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setFinancialLoading(false);
     }
   };
   
@@ -468,108 +406,46 @@ const AnalyticsPage = () => {
       setPerformanceLoading(false);
     }
   };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  // Handle export functionality
-  const handleExportData = () => {
-    toast({
-      title: "Export initiated",
-      description: "Your report is being prepared for download",
-    });
-    
-    // In a real implementation, we would generate and trigger a file download here
-    setTimeout(() => {
-      toast({
-        title: "Export completed",
-        description: "Your report has been downloaded",
-      });
-    }, 1500);
-  };
-
-  // Handle refresh data based on active tab
-  const handleRefreshData = () => {
-    toast({
-      title: "Refreshing data",
-      description: `Fetching the latest ${activeTab} information`,
-    });
-    
-    if (activeTab === 'financial') {
+  
+  // Helper function to refresh data based on active tab
+  const refreshData = () => {
+    if (activeTab === "financial") {
       fetchFinancialData();
-    } else if (activeTab === 'attendance') {
+    } else if (activeTab === "attendance") {
       fetchAttendanceData();
-    } else if (activeTab === 'performance') {
+    } else if (activeTab === "performance") {
       fetchPerformanceData();
     }
   };
 
   return (
-    <div>
-      <PageHeader
-        title="Analytics & Reports"
-        description="Track institution-wide performance metrics and generate reports"
-        icon={BarChartIcon}
-      >
-        <Button variant="outline" onClick={handleRefreshData}>
-          Refresh Data
-        </Button>
-        <Button onClick={handleExportData}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Report
-        </Button>
-      </PageHeader>
-
-      <div className="flex flex-wrap items-center gap-4 mt-6">
-        <div className="w-64">
-          <DatePicker
-            selected={selectedDate}
-            onSelect={(date) => setSelectedDate(date || new Date())}
-            placeholder="Select month"
-          />
-        </div>
-      </div>
+    <ReportTabs 
+      tabs={getDefaultReportTabs(true)}
+      defaultValue={activeTab}
+      onValueChange={onTabChange}
+    >
+      <TabsContent value="financial" className="mt-6">
+        <FinancialReportTab
+          data={financialData}
+          isLoading={financialLoading}
+        />
+      </TabsContent>
       
-      <ReportSelectors
-        courses={courses}
-        students={students}
-        selectedCourse={selectedCourse}
-        setSelectedCourse={setSelectedCourse}
-        selectedStudent={selectedStudent}
-        setSelectedStudent={setSelectedStudent}
-        coursesLoading={coursesLoading}
-        studentsLoading={studentsLoading}
-      />
+      <TabsContent value="attendance" className="mt-6">
+        <AttendanceTab
+          data={attendanceData}
+          isLoading={attendanceLoading}
+        />
+      </TabsContent>
       
-      <ReportTabs 
-        tabs={getDefaultReportTabs(true)}
-        defaultValue={activeTab}
-        onValueChange={handleTabChange}
-      >
-        <TabsContent value="financial" className="mt-6">
-          <FinancialReportTab
-            data={financialData}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-        
-        <TabsContent value="attendance" className="mt-6">
-          <AttendanceTab
-            data={attendanceData}
-            isLoading={attendanceLoading}
-          />
-        </TabsContent>
-        
-        <TabsContent value="performance" className="mt-6">
-          <PerformanceTab
-            data={performanceData}
-            isLoading={performanceLoading}
-          />
-        </TabsContent>
-      </ReportTabs>
-    </div>
+      <TabsContent value="performance" className="mt-6">
+        <PerformanceTab
+          data={performanceData}
+          isLoading={performanceLoading}
+        />
+      </TabsContent>
+    </ReportTabs>
   );
 };
 
-export default AnalyticsPage;
+export default AdminReportsPanel;
