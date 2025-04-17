@@ -10,33 +10,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { DatePicker } from "@/components/ui/date-picker";
 import { startOfMonth, endOfMonth } from "date-fns";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
+import { TabsContent } from "@/components/ui/tabs";
 
-type Transaction = {
+// Define types outside of component to avoid excessive type instantiation
+interface Transaction {
   id: string;
   date: string;
   student: string;
   amount: number;
   paymentMethod: string;
   status: string;
-};
+}
 
-type FinancialSummary = {
+interface FinancialSummary {
   day: string;
   income: number;
   expenses: number;
-};
+}
 
-type FinancialStats = {
+interface FinancialStats {
   totalRevenue: number;
   pendingPayments: number;
   revenueGrowth: number;
-};
+}
 
-type FinancialData = {
+interface FinancialData {
   monthlySummary: FinancialSummary[];
   recentTransactions: Transaction[];
   stats: FinancialStats;
-};
+}
 
 const AnalyticsPage = () => {
   const { user } = useAuth();
@@ -289,10 +291,12 @@ const AnalyticsPage = () => {
         defaultValue={activeTab}
         onValueChange={handleTabChange}
       >
-        <FinancialReportTab
-          isLoading={isLoading}
-          data={financialData}
-        />
+        <TabsContent value="financial" className="mt-6">
+          <FinancialReportTab
+            data={financialData}
+            isLoading={isLoading}
+          />
+        </TabsContent>
       </ReportTabs>
     </div>
   );

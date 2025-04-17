@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { BarChart as BarChartIcon } from "lucide-react";
 import { useTeacherReportData } from "@/hooks/reports/useTeacherReportData";
-import { generateReportPDF } from "@/components/reports/ReportPDFGenerator";
 import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import AttendanceTab from "@/components/reports/AttendanceTab";
@@ -50,48 +49,6 @@ const TeacherReportsPage = () => {
   // Check if a specific student is selected
   const isStudentSelected = !!selectedStudent && selectedStudent !== "all";
   
-  // Handle downloading the report as PDF
-  const handleDownloadReport = (reportType: string) => {
-    if (!chartRef.current) return;
-    
-    try {
-      // Find course and student info if selected
-      const courseInfo = selectedCourse && selectedCourse !== "all" 
-        ? courses.find(c => c.id === selectedCourse) 
-        : null;
-        
-      const studentInfo = selectedStudent && selectedStudent !== "all" 
-        ? students.find(s => s.id === selectedStudent) 
-        : null;
-      
-      const doc = generateReportPDF(
-        reportType,
-        { name: user?.full_name || 'N/A', employeeId: teacherData?.employee_id || 'N/A' },
-        courseInfo,
-        studentInfo,
-        attendanceData,
-        assignmentData,
-        studentPerformance
-      );
-      
-      // Save the PDF
-      const fileName = `teacher_${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
-      
-      toast({
-        title: "Report Downloaded",
-        description: `${reportType} report has been downloaded successfully.`,
-      });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast({
-        title: "Download Failed",
-        description: "There was an error generating the report PDF.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
@@ -128,7 +85,6 @@ const TeacherReportsPage = () => {
           <AttendanceTab
             data={attendanceData}
             isLoading={attendanceLoading}
-            onDownload={() => handleDownloadReport('attendance')}
           />
         </TabsContent>
         
@@ -136,7 +92,6 @@ const TeacherReportsPage = () => {
           <PerformanceTab
             data={assignmentData}
             isLoading={assignmentsLoading}
-            onDownload={() => handleDownloadReport('performance')}
           />
         </TabsContent>
         
@@ -146,7 +101,6 @@ const TeacherReportsPage = () => {
               ? studentPerformance.grades || [] 
               : getOverallGradeDistribution()}
             isLoading={assignmentsLoading}
-            onDownload={() => handleDownloadReport('grades')}
           />
         </TabsContent>
         
@@ -155,7 +109,6 @@ const TeacherReportsPage = () => {
             <StudentOverview
               performance={studentPerformance}
               isLoading={studentDataLoading}
-              onDownload={() => handleDownloadReport('student')}
             />
           </TabsContent>
         )}
