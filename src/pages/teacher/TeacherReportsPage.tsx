@@ -53,6 +53,14 @@ const TeacherReportsPage = () => {
     setActiveTab(value);
   };
   
+  // Define a no-op function for onDownload since we've removed PDF functionality
+  const handleDownload = () => {
+    toast({
+      title: "PDF export is disabled",
+      description: "This feature is currently unavailable.",
+    });
+  };
+  
   return (
     <div>
       <PageHeader
@@ -109,6 +117,7 @@ const TeacherReportsPage = () => {
             <StudentOverview
               performance={studentPerformance}
               isLoading={studentDataLoading}
+              onDownload={handleDownload}
             />
           </TabsContent>
         )}

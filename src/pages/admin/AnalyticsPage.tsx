@@ -49,8 +49,8 @@ const AnalyticsPage = () => {
   
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
-  const [courses, setCourses] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Array<{id: string, name: string, code: string}>>([]);
+  const [students, setStudents] = useState<Array<{id: string, name: string, enrollment: string}>>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(true);
   
@@ -102,7 +102,11 @@ const AnalyticsPage = () => {
         .select('id, full_name, enrollment_number');
 
       if (error) throw error;
-      setStudents(data || []);
+      setStudents(data ? data.map(student => ({
+        id: student.id,
+        name: student.full_name,
+        enrollment: student.enrollment_number
+      })) : []);
     } catch (error) {
       console.error('Error fetching students:', error);
       toast({
@@ -268,16 +272,8 @@ const AnalyticsPage = () => {
       </div>
       
       <ReportSelectors
-        courses={courses.map(course => ({
-          id: course.id,
-          name: course.name,
-          code: course.code
-        }))}
-        students={students.map(student => ({
-          id: student.id,
-          name: student.full_name,
-          enrollment: student.enrollment_number
-        }))}
+        courses={courses}
+        students={students}
         selectedCourse={selectedCourse}
         setSelectedCourse={setSelectedCourse}
         selectedStudent={selectedStudent}
