@@ -41,6 +41,21 @@ interface FinancialData {
   stats: FinancialStats;
 }
 
+// Define the structure of payment transaction data from database
+interface PaymentTransactionData {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  status: string;
+  students?: {
+    enrollment_number?: string;
+    users?: {
+      full_name?: string;
+    };
+  } | null;
+}
+
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -173,7 +188,7 @@ const AnalyticsPage = () => {
       // Process the data to create financial summary
       if (data && data.length > 0) {
         // Process for monthly chart display
-        const monthlyData = new Map();
+        const monthlyData = new Map<string, { day: string; income: number; expenses: number }>();
         const days = Array.from({ length: 31 }, (_, i) => i + 1);
         
         days.forEach(day => {
@@ -182,13 +197,13 @@ const AnalyticsPage = () => {
           }
         });
         
-        // Aggregate data by day
-        data.forEach((transaction: any) => {
+        // Aggregate data by day - using explicit typing to avoid deep type instantiation
+        (data as PaymentTransactionData[]).forEach((transaction) => {
           const date = new Date(transaction.payment_date);
           const day = date.getDate().toString();
           
           if (monthlyData.has(day)) {
-            const dayData = monthlyData.get(day);
+            const dayData = monthlyData.get(day)!;
             dayData.income += Number(transaction.amount);
             // For expenses, we could use actual expense data or estimate as a percentage of income
             dayData.expenses += Number(transaction.amount) * 0.65; // Example: expenses as 65% of income
@@ -196,12 +211,12 @@ const AnalyticsPage = () => {
         });
         
         // Calculate totals for stats
-        const totalRevenue = data.reduce((sum: number, transaction: any) => {
+        const totalRevenue = (data as PaymentTransactionData[]).reduce((sum, transaction) => {
           return sum + Number(transaction.amount);
         }, 0);
         
         // Format recent transactions
-        const recentTransactions = data.slice(0, 5).map((transaction: any) => {
+        const recentTransactions = (data as PaymentTransactionData[]).slice(0, 5).map((transaction) => {
           return {
             id: transaction.id,
             date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
@@ -222,7 +237,7 @@ const AnalyticsPage = () => {
           recentTransactions,
           stats: {
             totalRevenue,
-            pendingPayments: data.filter((t: any) => t.status === 'pending').reduce((sum: number, t: any) => sum + Number(t.amount), 0),
+            pendingPayments: (data as PaymentTransactionData[]).filter((t) => t.status === 'pending').reduce((sum, t) => sum + Number(t.amount), 0),
             revenueGrowth: 12.5 // This would typically be calculated from previous period
           }
         });
