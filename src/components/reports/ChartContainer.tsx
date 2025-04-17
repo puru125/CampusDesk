@@ -9,10 +9,11 @@ interface ChartContainerProps {
   emptyMessage?: string;
   hasData?: boolean;
   children: ReactNode;
+  onDownload?: () => void;
 }
 
 const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
-  ({ title, isLoading, emptyMessage, hasData = true, children }, ref) => {
+  ({ title, isLoading, emptyMessage, hasData = true, children, onDownload }, ref) => {
     return (
       <Card ref={ref}>
         <CardHeader>
@@ -39,4 +40,3 @@ const ChartContainer = forwardRef<HTMLDivElement, ChartContainerProps>(
 ChartContainer.displayName = "ChartContainer";
 
 export default ChartContainer;
-

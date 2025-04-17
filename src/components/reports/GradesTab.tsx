@@ -13,10 +13,9 @@ interface GradeItem {
 interface GradesTabProps {
   data: GradeItem[];
   isLoading: boolean;
-  onDownload: () => void;
 }
 
-const GradesTab = ({ data, isLoading, onDownload }: GradesTabProps) => {
+const GradesTab = ({ data, isLoading }: GradesTabProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B'];
 
@@ -25,7 +24,6 @@ const GradesTab = ({ data, isLoading, onDownload }: GradesTabProps) => {
       <ChartContainer
         ref={chartRef}
         title="Grade Distribution"
-        onDownload={onDownload}
         isLoading={isLoading}
         hasData={data.length > 0}
       >

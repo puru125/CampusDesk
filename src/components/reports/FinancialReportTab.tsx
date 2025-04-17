@@ -67,4 +67,3 @@ const FinancialReportTab = ({ data, isLoading }: FinancialReportTabProps) => {
 };
 
 export default FinancialReportTab;
-

@@ -14,10 +14,9 @@ interface AttendanceDataItem {
 interface AttendanceTabProps {
   data: AttendanceDataItem[];
   isLoading: boolean;
-  onDownload: () => void;
 }
 
-const AttendanceTab = ({ data, isLoading, onDownload }: AttendanceTabProps) => {
+const AttendanceTab = ({ data, isLoading }: AttendanceTabProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   // Calculate stats
@@ -38,7 +37,6 @@ const AttendanceTab = ({ data, isLoading, onDownload }: AttendanceTabProps) => {
       <ChartContainer 
         ref={chartRef}
         title="Attendance Report" 
-        onDownload={onDownload}
         isLoading={isLoading}
         hasData={data.length > 0}
         emptyMessage="No attendance data available for the selected period"

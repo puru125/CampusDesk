@@ -11,6 +11,33 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { startOfMonth, endOfMonth } from "date-fns";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 
+type Transaction = {
+  id: string;
+  date: string;
+  student: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+};
+
+type FinancialSummary = {
+  day: string;
+  income: number;
+  expenses: number;
+};
+
+type FinancialStats = {
+  totalRevenue: number;
+  pendingPayments: number;
+  revenueGrowth: number;
+};
+
+type FinancialData = {
+  monthlySummary: FinancialSummary[];
+  recentTransactions: Transaction[];
+  stats: FinancialStats;
+};
+
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -25,11 +52,7 @@ const AnalyticsPage = () => {
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(true);
   
-  const [financialData, setFinancialData] = useState<{
-    monthlySummary: { day: string; income: number; expenses: number; }[];
-    recentTransactions: { id: string; date: string; student: string; amount: number; paymentMethod: string; status: string; }[];
-    stats: { totalRevenue: number; pendingPayments: number; revenueGrowth: number; };
-  }>({
+  const [financialData, setFinancialData] = useState<FinancialData>({
     monthlySummary: [],
     recentTransactions: [],
     stats: {
@@ -276,4 +299,3 @@ const AnalyticsPage = () => {
 };
 
 export default AnalyticsPage;
-

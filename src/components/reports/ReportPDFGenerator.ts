@@ -1,4 +1,3 @@
-
 import jsPDF from "jspdf";
 import 'jspdf-autotable';
 import { format } from "date-fns";
@@ -8,6 +7,13 @@ declare module "jspdf" {
   interface jsPDF {
     autoTable: (options: any) => any;
     lastAutoTable: { finalY: number };
+    internal: {
+      pageSize: {
+        getWidth: () => number;
+        getHeight: () => number;
+      };
+      getNumberOfPages: () => number;
+    };
   }
 }
 

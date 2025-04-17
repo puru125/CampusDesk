@@ -15,10 +15,9 @@ interface AssignmentDataItem {
 interface PerformanceTabProps {
   data: AssignmentDataItem[];
   isLoading: boolean;
-  onDownload: () => void;
 }
 
-const PerformanceTab = ({ data, isLoading, onDownload }: PerformanceTabProps) => {
+const PerformanceTab = ({ data, isLoading }: PerformanceTabProps) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   // Calculate stats
@@ -33,7 +32,6 @@ const PerformanceTab = ({ data, isLoading, onDownload }: PerformanceTabProps) =>
       <ChartContainer
         ref={chartRef}
         title="Assignment Performance"
-        onDownload={onDownload}
         isLoading={isLoading}
         hasData={data.length > 0}
         emptyMessage="No assignment data available for the selected course"
