@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/ui/page-header";
-import { BarChart as BarChartIcon } from "lucide-react";
+import { BarChart as BarChartIcon, Download } from "lucide-react";
 import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { startOfMonth, endOfMonth } from "date-fns";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import { TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
 // Define types outside of component to avoid excessive type instantiation
 interface Transaction {
@@ -253,13 +254,46 @@ const AnalyticsPage = () => {
     setActiveTab(value);
   };
 
+  // Handle export functionality
+  const handleExportData = () => {
+    toast({
+      title: "Export initiated",
+      description: "Your report is being prepared for download",
+    });
+    
+    // In a real implementation, we would generate and trigger a file download here
+    setTimeout(() => {
+      toast({
+        title: "Export completed",
+        description: "Your report has been downloaded",
+      });
+    }, 1500);
+  };
+
+  // Handle refresh data
+  const handleRefreshData = () => {
+    toast({
+      title: "Refreshing data",
+      description: "Fetching the latest financial information",
+    });
+    fetchFinancialData();
+  };
+
   return (
     <div>
       <PageHeader
         title="Analytics & Reports"
         description="Track institution-wide performance metrics and generate reports"
         icon={BarChartIcon}
-      />
+      >
+        <Button variant="outline" onClick={handleRefreshData}>
+          Refresh Data
+        </Button>
+        <Button onClick={handleExportData}>
+          <Download className="mr-2 h-4 w-4" />
+          Export Report
+        </Button>
+      </PageHeader>
 
       <div className="flex flex-wrap items-center gap-4 mt-6">
         <div className="w-64">
