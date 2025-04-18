@@ -135,6 +135,8 @@ function App() {
                     <Route path="exams" element={<ExamsPage />} />
                     <Route path="fees" element={<FeesPage />} />
                     <Route path="fees/make-payment" element={<MakePaymentPage />} />
+                    <Route path="fees/structure/new" element={<AddFeeStructurePage />} />
+                    <Route path="fees/structure/:id" element={<AddFeeStructurePage />} />
                     <Route path="announcements" element={<AnnouncementsPage />} />
                     
                     {/* Admin/Teacher settings */}
