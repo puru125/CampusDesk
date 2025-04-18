@@ -97,7 +97,7 @@ const FeeStructureFormFields = ({ form, courses }: FeeStructureFormFieldsProps) 
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">All Semesters</SelectItem>
+                  <SelectItem value="all">All Semesters</SelectItem>
                   {semesters.map((semester) => (
                     <SelectItem key={semester} value={semester}>
                       Semester {semester}
@@ -124,7 +124,7 @@ const FeeStructureFormFields = ({ form, courses }: FeeStructureFormFieldsProps) 
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">All Courses</SelectItem>
+                  <SelectItem value="all">All Courses</SelectItem>
                   {courses.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.name} ({course.code})

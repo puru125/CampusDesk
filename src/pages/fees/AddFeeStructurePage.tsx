@@ -52,8 +52,8 @@ const AddFeeStructurePage = () => {
       fee_type: "",
       amount: undefined,
       academic_year: "",
-      semester: "",
-      course_id: "",
+      semester: "all",  // Default to "all" instead of empty string
+      course_id: "all", // Default to "all" instead of empty string
       is_active: true,
     },
   });
@@ -104,8 +104,8 @@ const AddFeeStructurePage = () => {
           fee_type: data.fee_type,
           amount: data.amount,
           academic_year: data.academic_year,
-          semester: data.semester?.toString() || "",
-          course_id: data.course_id || "",
+          semester: data.semester?.toString() || "all",  // Convert to string and default to "all"
+          course_id: data.course_id || "all",  // Default to "all" if null
           is_active: data.is_active,
         });
       }
@@ -129,8 +129,8 @@ const AddFeeStructurePage = () => {
         fee_type: values.fee_type,
         amount: values.amount,
         academic_year: values.academic_year,
-        semester: values.semester ? parseInt(values.semester) : null,
-        course_id: values.course_id || null,
+        semester: values.semester === "all" ? null : parseInt(values.semester),  // Convert to number or null
+        course_id: values.course_id === "all" ? null : values.course_id,  // Set to null if "all"
         is_active: values.is_active,
       };
 

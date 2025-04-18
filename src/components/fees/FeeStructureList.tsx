@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -108,7 +107,6 @@ const FeeStructureList = () => {
   };
 
   const handleEdit = (id: string) => {
-    // Fix: Navigate to the correct path with the fee structure id
     navigate(`/fees/structure/${id}`);
   };
 
