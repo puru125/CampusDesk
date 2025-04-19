@@ -14,7 +14,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import AttendanceTab from "@/components/reports/AttendanceTab";
 
-// Simplified type definitions to avoid excessive complexity
+// Simplified type definitions
 interface Transaction {
   id: string;
   date: string;
@@ -74,7 +74,7 @@ const AnalyticsPage = () => {
     }
   });
   
-  // New states for attendance data
+  // States for attendance data
   const [attendanceData, setAttendanceData] = useState<AttendanceDataItem[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
 
@@ -230,7 +230,7 @@ const AnalyticsPage = () => {
         }
         
         // Format recent transactions
-        const recentTransactions: Transaction[] = data.slice(0, 5).map(transaction => ({
+        const recentTransactions = data.slice(0, 5).map(transaction => ({
           id: transaction.id,
           date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
             day: '2-digit',

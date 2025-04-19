@@ -21,18 +21,45 @@ import { Download, Search, CheckCircle2, XCircle, Loader2, AlertCircle, Save, Ca
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
+// Define interfaces for type safety
+interface Class {
+  id: string;
+  name: string;
+  room: string;
+}
+
+interface Subject {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Student {
+  id: string;
+  name: string;
+  rollNo: string;
+}
+
+interface AttendanceRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  rollNo: string;
+  present: boolean;
+}
+
 const AttendancePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [searchTerm, setSearchTerm] = useState("");
-  const [classes, setClasses] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{
     class?: string;
@@ -76,7 +103,7 @@ const AttendancePage = () => {
         
         console.log("Timetable entries:", timetable);
         
-        const uniqueClasses = timetable?.reduce((acc: any[], entry) => {
+        const uniqueClasses = timetable?.reduce((acc: Class[], entry) => {
           if (entry.classes && !acc.some(c => c.id === entry.classes.id)) {
             acc.push({
               id: entry.classes.id,
@@ -90,7 +117,7 @@ const AttendancePage = () => {
         setClasses(uniqueClasses);
         console.log("Unique classes:", uniqueClasses);
         
-        const uniqueSubjects = timetable?.reduce((acc: any[], entry) => {
+        const uniqueSubjects = timetable?.reduce((acc: Subject[], entry) => {
           if (entry.subjects && !acc.some(s => s.id === entry.subjects.id)) {
             acc.push({
               id: entry.subjects.id,
@@ -135,35 +162,53 @@ const AttendancePage = () => {
         setLoading(true);
         console.log("Fetching students for class:", selectedClass, "and subject:", selectedSubject);
         
-        // First get students enrolled in the selected class/subject
-        const { data: enrolledStudents, error: enrollmentError } = await extendedSupabase
+        // First get the course ID for the selected subject
+        const { data: subjectData, error: subjectError } = await extendedSupabase
+          .from('subjects')
+          .select('course_id')
+          .eq('id', selectedSubject)
+          .single();
+          
+        if (subjectError) {
+          console.error("Error fetching subject data:", subjectError);
+          throw subjectError;
+        }
+        
+        if (!subjectData || !subjectData.course_id) {
+          console.log("No course ID found for this subject");
+          setAttendanceData([]);
+          setLoading(false);
+          return;
+        }
+        
+        const courseId = subjectData.course_id;
+        console.log("Course ID for this subject:", courseId);
+        
+        // Get students enrolled in this course
+        const { data: enrollments, error: enrollmentError } = await extendedSupabase
           .from('student_course_enrollments')
           .select(`
-            student_id,
-            students!inner(
-              id,
-              user_id,
-              enrollment_number
-            )
+            student_id
           `)
-          .eq('status', 'active');
+          .eq('course_id', courseId)
+          .eq('status', 'approved');
           
         if (enrollmentError) {
           console.error("Error fetching enrollments:", enrollmentError);
           throw enrollmentError;
         }
         
-        if (!enrolledStudents || enrolledStudents.length === 0) {
-          console.log("No enrolled students found");
+        if (!enrollments || enrollments.length === 0) {
+          console.log("No enrolled students found for this course");
           setAttendanceData([]);
           setLoading(false);
           return;
         }
         
-        const studentIds = enrolledStudents.map(e => e.student_id);
+        const studentIds = enrollments.map(e => e.student_id);
         console.log("Enrolled student IDs:", studentIds);
         
-        // Then get the full student details for these enrolled students
+        // Fetch details for these enrolled students
         const { data: studentsData, error: studentsError } = await extendedSupabase
           .from('students_view')
           .select('*')
@@ -177,6 +222,7 @@ const AttendancePage = () => {
         console.log("Enrolled students details:", studentsData);
         
         if (studentsData && studentsData.length > 0) {
+          // Check if attendance has already been recorded for this date
           const { data: existingAttendance, error: attendanceError } = await extendedSupabase
             .from('attendance_records')
             .select('*')
@@ -418,19 +464,16 @@ const AttendancePage = () => {
         params.subject_id = selectedSubject;
       }
       
-      // Fetch attendance records with these filters
+      // Fetch attendance records with these filters and proper joins
       const { data: records, error } = await extendedSupabase
         .from('attendance_records')
         .select(`
           id,
           date,
           status,
-          students:student_id (
-            enrollment_number,
-            users:user_id (full_name)
-          ),
-          classes:class_id (name),
-          subjects:subject_id (name, code)
+          subjects(name, code),
+          classes(name),
+          students(enrollment_number, users:user_id(full_name))
         `)
         .match(params)
         .order('date', { ascending: false });
@@ -676,7 +719,7 @@ const AttendancePage = () => {
                 <Calendar className="h-12 w-12 mx-auto text-gray-400" />
                 <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
                 <p className="mt-1 text-gray-500">
-                  No enrolled students match your search criteria or you haven't been assigned any students for this class and subject.
+                  No enrolled students match your search criteria or there are no enrollments for this course and subject.
                 </p>
               </div>
             )}
