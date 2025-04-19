@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -8,12 +7,11 @@ import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import { supabase } from "@/integrations/supabase/client";
 import { DatePicker } from "@/components/ui/date-picker";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import AttendanceTab from "@/components/reports/AttendanceTab";
-import PerformanceTab from "@/components/reports/PerformanceTab";
 
 // Simplified type definitions to avoid excessive complexity
 interface Transaction {
@@ -66,15 +64,6 @@ interface AttendanceDataItem {
   total: number;
 }
 
-// Performance data interfaces
-interface AssignmentDataItem {
-  name: string;
-  average: number;
-  highest: number;
-  lowest: number;
-  maxScore?: number;
-}
-
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -102,9 +91,6 @@ const AnalyticsPage = () => {
   // New states for attendance and performance data
   const [attendanceData, setAttendanceData] = useState<AttendanceDataItem[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  
-  const [performanceData, setPerformanceData] = useState<AssignmentDataItem[]>([]);
-  const [performanceLoading, setPerformanceLoading] = useState(false);
 
   // Fetch data when component mounts
   useEffect(() => {
@@ -172,8 +158,6 @@ const AnalyticsPage = () => {
   useEffect(() => {
     if (activeTab === "attendance") {
       fetchAttendanceData();
-    } else if (activeTab === "performance") {
-      fetchPerformanceData();
     }
   }, [activeTab, selectedCourse, selectedStudent, selectedDate]);
 
@@ -393,98 +377,66 @@ const AnalyticsPage = () => {
       setAttendanceLoading(false);
     }
   };
-  
-  // Fetch performance data with simplified approach
-  const fetchPerformanceData = async () => {
-    try {
-      setPerformanceLoading(true);
-      
-      // Define date range for the selected month
-      const startDate = startOfMonth(selectedDate);
-      const endDate = endOfMonth(selectedDate);
-      
-      // Fetch assignment data
-      let assignmentsQuery = supabase
-        .from('assignments')
-        .select(`
-          id,
-          title,
-          max_score,
-          assignment_submissions(
-            score
-          )
-        `)
-        .gte('created_at', startDate.toISOString())
-        .lte('created_at', endDate.toISOString());
-      
-      // Add course filter if selected
-      if (selectedCourse !== 'all') {
-        assignmentsQuery = assignmentsQuery.eq('subject_id', selectedCourse);
-      }
-      
-      const { data: assignmentsData, error: assignmentsError } = await assignmentsQuery;
-      
-      if (assignmentsError) throw assignmentsError;
-      
-      if (assignmentsData && assignmentsData.length > 0) {
-        // Process performance data by assignment
-        const performanceData: AssignmentDataItem[] = assignmentsData.map(assignment => {
-          // Extract scores from submissions
-          const scores = assignment.assignment_submissions
-            .filter((sub: any) => sub.score !== null)
-            .map((sub: any) => Number(sub.score));
-          
-          // Calculate stats
-          const average = scores.length > 0 
-            ? scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length 
-            : 0;
-          
-          const highest = scores.length > 0 ? Math.max(...scores) : 0;
-          const lowest = scores.length > 0 ? Math.min(...scores) : 0;
-          
-          return {
-            name: assignment.title,
-            average,
-            highest,
-            lowest,
-            maxScore: assignment.max_score
-          };
-        });
-        
-        setPerformanceData(performanceData);
-      } else {
-        setPerformanceData([]);
-      }
-    } catch (error) {
-      console.error('Error fetching performance data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch performance data",
-        variant: "destructive",
-      });
-    } finally {
-      setPerformanceLoading(false);
-    }
-  };
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
-  // Handle export functionality
-  const handleExportData = () => {
-    toast({
-      title: "Export initiated",
-      description: "Your report is being prepared for download",
-    });
-    
-    // In a real implementation, we would generate and trigger a file download here
-    setTimeout(() => {
+  const handleExportData = async () => {
+    try {
+      toast({
+        title: "Export initiated",
+        description: "Preparing your report for download...",
+      });
+
+      let exportData;
+      let fileName;
+
+      if (activeTab === 'financial') {
+        exportData = financialData.monthlySummary.map(item => ({
+          Day: item.day,
+          Income: item.income.toFixed(2),
+          Expenses: item.expenses.toFixed(2)
+        }));
+        fileName = `financial-report-${format(selectedDate, 'MMM-yyyy')}.csv`;
+      } else {
+        exportData = attendanceData.map(item => ({
+          Week: item.name,
+          Present: item.present,
+          Absent: item.absent,
+          'Total Classes': item.total
+        }));
+        fileName = `attendance-report-${format(selectedDate, 'MMM-yyyy')}.csv`;
+      }
+
+      // Convert data to CSV
+      const headers = Object.keys(exportData[0]);
+      const csv = [
+        headers.join(','),
+        ...exportData.map(row => headers.map(header => row[header as keyof typeof row]).join(','))
+      ].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
       toast({
         title: "Export completed",
-        description: "Your report has been downloaded",
+        description: `Your report has been downloaded as ${fileName}`,
       });
-    }, 1500);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: "Export failed",
+        description: "Failed to generate the export file",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle refresh data based on active tab
@@ -498,8 +450,6 @@ const AnalyticsPage = () => {
       fetchFinancialData();
     } else if (activeTab === 'attendance') {
       fetchAttendanceData();
-    } else if (activeTab === 'performance') {
-      fetchPerformanceData();
     }
   };
 
@@ -541,7 +491,7 @@ const AnalyticsPage = () => {
       />
       
       <ReportTabs 
-        tabs={getDefaultReportTabs(true)}
+        tabs={getDefaultReportTabs(true).filter(tab => tab.value !== 'performance')}
         defaultValue={activeTab}
         onValueChange={handleTabChange}
       >
@@ -556,13 +506,6 @@ const AnalyticsPage = () => {
           <AttendanceTab
             data={attendanceData}
             isLoading={attendanceLoading}
-          />
-        </TabsContent>
-        
-        <TabsContent value="performance" className="mt-6">
-          <PerformanceTab
-            data={performanceData}
-            isLoading={performanceLoading}
           />
         </TabsContent>
       </ReportTabs>
