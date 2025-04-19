@@ -129,22 +129,52 @@ const AttendancePage = () => {
   
   useEffect(() => {
     const fetchStudents = async () => {
-      if (!selectedClass || !teacherId) return;
+      if (!selectedClass || !selectedSubject || !teacherId) return;
       
       try {
         setLoading(true);
-        console.log("Fetching students for class:", selectedClass, "and teacher:", teacherId);
+        console.log("Fetching students for class:", selectedClass, "and subject:", selectedSubject);
         
+        // First get students enrolled in the selected class/subject
+        const { data: enrolledStudents, error: enrollmentError } = await extendedSupabase
+          .from('student_course_enrollments')
+          .select(`
+            student_id,
+            students!inner(
+              id,
+              user_id,
+              enrollment_number
+            )
+          `)
+          .eq('status', 'active');
+          
+        if (enrollmentError) {
+          console.error("Error fetching enrollments:", enrollmentError);
+          throw enrollmentError;
+        }
+        
+        if (!enrolledStudents || enrolledStudents.length === 0) {
+          console.log("No enrolled students found");
+          setAttendanceData([]);
+          setLoading(false);
+          return;
+        }
+        
+        const studentIds = enrolledStudents.map(e => e.student_id);
+        console.log("Enrolled student IDs:", studentIds);
+        
+        // Then get the full student details for these enrolled students
         const { data: studentsData, error: studentsError } = await extendedSupabase
           .from('students_view')
-          .select('*');
+          .select('*')
+          .in('id', studentIds);
           
         if (studentsError) {
           console.error("Error fetching students:", studentsError);
           throw studentsError;
         }
         
-        console.log("All students:", studentsData);
+        console.log("Enrolled students details:", studentsData);
         
         if (studentsData && studentsData.length > 0) {
           const { data: existingAttendance, error: attendanceError } = await extendedSupabase
@@ -358,6 +388,118 @@ const AttendancePage = () => {
     }
   };
   
+  const exportAttendanceRecords = async () => {
+    if (!teacherId) {
+      toast({
+        title: "Error",
+        description: "Teacher information not found",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      toast({
+        title: "Preparing export",
+        description: "Generating attendance records...",
+      });
+      
+      // Query parameters for the export
+      const params: any = {
+        teacher_id: teacherId
+      };
+      
+      // Add optional filters if selected
+      if (selectedClass !== "") {
+        params.class_id = selectedClass;
+      }
+      
+      if (selectedSubject !== "") {
+        params.subject_id = selectedSubject;
+      }
+      
+      // Fetch attendance records with these filters
+      const { data: records, error } = await extendedSupabase
+        .from('attendance_records')
+        .select(`
+          id,
+          date,
+          status,
+          students:student_id (
+            enrollment_number,
+            users:user_id (full_name)
+          ),
+          classes:class_id (name),
+          subjects:subject_id (name, code)
+        `)
+        .match(params)
+        .order('date', { ascending: false });
+        
+      if (error) throw error;
+      
+      if (!records || records.length === 0) {
+        toast({
+          title: "No records found",
+          description: "No attendance records match your criteria",
+        });
+        return;
+      }
+      
+      // Format data for CSV
+      const csvData = records.map(record => ({
+        Date: format(new Date(record.date), 'yyyy-MM-dd'),
+        Class: record.classes?.name || 'Unknown',
+        Subject: record.subjects?.name || 'Unknown',
+        "Subject Code": record.subjects?.code || 'N/A',
+        "Roll Number": record.students?.enrollment_number || 'N/A',
+        "Student Name": record.students?.users?.full_name || 'Unknown',
+        Status: record.status.charAt(0).toUpperCase() + record.status.slice(1)
+      }));
+      
+      // Convert to CSV format
+      const headers = Object.keys(csvData[0]);
+      const csvRows = [
+        headers.join(','),
+        ...csvData.map(row => 
+          headers.map(header => {
+            const value = row[header as keyof typeof row];
+            // Handle values that might need escaping in CSV
+            return typeof value === 'string' && value.includes(',') 
+              ? `"${value}"` 
+              : value;
+          }).join(',')
+        )
+      ];
+      
+      const csvContent = csvRows.join('\n');
+      
+      // Create file and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const today = format(new Date(), 'yyyy-MM-dd');
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `attendance-records-${today}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export successful",
+        description: "Attendance records have been exported successfully",
+      });
+      
+    } catch (error) {
+      console.error("Error exporting attendance:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export attendance records",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <div>
       <PageHeader
@@ -365,7 +507,7 @@ const AttendancePage = () => {
         description="Mark and manage student attendance"
         icon={CheckCircle2}
       >
-        <Button variant="outline" onClick={() => {}}>
+        <Button variant="outline" onClick={exportAttendanceRecords}>
           <Download className="mr-2 h-4 w-4" />
           Export Records
         </Button>
@@ -534,7 +676,7 @@ const AttendancePage = () => {
                 <Calendar className="h-12 w-12 mx-auto text-gray-400" />
                 <h3 className="mt-2 text-lg font-medium">No Students Found</h3>
                 <p className="mt-1 text-gray-500">
-                  No students match your search criteria or you haven't been assigned any students.
+                  No enrolled students match your search criteria or you haven't been assigned any students for this class and subject.
                 </p>
               </div>
             )}

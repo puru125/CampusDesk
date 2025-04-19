@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -41,21 +42,6 @@ interface FinancialData {
   stats: FinancialStats;
 }
 
-// Simplified structure of payment transaction data
-interface PaymentTransactionData {
-  id: string;
-  amount: number;
-  payment_date: string;
-  payment_method: string;
-  status: string;
-  students?: {
-    enrollment_number?: string;
-    users?: {
-      full_name?: string;
-    };
-  } | null;
-}
-
 // Attendance data interfaces
 interface AttendanceDataItem {
   name: string;
@@ -88,7 +74,7 @@ const AnalyticsPage = () => {
     }
   });
   
-  // New states for attendance and performance data
+  // New states for attendance data
   const [attendanceData, setAttendanceData] = useState<AttendanceDataItem[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
 
@@ -154,7 +140,7 @@ const AnalyticsPage = () => {
     }
   }, [selectedDate, selectedCourse, selectedStudent]);
   
-  // Fetch attendance and performance data when tab changes or filters change
+  // Fetch attendance data when tab changes or filters change
   useEffect(() => {
     if (activeTab === "attendance") {
       fetchAttendanceData();
@@ -170,7 +156,7 @@ const AnalyticsPage = () => {
       const startDate = startOfMonth(selectedDate);
       const endDate = endOfMonth(selectedDate);
       
-      // Construct query for financials with appropriate filters
+      // Build the query
       let query = supabase
         .from('payment_transactions')
         .select(`
@@ -218,12 +204,11 @@ const AnalyticsPage = () => {
           };
         }
         
-        const transactions = data as unknown as PaymentTransactionData[];
         let totalRevenue = 0;
         let pendingPayments = 0;
         
         // Process transaction data
-        for (const transaction of transactions) {
+        for (const transaction of data) {
           // Calculate revenue
           const amount = Number(transaction.amount);
           totalRevenue += amount;
@@ -245,7 +230,7 @@ const AnalyticsPage = () => {
         }
         
         // Format recent transactions
-        const recentTransactions: Transaction[] = transactions.slice(0, 5).map(transaction => ({
+        const recentTransactions: Transaction[] = data.slice(0, 5).map(transaction => ({
           id: transaction.id,
           date: new Date(transaction.payment_date).toLocaleDateString('en-US', {
             day: '2-digit',
@@ -410,10 +395,24 @@ const AnalyticsPage = () => {
       }
 
       // Convert data to CSV
-      const headers = Object.keys(exportData[0]);
+      const headers = Object.keys(exportData[0] || {});
+      
+      if (headers.length === 0) {
+        toast({
+          title: "Export failed",
+          description: "No data available to export",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const csv = [
         headers.join(','),
-        ...exportData.map(row => headers.map(header => row[header as keyof typeof row]).join(','))
+        ...exportData.map(row => headers.map(header => 
+          typeof row[header as keyof typeof row] === 'string' && row[header as keyof typeof row].includes(',')
+            ? `"${row[header as keyof typeof row]}"`
+            : row[header as keyof typeof row]
+        ).join(','))
       ].join('\n');
 
       // Create and trigger download
