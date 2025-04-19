@@ -8,14 +8,14 @@ import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import { supabase } from "@/integrations/supabase/client";
 import { DatePicker } from "@/components/ui/date-picker";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import AttendanceTab from "@/components/reports/AttendanceTab";
 import PerformanceTab from "@/components/reports/PerformanceTab";
 
-// Define types outside of component to avoid excessive type instantiation
+// Simplified type definitions to avoid excessive complexity
 interface Transaction {
   id: string;
   date: string;
@@ -43,7 +43,7 @@ interface FinancialData {
   stats: FinancialStats;
 }
 
-// Define the structure of payment transaction data from database
+// Simplified structure of payment transaction data
 interface PaymentTransactionData {
   id: string;
   amount: number;
@@ -177,7 +177,7 @@ const AnalyticsPage = () => {
     }
   }, [activeTab, selectedCourse, selectedStudent, selectedDate]);
 
-  // Fetch financial data
+  // Fetch financial data with simplified approach
   const fetchFinancialData = async () => {
     try {
       setIsLoading(true);
@@ -222,19 +222,18 @@ const AnalyticsPage = () => {
       
       // Process the data to create financial summary
       if (data && data.length > 0) {
-        // Create a simple month data structure without complex type inference
-        const monthlyData: Map<string, FinancialSummary> = new Map();
+        // Create a month data structure
+        const monthlyData: Record<string, FinancialSummary> = {};
         
         // Initialize days data
         for (let day = 1; day <= endDate.getDate(); day++) {
-          monthlyData.set(day.toString(), { 
+          monthlyData[day.toString()] = { 
             day: day.toString(), 
             income: 0, 
             expenses: 0 
-          });
+          };
         }
         
-        // Use simple typed data with explicit casting
         const transactions = data as unknown as PaymentTransactionData[];
         let totalRevenue = 0;
         let pendingPayments = 0;
@@ -254,11 +253,10 @@ const AnalyticsPage = () => {
           const date = new Date(transaction.payment_date);
           const day = date.getDate().toString();
           
-          if (monthlyData.has(day)) {
-            const dayData = monthlyData.get(day)!;
-            dayData.income += amount;
+          if (monthlyData[day]) {
+            monthlyData[day].income += amount;
             // For expenses, estimate as a percentage of income
-            dayData.expenses += amount * 0.65;
+            monthlyData[day].expenses += amount * 0.65;
           }
         }
         
@@ -278,7 +276,7 @@ const AnalyticsPage = () => {
         
         // Set financial data state
         setFinancialData({
-          monthlySummary: Array.from(monthlyData.values()),
+          monthlySummary: Object.values(monthlyData),
           recentTransactions,
           stats: {
             totalRevenue,
@@ -310,7 +308,7 @@ const AnalyticsPage = () => {
     }
   };
   
-  // Fetch attendance data
+  // Fetch attendance data with week-based grouping
   const fetchAttendanceData = async () => {
     try {
       setAttendanceLoading(true);
@@ -396,7 +394,7 @@ const AnalyticsPage = () => {
     }
   };
   
-  // Fetch performance data
+  // Fetch performance data with simplified approach
   const fetchPerformanceData = async () => {
     try {
       setPerformanceLoading(true);
