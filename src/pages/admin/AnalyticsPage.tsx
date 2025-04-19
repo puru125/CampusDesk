@@ -8,7 +8,7 @@ import ReportSelectors from "@/components/reports/ReportSelectors";
 import ReportTabs, { getDefaultReportTabs } from "@/components/reports/ReportTabs";
 import { supabase } from "@/integrations/supabase/client";
 import { DatePicker } from "@/components/ui/date-picker";
-import { startOfMonth, endOfMonth, format } from "date-fns";
+import { startOfMonth, endOfMonth } from "date-fns";
 import FinancialReportTab from "@/components/reports/FinancialReportTab";
 import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
