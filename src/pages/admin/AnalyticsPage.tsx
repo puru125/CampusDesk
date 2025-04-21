@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import PageHeader from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +56,12 @@ const AnalyticsPage = () => {
 
   // Colors for pie chart
   const COLORS = ['#0088FE', '#FF8042'];
+  
+  // Handle filter changes
+  const handleFilterChange = (period: string, department: string) => {
+    setSelectedPeriod(period);
+    setSelectedDepartment(department);
+  };
 
   return (
     <div>
@@ -65,8 +72,7 @@ const AnalyticsPage = () => {
       />
 
       <div className="mt-6">
-        {/* Remove erroneous onChange and pass correct props if needed */}
-        <ReportFilter />
+        <ReportFilter onFilterChange={handleFilterChange} />
       </div>
 
       <Tabs defaultValue="enrollment" className="mt-6">
