@@ -48,6 +48,16 @@ interface AttendanceRecord {
   present: boolean;
 }
 
+interface ExportRecord {
+  Date: string;
+  Class: string;
+  Subject: string;
+  "Subject Code": string;
+  "Roll Number": string;
+  "Student Name": string;
+  Status: string;
+}
+
 const AttendancePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -464,17 +474,10 @@ const AttendancePage = () => {
         params.subject_id = selectedSubject;
       }
       
-      // Fetch attendance records with these filters and proper joins
+      // Fetch attendance records
       const { data: records, error } = await extendedSupabase
         .from('attendance_records')
-        .select(`
-          id,
-          date,
-          status,
-          subjects(name, code),
-          classes(name),
-          students(enrollment_number, users:user_id(full_name))
-        `)
+        .select('*')
         .match(params)
         .order('date', { ascending: false });
         
@@ -488,16 +491,51 @@ const AttendancePage = () => {
         return;
       }
       
+      // Get class details
+      const classIds = [...new Set(records.map(r => r.class_id))];
+      const { data: classData } = await extendedSupabase
+        .from('classes')
+        .select('id, name')
+        .in('id', classIds);
+      
+      const classMap = new Map();
+      classData?.forEach(cls => classMap.set(cls.id, cls.name));
+      
+      // Get subject details
+      const subjectIds = [...new Set(records.map(r => r.subject_id))];
+      const { data: subjectData } = await extendedSupabase
+        .from('subjects')
+        .select('id, name, code')
+        .in('id', subjectIds);
+      
+      const subjectMap = new Map();
+      subjectData?.forEach(subj => subjectMap.set(subj.id, { name: subj.name, code: subj.code }));
+      
+      // Get student details
+      const studentIds = [...new Set(records.map(r => r.student_id))];
+      const { data: studentData } = await extendedSupabase
+        .from('students_view')
+        .select('id, full_name, enrollment_number')
+        .in('id', studentIds);
+      
+      const studentMap = new Map();
+      studentData?.forEach(stud => studentMap.set(stud.id, { name: stud.full_name, rollNo: stud.enrollment_number }));
+      
       // Format data for CSV
-      const csvData = records.map(record => ({
-        Date: format(new Date(record.date), 'yyyy-MM-dd'),
-        Class: record.classes?.name || 'Unknown',
-        Subject: record.subjects?.name || 'Unknown',
-        "Subject Code": record.subjects?.code || 'N/A',
-        "Roll Number": record.students?.enrollment_number || 'N/A',
-        "Student Name": record.students?.users?.full_name || 'Unknown',
-        Status: record.status.charAt(0).toUpperCase() + record.status.slice(1)
-      }));
+      const csvData: ExportRecord[] = records.map(record => {
+        const studentInfo = studentMap.get(record.student_id) || { name: 'Unknown', rollNo: 'N/A' };
+        const subjectInfo = subjectMap.get(record.subject_id) || { name: 'Unknown', code: 'N/A' };
+        
+        return {
+          Date: format(new Date(record.date), 'yyyy-MM-dd'),
+          Class: classMap.get(record.class_id) || 'Unknown',
+          Subject: subjectInfo.name,
+          "Subject Code": subjectInfo.code,
+          "Roll Number": studentInfo.rollNo,
+          "Student Name": studentInfo.name,
+          Status: record.status.charAt(0).toUpperCase() + record.status.slice(1)
+        };
+      });
       
       // Convert to CSV format
       const headers = Object.keys(csvData[0]);
