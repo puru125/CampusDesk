@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import PageHeader from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,13 +65,8 @@ const AnalyticsPage = () => {
       />
 
       <div className="mt-6">
-        {/* Use custom prop handler functions */}
-        <ReportFilter
-          onChange={(filters) => {
-            if (filters.period) setSelectedPeriod(filters.period);
-            if (filters.department) setSelectedDepartment(filters.department);
-          }}
-        />
+        {/* Remove erroneous onChange and pass correct props if needed */}
+        <ReportFilter />
       </div>
 
       <Tabs defaultValue="enrollment" className="mt-6">
@@ -86,25 +80,25 @@ const AnalyticsPage = () => {
         <TabsContent value="enrollment" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <SimpleChartContainer title="Enrollment by Department">
-              <BarChart data={enrollmentData}>
+              <ReBarChart data={enrollmentData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <ReTooltip />
                 <Legend />
                 <Bar dataKey="value" fill="#8884d8" />
-              </BarChart>
+              </ReBarChart>
             </SimpleChartContainer>
             
             <SimpleChartContainer title="Enrollment Trends">
-              <LineChart data={feeCollectionData}>
+              <ReLineChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <ReTooltip />
                 <Legend />
                 <Line type="monotone" dataKey="value" stroke="#8884d8" />
-              </LineChart>
+              </ReLineChart>
             </SimpleChartContainer>
           </div>
         </TabsContent>
@@ -112,14 +106,14 @@ const AnalyticsPage = () => {
         <TabsContent value="financial" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <SimpleChartContainer title="Fee Collection">
-              <BarChart data={feeCollectionData}>
+              <ReBarChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <ReTooltip />
                 <Legend />
                 <Bar dataKey="value" fill="#82ca9d" />
-              </BarChart>
+              </ReBarChart>
             </SimpleChartContainer>
           </div>
         </TabsContent>
@@ -127,14 +121,14 @@ const AnalyticsPage = () => {
         <TabsContent value="academic" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <SimpleChartContainer title="Academic Performance">
-              <LineChart data={feeCollectionData}>
+              <ReLineChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <ReTooltip />
                 <Legend />
                 <Line type="monotone" dataKey="value" stroke="#82ca9d" />
-              </LineChart>
+              </ReLineChart>
             </SimpleChartContainer>
           </div>
         </TabsContent>
@@ -142,7 +136,7 @@ const AnalyticsPage = () => {
         <TabsContent value="attendance" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <SimpleChartContainer title="Attendance Overview">
-              <PieChart>
+              <RePieChart>
                 <Pie
                   data={attendanceData}
                   cx="50%"
@@ -160,7 +154,7 @@ const AnalyticsPage = () => {
                 </Pie>
                 <Legend />
                 <ReTooltip />
-              </PieChart>
+              </RePieChart>
             </SimpleChartContainer>
           </div>
         </TabsContent>

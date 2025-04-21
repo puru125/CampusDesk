@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -318,6 +317,36 @@ const MakePaymentPage = () => {
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-institute-500" />
       </div>
+    );
+  }
+  
+  // New: If student's pending amount is 0 or less, block form and show message
+  if (paymentSummary && paymentSummary.pending_amount <= 0) {
+    return (
+      <>
+        <PageHeader 
+          title="Make Payment" 
+          description="Fee payment complete"
+        >
+          <Button variant="outline" onClick={() => navigate("/fees")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Fees
+          </Button>
+        </PageHeader>
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="text-center max-w-md">
+            <CreditCard className="h-12 w-12 mx-auto text-green-400 mb-4" />
+            <h3 className="text-lg font-medium">All Fees Paid</h3>
+            <p className="mt-2 text-gray-600">
+              You have no outstanding dues. You cannot submit another payment request.<br />
+              Please check your payment summary below or contact administration if you have questions.
+            </p>
+            <Button className="mt-6" onClick={() => navigate("/fees")}>
+              Return to Fees Dashboard
+            </Button>
+          </div>
+        </div>
+      </>
     );
   }
   
