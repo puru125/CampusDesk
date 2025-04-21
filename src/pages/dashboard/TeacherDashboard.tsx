@@ -42,6 +42,7 @@ const TeacherDashboard = () => {
         
         setTeacherData(teacherProfile);
         
+        // Get teacher's subjects to get course IDs
         const { data: teacherSubjects, error: subjectsError } = await supabase
           .from('teacher_subjects')
           .select(`
@@ -63,16 +64,26 @@ const TeacherDashboard = () => {
           teacherSubjects?.map(ts => ts.subjects?.course_id) || []
         )].filter(Boolean);
         
-        // Get accurate count of students assigned to this teacher through teacher_students table
-        const { data: teacherStudentsData, error: studentDataError } = await supabase
-          .from('teacher_students')
-          .select('student_id', { count: 'exact' })
-          .eq('teacher_id', teacherProfile.id);
-          
-        if (studentDataError) throw studentDataError;
+        // Only count students that are enrolled in courses taught by this teacher
+        let teacherStudentsCount = 0;
         
-        // Use the actual count from the returned data
-        const teacherStudentsCount = teacherStudentsData?.length || 0;
+        if (courseIds.length > 0) {
+          const { data: enrolledStudents, error: enrollmentError } = await supabase
+            .from('student_course_enrollments')
+            .select('student_id', { count: 'exact', head: false })
+            .in('course_id', courseIds)
+            .eq('status', 'approved');
+          
+          if (enrollmentError) throw enrollmentError;
+          
+          // Count unique students from enrollments
+          const uniqueStudentIds = new Set();
+          enrolledStudents?.forEach(enrollment => {
+            uniqueStudentIds.add(enrollment.student_id);
+          });
+          
+          teacherStudentsCount = uniqueStudentIds.size;
+        }
         
         const today = new Date();
         const currentDay = today.getDay() === 0 ? 7 : today.getDay();

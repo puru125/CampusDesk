@@ -1,23 +1,40 @@
+
 import React, { useState } from "react";
 import PageHeader from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, LineChart, PieChart } from "lucide-react";
 import ReportFilter from "@/components/reports/ReportFilter";
-import ChartContainer from "@/components/reports/ChartContainer";
+import { BarChart as ReBarChart, LineChart as ReLineChart, PieChart as RePieChart, Cell, Legend, Tooltip as ReTooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Bar, Line, Pie } from "recharts";
 
-// Simplified analytics data type that avoids deep nesting
-type SimpleAnalyticsData = {
+// Simple data type to avoid deep nesting
+interface SimpleAnalyticsData {
   id: string;
   name: string;
   value: number;
-};
+}
+
+// Custom chart container component to simplify rendering
+const SimpleChartContainer = ({ title, children }: { title: string, children: React.ReactNode }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-lg">{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="h-[300px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          {children}
+        </ResponsiveContainer>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 const AnalyticsPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
 
-  // Sample data that won't cause type instantiation issues
+  // Sample data for charts
   const enrollmentData: SimpleAnalyticsData[] = [
     { id: "1", name: "Computer Science", value: 120 },
     { id: "2", name: "Business Administration", value: 85 },
@@ -37,6 +54,9 @@ const AnalyticsPage = () => {
     { id: "2", name: "Absent", value: 15 }
   ];
 
+  // Colors for pie chart
+  const COLORS = ['#0088FE', '#FF8042'];
+
   return (
     <div>
       <PageHeader
@@ -46,9 +66,12 @@ const AnalyticsPage = () => {
       />
 
       <div className="mt-6">
+        {/* Use custom prop handler functions */}
         <ReportFilter
-          onPeriodChange={setSelectedPeriod}
-          onDepartmentChange={setSelectedDepartment}
+          onChange={(filters) => {
+            if (filters.period) setSelectedPeriod(filters.period);
+            if (filters.department) setSelectedDepartment(filters.department);
+          }}
         />
       </div>
 
@@ -62,90 +85,83 @@ const AnalyticsPage = () => {
 
         <TabsContent value="enrollment" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Enrollment by Department</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer 
-                  chartType="bar"
-                  data={enrollmentData}
-                  xAxis="name"
-                  yAxis="value"
-                />
-              </CardContent>
-            </Card>
+            <SimpleChartContainer title="Enrollment by Department">
+              <BarChart data={enrollmentData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#8884d8" />
+              </BarChart>
+            </SimpleChartContainer>
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Enrollment Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer 
-                  chartType="line"
-                  data={feeCollectionData}
-                  xAxis="name"
-                  yAxis="value"
-                />
-              </CardContent>
-            </Card>
+            <SimpleChartContainer title="Enrollment Trends">
+              <LineChart data={feeCollectionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                <Line type="monotone" dataKey="value" stroke="#8884d8" />
+              </LineChart>
+            </SimpleChartContainer>
           </div>
         </TabsContent>
 
         <TabsContent value="financial" className="mt-6">
-          {/* Similar structure for financial tab */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Fee Collection</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer 
-                  chartType="bar"
-                  data={feeCollectionData}
-                  xAxis="name"
-                  yAxis="value"
-                />
-              </CardContent>
-            </Card>
+            <SimpleChartContainer title="Fee Collection">
+              <BarChart data={feeCollectionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#82ca9d" />
+              </BarChart>
+            </SimpleChartContainer>
           </div>
         </TabsContent>
 
         <TabsContent value="academic" className="mt-6">
-          {/* Similar structure for academic tab */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Academic Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer 
-                  chartType="line"
-                  data={feeCollectionData}
-                  xAxis="name"
-                  yAxis="value"
-                />
-              </CardContent>
-            </Card>
+            <SimpleChartContainer title="Academic Performance">
+              <LineChart data={feeCollectionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <ReTooltip />
+                <Legend />
+                <Line type="monotone" dataKey="value" stroke="#82ca9d" />
+              </LineChart>
+            </SimpleChartContainer>
           </div>
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6">
-          {/* Similar structure for attendance tab */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Attendance Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer 
-                  chartType="pie"
+            <SimpleChartContainer title="Attendance Overview">
+              <PieChart>
+                <Pie
                   data={attendanceData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
                   nameKey="name"
-                  valueKey="value"
-                />
-              </CardContent>
-            </Card>
+                  label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {attendanceData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+                <ReTooltip />
+              </PieChart>
+            </SimpleChartContainer>
           </div>
         </TabsContent>
       </Tabs>
