@@ -63,10 +63,11 @@ const TeacherDashboard = () => {
           teacherSubjects?.map(ts => ts.subjects?.course_id) || []
         )].filter(Boolean);
         
-        // Get accurate count of students assigned to this teacher
+        // Get accurate count of students assigned to this teacher through teacher_students table
         const { data: teacherStudentsData, error: studentDataError } = await supabase
           .from('teacher_students')
-          .select('student_id', { count: 'exact', head: false });
+          .select('student_id', { count: 'exact' })
+          .eq('teacher_id', teacherProfile.id);
           
         if (studentDataError) throw studentDataError;
         
@@ -158,6 +159,7 @@ const TeacherDashboard = () => {
       someDate.getFullYear() === today.getFullYear();
   };
   
+  // Only initialize fallback activities if there are none
   if (recentActivities.length === 0) {
     setRecentActivities([
       {
