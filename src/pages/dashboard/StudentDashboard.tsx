@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
@@ -13,7 +12,6 @@ import RecentActivityCard from "@/components/dashboard/RecentActivityCard";
 import StudentNotificationsList from "@/components/student/StudentNotificationsList";
 import { useToast } from "@/hooks/use-toast";
 
-// Type for upcoming exams
 interface UpcomingExam {
   id: string;
   title: string;
@@ -24,7 +22,6 @@ interface UpcomingExam {
   end_time: string;
 }
 
-// Type for enrolled courses
 interface EnrolledCourse {
   id: string;
   course_name: string;
@@ -32,7 +29,6 @@ interface EnrolledCourse {
   status: string;
 }
 
-// Type for activities
 interface Activity {
   id: string;
   title: string;
@@ -52,7 +48,9 @@ const StudentDashboard = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [hasUnpaidFees, setHasUnpaidFees] = useState(false);
   const [studentProfile, setStudentProfile] = useState<any>(null);
-  const [attendanceStats, setAttendanceStats] = useState<any>(null);
+  const [attendanceStats, setAttendanceStats] = useState<{ overall_percentage: number | null }>({
+    overall_percentage: null
+  });
   
   useEffect(() => {
     if (user) {
@@ -85,9 +83,7 @@ const StudentDashboard = () => {
       
       setStudentProfile(data);
       
-      // Check if enrollment is approved but status still shows pending
       if (data && data.enrollment_status === 'pending') {
-        // Check if there are any approved enrollments for this student
         const { data: enrollments, error: enrollmentsError } = await extendedSupabase
           .from('student_course_enrollments')
           .select('status')
@@ -96,13 +92,11 @@ const StudentDashboard = () => {
           .limit(1);
           
         if (!enrollmentsError && enrollments && enrollments.length > 0) {
-          // Update the student status to active
           await extendedSupabase
             .from('students')
             .update({ enrollment_status: 'active' })
             .eq('id', data.id);
             
-          // Update local state
           setStudentProfile({
             ...data,
             enrollment_status: 'active'
@@ -124,7 +118,6 @@ const StudentDashboard = () => {
   
   const fetchUpcomingExams = async () => {
     try {
-      // This is a placeholder - replace with actual exam data fetch when available
       const { data, error } = await extendedSupabase
         .from('exams')
         .select(`
@@ -220,20 +213,53 @@ const StudentDashboard = () => {
   
   const fetchAttendanceStats = async () => {
     try {
-      if (!studentProfile?.id) return null;
+      const { data: studentData, error: studentError } = await extendedSupabase
+        .from('students')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+        
+      if (studentError) throw studentError;
       
-      // This would be replaced with actual attendance calculation
-      // For now, returning a placeholder value
-      setAttendanceStats({
-        overall_percentage: 92
-      });
+      const { data: attendanceData, error: attendanceError } = await extendedSupabase
+        .from('attendance_records')
+        .select('status')
+        .eq('student_id', studentData.id);
+        
+      if (attendanceError) throw attendanceError;
       
-      return {
-        overall_percentage: 92
-      };
+      if (attendanceData && attendanceData.length > 0) {
+        const totalRecords = attendanceData.length;
+        const presentRecords = attendanceData.filter(
+          record => record.status.toLowerCase() === 'present'
+        ).length;
+        
+        const attendancePercentage = (presentRecords / totalRecords) * 100;
+        
+        setAttendanceStats({
+          overall_percentage: parseFloat(attendancePercentage.toFixed(1))
+        });
+        
+        return {
+          overall_percentage: parseFloat(attendancePercentage.toFixed(1))
+        };
+      } else {
+        setAttendanceStats({
+          overall_percentage: null
+        });
+        
+        return {
+          overall_percentage: null
+        };
+      }
     } catch (error) {
       console.error("Error fetching attendance stats:", error);
-      return null;
+      setAttendanceStats({
+        overall_percentage: null
+      });
+      return {
+        overall_percentage: null
+      };
     }
   };
   
@@ -284,17 +310,13 @@ const StudentDashboard = () => {
   };
 
   const getRecentActivities = () => {
-    // In a real implementation, this would fetch from the database
-    // For now, we'll return an empty array or show a message that no activities exist
     return [];
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Main content - 2/3 width on medium screens and up */}
         <div className="md:w-2/3 space-y-6">
-          {/* Welcome and quick stats */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card className="col-span-full">
               <CardHeader className="pb-2">
@@ -397,7 +419,11 @@ const StudentDashboard = () => {
                   <div className="flex items-center">
                     <Clock className="h-8 w-8 text-green-500" />
                     <div className="ml-3">
-                      <div className="text-2xl font-bold">{attendanceStats?.overall_percentage || 'N/A'}%</div>
+                      <div className="text-2xl font-bold">
+                        {attendanceStats.overall_percentage !== null 
+                          ? `${attendanceStats.overall_percentage}%` 
+                          : 'N/A'}
+                      </div>
                       <p className="text-xs text-gray-500">Overall attendance</p>
                     </div>
                   </div>
@@ -407,7 +433,6 @@ const StudentDashboard = () => {
             </Card>
           </div>
           
-          {/* Upcoming exams section */}
           <Card>
             <CardHeader>
               <CardTitle>Upcoming Exams</CardTitle>
@@ -458,7 +483,6 @@ const StudentDashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Recent activity section */}
           {activities.length > 0 ? (
             <RecentActivityCard activities={activities} />
           ) : (
@@ -475,9 +499,7 @@ const StudentDashboard = () => {
           )}
         </div>
         
-        {/* Sidebar content - 1/3 width on medium screens and up */}
         <div className="md:w-1/3">
-          {/* Student profile card */}
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>My Profile</CardTitle>
@@ -528,7 +550,6 @@ const StudentDashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Notifications card */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
