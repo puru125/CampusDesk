@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +31,8 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface PaymentTransaction {
   id: string;
@@ -99,7 +100,6 @@ const PaymentsList = ({ isStudent, studentId }: PaymentsListProps) => {
           )
         `);
       
-      // If student view, filter by student ID
       if (isStudent && studentId) {
         const { data: studentData } = await supabase
           .from('students')
@@ -112,7 +112,6 @@ const PaymentsList = ({ isStudent, studentId }: PaymentsListProps) => {
         }
       }
       
-      // Get data
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
@@ -159,7 +158,73 @@ const PaymentsList = ({ isStudent, studentId }: PaymentsListProps) => {
   };
 
   const downloadReceipt = () => {
-    // In a real app, this would generate and download a PDF receipt
+    if (!selectedPayment) return;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    doc.setFontSize(20);
+    doc.setTextColor(0, 0, 0);
+    doc.text("PAYMENT RECEIPT", pageWidth / 2, 20, { align: "center" });
+    
+    doc.setFontSize(12);
+    doc.text("Institute Management System", pageWidth / 2, 30, { align: "center" });
+    
+    doc.setDrawColor(0, 0, 0);
+    doc.line(14, 35, pageWidth - 14, 35);
+    
+    const formattedDate = format(new Date(selectedPayment.payment_date), "PP");
+    
+    const receiptData = [
+      ["Receipt No:", selectedPayment.receipt_number],
+      ["Date:", formattedDate],
+      ["Student:", selectedPayment.student?.full_name || ""],
+      ["Enrollment No:", selectedPayment.student?.enrollment_number || ""],
+      ["Amount:", `₹${selectedPayment.amount.toLocaleString()}`],
+      ["Payment Method:", selectedPayment.payment_method],
+      ["Status:", selectedPayment.status.toUpperCase()],
+    ];
+    
+    if (selectedPayment.transaction_id) {
+      receiptData.push(["Transaction ID:", selectedPayment.transaction_id]);
+    }
+    
+    if (selectedPayment.admin_remarks) {
+      receiptData.push(["Remarks:", selectedPayment.admin_remarks]);
+    }
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [],
+      body: receiptData,
+      theme: "plain",
+      styles: { 
+        fontSize: 10,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { 
+          cellWidth: 40,
+          fontStyle: "bold"
+        },
+        1: { 
+          cellWidth: 85
+        }
+      }
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY || 150;
+    doc.setFontSize(9);
+    doc.text("This is a computer-generated receipt. No signature required.", pageWidth / 2, finalY + 20, { align: "center" });
+    
+    if (selectedPayment.status === "completed") {
+      doc.setFillColor(0, 128, 0);
+      doc.setTextColor(0, 128, 0);
+      doc.text("PAID", pageWidth - 30, finalY + 10);
+    }
+    
+    doc.save(`Receipt-${selectedPayment.receipt_number}.pdf`);
+    
     toast({
       title: "Receipt Downloaded",
       description: "Payment receipt has been downloaded successfully",
@@ -292,7 +357,6 @@ const PaymentsList = ({ isStudent, studentId }: PaymentsListProps) => {
         </div>
       )}
 
-      {/* Receipt Dialog */}
       <Dialog open={receiptDialogOpen} onOpenChange={setReceiptDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

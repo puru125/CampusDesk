@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { School, Users, BookOpen, Calendar, CheckSquare, Clock, FileBarChart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -62,12 +63,15 @@ const TeacherDashboard = () => {
           teacherSubjects?.map(ts => ts.subjects?.course_id) || []
         )].filter(Boolean);
         
-        const { count: teacherStudentsCount, error: studentCountError } = await supabase
+        // Get accurate count of students assigned to this teacher
+        const { data: teacherStudentsData, error: studentDataError } = await supabase
           .from('teacher_students')
-          .select('*', { count: 'exact', head: true })
-          .eq('teacher_id', teacherProfile.id);
+          .select('student_id', { count: 'exact', head: false });
           
-        if (studentCountError) throw studentCountError;
+        if (studentDataError) throw studentDataError;
+        
+        // Use the actual count from the returned data
+        const teacherStudentsCount = teacherStudentsData?.length || 0;
         
         const today = new Date();
         const currentDay = today.getDay() === 0 ? 7 : today.getDay();
@@ -89,7 +93,7 @@ const TeacherDashboard = () => {
         
         setStats({
           classes: timetableEntries?.filter(te => te.day_of_week === currentDay).length || 0,
-          students: typeof teacherStudentsCount === 'number' ? teacherStudentsCount : 0,
+          students: teacherStudentsCount,
           courses: courseIds.length,
           upcomingClasses: timetableEntries?.length || 0
         });

@@ -50,6 +50,11 @@ interface AttendanceDataItem {
   total: number;
 }
 
+// Define a type for CSV export data to avoid deep type instantiation
+interface ExportData {
+  [key: string]: string | number;
+}
+
 const AnalyticsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -374,8 +379,8 @@ const AnalyticsPage = () => {
         description: "Preparing your report for download...",
       });
 
-      let exportData;
-      let fileName;
+      let exportData: ExportData[] = [];
+      let fileName: string;
 
       if (activeTab === 'financial') {
         exportData = financialData.monthlySummary.map(item => ({
@@ -408,11 +413,12 @@ const AnalyticsPage = () => {
       
       const csv = [
         headers.join(','),
-        ...exportData.map(row => headers.map(header => 
-          typeof row[header as keyof typeof row] === 'string' && row[header as keyof typeof row].includes(',')
-            ? `"${row[header as keyof typeof row]}"`
-            : row[header as keyof typeof row]
-        ).join(','))
+        ...exportData.map(row => headers.map(header => {
+          const value = row[header];
+          return typeof value === 'string' && value.includes(',') 
+            ? `"${value}"`
+            : value;
+        }).join(','))
       ].join('\n');
 
       // Create and trigger download
