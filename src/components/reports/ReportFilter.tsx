@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -12,11 +12,23 @@ import { Button } from "@/components/ui/button";
 
 export interface ReportFilterProps {
   onFilterChange: (period: string, department: string) => void;
+  initialPeriod?: string;
+  initialDepartment?: string;
 }
 
-const ReportFilter = ({ onFilterChange }: ReportFilterProps) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
+const ReportFilter = ({ 
+  onFilterChange, 
+  initialPeriod = "month", 
+  initialDepartment = "all" 
+}: ReportFilterProps) => {
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(initialPeriod);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(initialDepartment);
+
+  // Initialize with initial values or apply filter when props change
+  useEffect(() => {
+    setSelectedPeriod(initialPeriod);
+    setSelectedDepartment(initialDepartment);
+  }, [initialPeriod, initialDepartment]);
 
   const handleApplyFilter = () => {
     onFilterChange(selectedPeriod, selectedDepartment);
