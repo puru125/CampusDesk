@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,11 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, ArrowLeft, Download, Calendar, Clock, Users, CheckCircle, XCircle, FileCheck, Loader2 } from "lucide-react";
+import { 
+  FileText, 
+  ArrowLeft, 
+  Download, 
+  Calendar, 
+  Clock, 
+  Users, 
+  CheckCircle, 
+  XCircle, 
+  FileCheck, 
+  Loader2 
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { format, parseISO } from "date-fns";
 import { Progress } from "@/components/ui/progress";
+import * as XLSX from 'xlsx';
 
 interface Assignment {
   id: string;
@@ -67,7 +78,6 @@ const AssignmentDetailsPage = () => {
       try {
         if (!user || !assignmentId) return;
         
-        // Get teacher profile
         const { data: teacherProfile, error: teacherError } = await supabase
           .from('teachers')
           .select('id')
@@ -76,7 +86,6 @@ const AssignmentDetailsPage = () => {
           
         if (teacherError) throw teacherError;
         
-        // Get assignment details
         const { data: assignmentData, error: assignmentError } = await supabase
           .from('assignments')
           .select(`
@@ -99,7 +108,6 @@ const AssignmentDetailsPage = () => {
         
         setAssignment(assignmentData);
         
-        // Get count of students assigned to this teacher
         const { count: studentCountResult } = await supabase
           .from('teacher_students')
           .select('*', { count: 'exact', head: true })
@@ -107,7 +115,6 @@ const AssignmentDetailsPage = () => {
           
         setStudentCount(studentCountResult || 0);
         
-        // Get all submissions for this assignment
         const { data: submissionsData, error: submissionsError } = await supabase
           .from('assignment_submissions')
           .select(`
@@ -134,7 +141,6 @@ const AssignmentDetailsPage = () => {
         
         setSubmissions(submissionsData || []);
         
-        // Get potential students who haven't submitted yet
         const { data: teacherStudentsData, error: teacherStudentsError } = await supabase
           .from('teacher_students')
           .select(`
@@ -152,7 +158,6 @@ const AssignmentDetailsPage = () => {
           
         if (teacherStudentsError) throw teacherStudentsError;
         
-        // Add missing students as pending submissions
         const existingStudentIds = submissionsData?.map(s => s.student_id) || [];
         const missingStudents = teacherStudentsData
           ?.filter(ts => !existingStudentIds.includes(ts.student_id))
@@ -212,7 +217,6 @@ const AssignmentDetailsPage = () => {
         sub => sub.status === 'submitted' && !sub.id.startsWith('pending')
       );
       
-      // Update submissions in database
       for (const submission of submissionsToUpdate) {
         await supabase
           .from('assignment_submissions')
@@ -224,7 +228,6 @@ const AssignmentDetailsPage = () => {
           .eq('id', submission.id);
       }
       
-      // Refresh submission data
       const { data: refreshedData } = await supabase
         .from('assignment_submissions')
         .select(`
@@ -247,7 +250,6 @@ const AssignmentDetailsPage = () => {
         `)
         .eq('assignment_id', assignmentId);
         
-      // Update local state with refreshed data
       if (refreshedData) {
         const pendingSubmissions = submissions.filter(sub => sub.id.startsWith('pending'));
         setSubmissions([...refreshedData, ...pendingSubmissions]);
@@ -278,7 +280,6 @@ const AssignmentDetailsPage = () => {
         
       if (error) throw error;
       
-      // Create download link
       const downloadUrl = URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = downloadUrl;
@@ -287,7 +288,6 @@ const AssignmentDetailsPage = () => {
       link.click();
       link.remove();
       
-      // Clean up URL object
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
     } catch (error) {
       console.error("Error downloading file:", error);
@@ -297,6 +297,59 @@ const AssignmentDetailsPage = () => {
         variant: "destructive",
       });
     }
+  };
+  
+  const exportGrades = () => {
+    try {
+      const exportData = submissions.map(submission => ({
+        "Student Name": submission.student?.users?.full_name || 'Unknown',
+        "Enrollment Number": submission.student?.enrollment_number || 'N/A',
+        "Status": submission.status,
+        "Submitted Date": submission.submitted_at 
+          ? format(parseISO(submission.submitted_at), "PPP") 
+          : "Not submitted",
+        "Score": submission.score !== null 
+          ? submission.score 
+          : "Not graded",
+        "Max Score": assignment?.max_score || 0,
+        "Feedback": submission.feedback || ''
+      }));
+      
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Grades");
+      
+      const wscols = [
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 15 },
+        { wch: 8 },
+        { wch: 8 },
+        { wch: 30 }
+      ];
+      worksheet['!cols'] = wscols;
+      
+      const fileName = `${assignment?.title || 'Assignment'}_Grades_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+      
+      XLSX.writeFile(workbook, fileName);
+      
+      toast({
+        title: "Grades Exported",
+        description: "Grades have been exported successfully",
+      });
+    } catch (error) {
+      console.error("Error exporting grades:", error);
+      toast({
+        title: "Error",
+        description: "Failed to export grades",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const downloadAllSubmissions = () => {
+    console.log("Download all submissions functionality would be implemented here");
   };
   
   if (loading) {
@@ -420,11 +473,11 @@ const AssignmentDetailsPage = () => {
               </div>
               
               <div className="flex justify-between mt-4">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={() => downloadAllSubmissions()}>
                   <Download className="mr-2 h-4 w-4" />
                   Download All
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={exportGrades}>
                   <FileCheck className="mr-2 h-4 w-4" />
                   Export Grades
                 </Button>

@@ -1,13 +1,13 @@
 
-import { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { extendedSupabase } from "@/integrations/supabase/extendedClient";
-import { useToast } from "@/hooks/use-toast";
-import PageHeader from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { IdCard, Printer, ArrowLeft, Download, Loader2 } from "lucide-react";
+import PageHeader from "@/components/ui/page-header";
+import { IdCard, Download, Printer, ArrowLeft, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -241,7 +241,7 @@ const StudentIDCardPage = () => {
               <div 
                 ref={idCardRef}
                 className="bg-white rounded-lg overflow-hidden"
-                style={{ width: '86mm', height: '54mm' }}
+                style={{ width: '100%', aspectRatio: '1.586' }}
               >
                 {/* ID Card Header */}
                 <div className="bg-institute-600 text-white p-3 text-center">
