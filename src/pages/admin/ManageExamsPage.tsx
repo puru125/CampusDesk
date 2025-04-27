@@ -32,13 +32,19 @@ const ManageExamsPage = () => {
 
   const createExamMutation = useMutation({
     mutationFn: async (formData: any) => {
-      // Create exam entry
+      // Create exam entry with all required fields
       const { data: examData, error: examError } = await supabase
         .from("exams")
         .insert({
           title: formData.title,
           description: formData.description,
           status: "pending",
+          // Add required fields that were missing
+          exam_date: new Date().toISOString().split('T')[0], // Current date
+          start_time: "09:00",
+          end_time: "10:00",
+          max_marks: formData.marks || 10,
+          passing_marks: Math.floor((formData.marks || 10) * 0.4), // 40% passing
         })
         .select()
         .single();
