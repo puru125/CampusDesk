@@ -1,4 +1,3 @@
-
 import {
   LayoutDashboard,
   Calendar,
@@ -19,9 +18,7 @@ import {
   CheckCircle,
   BookOpen,
   BarChart3,
-  FileBarChart,
-  FileLineChart,
-  FileSpreadsheet
+  FileBarChart
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -53,14 +50,9 @@ export const adminRoutes: Route[] = [
     href: "/courses",
   },
   {
-    title: "Timetable",
-    icon: Calendar,
-    href: "/timetable",
-  },
-  {
-    title: "Fees",
-    icon: CreditCard,
-    href: "/fees",
+    title: "Exams",
+    icon: FileText,
+    href: "/admin/exams",
   },
   {
     title: "Analytics",
@@ -157,6 +149,11 @@ export const studentRoutes: Route[] = [
     title: "Timetable",
     icon: Calendar,
     href: "/student/timetable",
+  },
+  {
+    title: "Exams",
+    icon: FileText,
+    href: "/student/exams",
   },
   {
     title: "Attendance",
