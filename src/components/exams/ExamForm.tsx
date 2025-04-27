@@ -22,7 +22,7 @@ const examSchema = z.object({
   question: z.string().min(1, "Question is required"),
   options: z.string().min(1, "Options are required"),
   correctAnswer: z.string().min(1, "Correct answer is required"),
-  marks: z.string().transform(Number),
+  marks: z.coerce.number().min(1, "Marks must be at least 1"),
 });
 
 interface ExamFormProps {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +18,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -37,7 +36,7 @@ const EnrollmentApprovalPage = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("enrollments");
   const [enrollments, setEnrollments] = useState<any[]>([]);
-  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [examSubmissions, setExamSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingAction, setProcessingAction] = useState<string | null>(null);
   const [remarks, setRemarks] = useState("");
@@ -48,7 +47,7 @@ const EnrollmentApprovalPage = () => {
   useEffect(() => {
     if (user && user.role === 'admin') {
       fetchPendingEnrollments();
-      fetchPendingFeedbacks();
+      fetchPendingExams();
     }
   }, [user]);
 
@@ -82,14 +81,45 @@ const EnrollmentApprovalPage = () => {
     }
   };
 
-  const fetchPendingFeedbacks = async () => {
+  const fetchPendingExams = async () => {
     try {
       setLoading(true);
-      // In a real implementation, we would fetch feedback data
-      // For now using placeholder data
-      setFeedbacks([]);
+      const { data, error } = await supabase
+        .from("exam_submissions")
+        .select(`
+          id,
+          score,
+          submitted_at,
+          status,
+          exam:exams (
+            id,
+            title,
+            max_marks,
+            passing_marks
+          ),
+          student:students (
+            id,
+            users:user_id (
+              full_name,
+              email
+            ),
+            enrollment_number
+          )
+        `)
+        .eq("status", "pending");
+
+      if (error) {
+        throw error;
+      }
+
+      setExamSubmissions(data || []);
     } catch (error) {
-      console.error("Error fetching pending feedbacks:", error);
+      console.error("Error fetching pending exam submissions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch pending exam submissions",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -133,18 +163,9 @@ const EnrollmentApprovalPage = () => {
           description: `Successfully ${action === "approved" ? "approved" : "rejected"} enrollment request`,
         });
 
-        // Refresh the enrollments list
         fetchPendingEnrollments();
-      } else if (activeTab === "feedbacks") {
-        // Handle feedback approval/rejection
-        // This would be implemented in a real application
-        toast({
-          title: `Feedback ${action === "approved" ? "Approved" : "Rejected"}`,
-          description: `Successfully ${action === "approved" ? "approved" : "rejected"} feedback`,
-        });
-
-        // Refresh the feedbacks list
-        fetchPendingFeedbacks();
+      } else if (activeTab === "exams") {
+        await processExam();
       }
     } catch (error: any) {
       toast({
@@ -154,6 +175,55 @@ const EnrollmentApprovalPage = () => {
       });
     } finally {
       setDialogOpen(false);
+      setProcessingAction(null);
+    }
+  };
+
+  const processExam = async () => {
+    if (!selectedItem || !user) return;
+    
+    setProcessingAction(selectedItem.id);
+    
+    try {
+      const { error } = await supabase
+        .from("exam_submissions")
+        .update({
+          status: action,
+          admin_remarks: remarks,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", selectedItem.id);
+
+      if (error) throw error;
+
+      setExamSubmissions(submissions => 
+        submissions.filter(s => s.id !== selectedItem.id)
+      );
+
+      toast({
+        title: "Success",
+        description: `Exam submission ${action === "approved" ? "approved" : "rejected"} successfully`,
+      });
+
+      const notification = {
+        student_id: selectedItem.student.id,
+        title: `Exam ${action === "approved" ? "Approved" : "Rejected"}`,
+        message: `Your exam submission for ${selectedItem.exam.title} has been ${action}${
+          remarks ? `. Remarks: ${remarks}` : ''
+        }`,
+      };
+
+      await supabase.from("student_notifications").insert(notification);
+
+      setDialogOpen(false);
+    } catch (error) {
+      console.error(`Error ${action}ing exam submission:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to ${action} exam submission`,
+        variant: "destructive",
+      });
+    } finally {
       setProcessingAction(null);
     }
   };
@@ -218,26 +288,74 @@ const EnrollmentApprovalPage = () => {
     });
   };
 
-  // Template for feedback rows
-  const renderFeedbackRows = () => (
-    <TableRow>
-      <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-        No pending feedback for approval
-      </TableCell>
-    </TableRow>
-  );
+  const renderExamRows = () => {
+    if (examSubmissions.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+            No pending exam submissions found
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return examSubmissions.map((submission) => (
+      <TableRow key={submission.id}>
+        <TableCell>{submission.student?.users?.full_name || "Unknown"}</TableCell>
+        <TableCell>{submission.student?.enrollment_number || "Unknown"}</TableCell>
+        <TableCell>{submission.exam?.title || "Unknown"}</TableCell>
+        <TableCell>{submission.score} / {submission.exam?.max_marks}</TableCell>
+        <TableCell>{new Date(submission.submitted_at).toLocaleDateString()}</TableCell>
+        <TableCell>
+          <Badge variant={submission.status === "pending" ? "secondary" : "default"}>
+            {submission.status}
+          </Badge>
+        </TableCell>
+        <TableCell className="flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-green-600 border-green-600 hover:bg-green-100"
+            onClick={() => handleDialogOpen(submission, "approved")}
+            disabled={processingAction === submission.id}
+          >
+            {processingAction === submission.id ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <CheckCircle className="h-4 w-4 mr-1" />
+            )}
+            Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-600 border-red-600 hover:bg-red-100"
+            onClick={() => handleDialogOpen(submission, "rejected")}
+            disabled={processingAction === submission.id}
+          >
+            {processingAction === submission.id ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <XCircle className="h-4 w-4 mr-1" />
+            )}
+            Reject
+          </Button>
+        </TableCell>
+      </TableRow>
+    ));
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       <PageHeader
         title="Approvals"
-        description="Manage pending enrollment requests and feedback"
+        description="Manage pending enrollment requests and exam submissions"
       />
 
       <Tabs defaultValue="enrollments" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
           <TabsTrigger value="enrollments">Enrollment Requests</TabsTrigger>
-          <TabsTrigger value="feedbacks">Feedback Approvals</TabsTrigger>
+          <TabsTrigger value="exams">Exam Submissions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="enrollments">
@@ -275,12 +393,12 @@ const EnrollmentApprovalPage = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="feedbacks">
+        <TabsContent value="exams">
           <Card>
             <CardHeader>
-              <CardTitle>Pending Feedback Approvals</CardTitle>
+              <CardTitle>Pending Exam Submissions</CardTitle>
               <CardDescription>
-                Review and moderate feedback before publishing
+                Review and process student exam submissions
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -293,15 +411,16 @@ const EnrollmentApprovalPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Submitted By</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Subject</TableHead>
-                        <TableHead>Rating</TableHead>
-                        <TableHead>Date</TableHead>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Enrollment Number</TableHead>
+                        <TableHead>Exam Title</TableHead>
+                        <TableHead>Score</TableHead>
+                        <TableHead>Submitted Date</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>{renderFeedbackRows()}</TableBody>
+                    <TableBody>{renderExamRows()}</TableBody>
                   </Table>
                 </div>
               )}
@@ -315,7 +434,7 @@ const EnrollmentApprovalPage = () => {
           <DialogHeader>
             <DialogTitle>
               {action === "approved" ? "Approve" : "Reject"}{" "}
-              {activeTab === "enrollments" ? "Enrollment" : "Feedback"}
+              {activeTab === "enrollments" ? "Enrollment" : "Exam Submission"}
             </DialogTitle>
             <DialogDescription>
               {action === "approved"
