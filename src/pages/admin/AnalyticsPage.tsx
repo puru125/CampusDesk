@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import PageHeader from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,29 +6,13 @@ import { BarChart, LineChart, PieChart } from "lucide-react";
 import ReportFilter from "@/components/reports/ReportFilter";
 import { BarChart as ReBarChart, LineChart as ReLineChart, PieChart as RePieChart, Cell, Legend, Tooltip as ReTooltip, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Bar, Line, Pie } from "recharts";
 import { addDays, subDays, format, startOfWeek, startOfMonth, startOfQuarter, startOfYear } from "date-fns";
+import ChartContainer from "@/components/reports/ChartContainer";
 
-// Simple data type to avoid deep nesting
 interface SimpleAnalyticsData {
   id: string;
   name: string;
   value: number;
 }
-
-// Custom chart container component to simplify rendering
-const SimpleChartContainer = ({ title, children }: { title: string, children: React.ReactNode }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="text-lg">{title}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="h-[300px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          {children}
-        </ResponsiveContainer>
-      </div>
-    </CardContent>
-  </Card>
-);
 
 const AnalyticsPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("month");
@@ -38,26 +21,20 @@ const AnalyticsPage = () => {
   const [feeCollectionData, setFeeCollectionData] = useState<SimpleAnalyticsData[]>([]);
   const [attendanceData, setAttendanceData] = useState<SimpleAnalyticsData[]>([]);
 
-  // Generate filtered data based on period and department
   useEffect(() => {
-    // Filter enrollment data based on department
     const filteredEnrollmentData = getFilteredEnrollmentData(selectedDepartment);
     setEnrollmentData(filteredEnrollmentData);
     
-    // Filter fee collection data based on period
     const filteredFeeData = getFilteredFeeData(selectedPeriod);
     setFeeCollectionData(filteredFeeData);
     
-    // Attendance data may not need to be filtered in this example
     setAttendanceData([
       { id: "1", name: "Present", value: 85 },
       { id: "2", name: "Absent", value: 15 }
     ]);
   }, [selectedPeriod, selectedDepartment]);
 
-  // Filter enrollment data based on department
   const getFilteredEnrollmentData = (department: string): SimpleAnalyticsData[] => {
-    // All departments data
     const allData = [
       { id: "1", name: "Computer Science", value: 120 },
       { id: "2", name: "Business Administration", value: 85 },
@@ -65,12 +42,10 @@ const AnalyticsPage = () => {
       { id: "4", name: "Electrical Engineering", value: 45 }
     ];
     
-    // If "all" is selected, return all data
     if (department === "all") {
       return allData;
     }
     
-    // Department-specific data
     const departmentMap: Record<string, SimpleAnalyticsData[]> = {
       cs: [{ id: "1", name: "Computer Science", value: 120 }],
       bus: [{ id: "2", name: "Business Administration", value: 85 }],
@@ -84,7 +59,6 @@ const AnalyticsPage = () => {
     return departmentMap[department] || allData;
   };
   
-  // Filter fee collection data based on period
   const getFilteredFeeData = (period: string): SimpleAnalyticsData[] => {
     switch (period) {
       case "week":
@@ -125,10 +99,8 @@ const AnalyticsPage = () => {
     }
   };
 
-  // Colors for pie chart
   const COLORS = ['#0088FE', '#FF8042'];
-  
-  // Handle filter changes
+
   const handleFilterChange = (period: string, department: string) => {
     setSelectedPeriod(period);
     setSelectedDepartment(department);
@@ -160,7 +132,7 @@ const AnalyticsPage = () => {
 
         <TabsContent value="enrollment" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SimpleChartContainer title="Enrollment by Department">
+            <ChartContainer title="Enrollment by Department">
               <ReBarChart data={enrollmentData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -169,9 +141,9 @@ const AnalyticsPage = () => {
                 <Legend />
                 <Bar dataKey="value" fill="#8884d8" />
               </ReBarChart>
-            </SimpleChartContainer>
+            </ChartContainer>
             
-            <SimpleChartContainer title="Enrollment Trends">
+            <ChartContainer title="Enrollment Trends">
               <ReLineChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -180,13 +152,13 @@ const AnalyticsPage = () => {
                 <Legend />
                 <Line type="monotone" dataKey="value" stroke="#8884d8" />
               </ReLineChart>
-            </SimpleChartContainer>
+            </ChartContainer>
           </div>
         </TabsContent>
 
         <TabsContent value="financial" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SimpleChartContainer title="Fee Collection">
+            <ChartContainer title="Fee Collection">
               <ReBarChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -195,13 +167,13 @@ const AnalyticsPage = () => {
                 <Legend />
                 <Bar dataKey="value" fill="#82ca9d" />
               </ReBarChart>
-            </SimpleChartContainer>
+            </ChartContainer>
           </div>
         </TabsContent>
 
         <TabsContent value="academic" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SimpleChartContainer title="Academic Performance">
+            <ChartContainer title="Academic Performance">
               <ReLineChart data={feeCollectionData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
@@ -210,13 +182,13 @@ const AnalyticsPage = () => {
                 <Legend />
                 <Line type="monotone" dataKey="value" stroke="#82ca9d" />
               </ReLineChart>
-            </SimpleChartContainer>
+            </ChartContainer>
           </div>
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SimpleChartContainer title="Attendance Overview">
+            <ChartContainer title="Attendance Overview">
               <RePieChart>
                 <Pie
                   data={attendanceData}
@@ -236,7 +208,7 @@ const AnalyticsPage = () => {
                 <Legend />
                 <ReTooltip />
               </RePieChart>
-            </SimpleChartContainer>
+            </ChartContainer>
           </div>
         </TabsContent>
       </Tabs>
