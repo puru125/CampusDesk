@@ -91,6 +91,9 @@ import StudentDoubtsPage from "@/pages/student/StudentDoubtsPage";
 import AskDoubtPage from "@/pages/student/AskDoubtPage";
 import StudentTimetablePage from "@/pages/student/StudentTimetablePage";
 import StudentStudyMaterialsPage from "@/pages/student/StudentStudyMaterialsPage";
+import ManageExamsPage from "@/pages/admin/ManageExamsPage";
+import ExamDetailsPage from "@/pages/admin/ExamDetailsPage";
+import ExamResultsPage from "@/pages/teacher/ExamReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -183,6 +186,11 @@ function App() {
                     <Route path="fees/payment/new" element={<MakePaymentPage />} />
                     <Route path="doubts" element={<TeacherDoubtsPage />} />
                     <Route path="study-materials" element={<StudentStudyMaterialsPage />} />
+                  
+                    {/* Admin Routes */}
+                    <Route path="admin/exams" element={<ManageExamsPage />} />
+                    <Route path="admin/exams/:examId" element={<ExamDetailsPage />} />
+                    <Route path="admin/exams/results" element={<ExamResultsPage />} />
                   </Routes>
                 </Shell>
               </ProtectedRoute>

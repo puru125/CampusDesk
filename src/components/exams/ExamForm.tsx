@@ -38,7 +38,7 @@ const ExamForm = ({ onSubmit }: ExamFormProps) => {
       question: "",
       options: "",
       correctAnswer: "",
-      marks: "1",
+      marks: 1,
     },
   });
 
